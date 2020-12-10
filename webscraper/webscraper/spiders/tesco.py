@@ -1,14 +1,7 @@
 # -*- coding: utf-8 -*-
 import scrapy
 from datetime import datetime
-import xmltodict
-import shutil
-import os
-import json
-from nested_lookup import nested_lookup
-from pathlib import Path
-import requests
-import argparse
+
 
 
 class tesco3(scrapy.Spider):
