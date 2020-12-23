@@ -6,14 +6,25 @@ from datetime import datetime
 
 class tesco3(scrapy.Spider):
     name = 'tesco3'
-    custom_settings = {'CONCURRENT_REQUESTS': 3,
+    custom_settings = {'CONCURRENT_REQUESTS': 30,
                        'FEED_FORMAT': 'csv',
                        'FEED_URI': datetime.now().strftime('%Y_%m_%d__%H_%M') + 'tesco3.csv',
                        'RETRY_TIMES': 5,
                        'COOKIES_ENABLED': False,
-                       'CLOSESPIDER_ITEMCOUNT' : 100
+                       'FEED_EXPORT_ENCODING' : "utf-8",
+                       'FEED_EXPORT_FIELDS' : [
+                                               'Product Name',
+                                                'Price',
+                                                'Price per quantity',
+                                                'Image URL',
+                                                'Image Path',
+                                                'Category',
+                                                'Subcategory',
+                                                'Availability',
+                                                'Product URL'
+                                                ]
 
-                       }
+    }
     headers = {
         'authority': 'www.tesco.com',
         'cache-control': 'max-age=0',
@@ -28,9 +39,13 @@ class tesco3(scrapy.Spider):
     }
     proxy = 'http://xavigv:GOkNQBPK2DplRGqw@proxy.packetstream.io:31112'
 
+    def __init__(self, cat=None, *args, **kwargs):
+        super(tesco3, self).__init__(*args, **kwargs)
+        self.cat = cat
+
     def start_requests(self):
 
-        url = 'https://www.tesco.com/groceries/en-GB/shop/christmas/all'
+        url = self.cat
         yield scrapy.Request(url, headers=self.headers, callback=self.parse, meta={"proxy": self.proxy},
                              dont_filter=True)
 
@@ -79,6 +94,7 @@ class tesco3(scrapy.Spider):
             'Price ': m_rrp,
             'Price per quantity': m_ppq,
             'Image URL': image_link,
+            'Image Path' : 'images/'+title_main.replace('/','|')+'.'+image_link.split('.')[-1].split('?')[0],
             'Category' : response.meta['heading'],
             'Subcategory': breadcrumbs,
             'Availability' : availablility,
