@@ -5,11 +5,11 @@ import requests
 from scrapy.selector import Selector
 from nested_lookup import nested_lookup
 import json
-class ocado(scrapy.Spider):
-    name = 'ocado'
+class morrisons(scrapy.Spider):
+    name = 'morrisons'
     custom_settings = {'CONCURRENT_REQUESTS': 30,
                        'FEED_FORMAT': 'csv',
-                       'FEED_URI': datetime.now().strftime('%Y_%m_%d__%H_%M') + 'ocado.csv',
+                       'FEED_URI': datetime.now().strftime('%Y_%m_%d__%H_%M') + 'morrisons.csv',
                        'RETRY_TIMES': 5,
                        'COOKIES_ENABLED': False,
                        'FEED_EXPORT_ENCODING' : "utf-8",
@@ -38,7 +38,7 @@ class ocado(scrapy.Spider):
                }
 
     def __init__(self, cat=None, *args, **kwargs):
-        super(ocado, self).__init__(*args, **kwargs)
+        super(morrisons, self).__init__(*args, **kwargs)
         self.cat = cat
 
     def start_requests(self):
@@ -57,7 +57,7 @@ class ocado(scrapy.Spider):
         retry_times = 10
         while not success and retry_times >= 0:
             try:
-                response = requests.get(url, proxies=self.proxies)
+                response = requests.get(url)
                 if response.status_code == 200:
                     success = True
                     break
@@ -71,16 +71,20 @@ class ocado(scrapy.Spider):
         category = resp.xpath('//nav//li//text()').getall()[-1]
         json_dict = json.loads(resp.xpath('//script').get('').split('window.INITIAL_STATE = ')[1].rsplit(';', 1)[0])
         skus = list(set(nested_lookup('sku',json_dict)))
+
+        import ipdb;ipdb.set_trace()
+        data_sku = resp.xpath('//*[@data-sku]/@data-sku').getall()
+        all_sku = list(set(skus + data_sku))
         skus_list = []
 
-        for i in range(0,len(skus),6):
+        for i in range(0,len(all_sku),6):
             small_list = skus[i:i+6]
             skus_list.append(small_list)
 
 
         for sku_l in skus_list:
             sku_string = ','.join(sku_l)
-            sku_url = f"https://www.ocado.com/webshop/api/v1/products?skus={sku_string}"
+            sku_url = f"https://groceries.morrisons.com/webshop/api/v1/products?skus={sku_string}"
             yield scrapy.Request(
                 url = sku_url,
                 headers = headers,
@@ -94,13 +98,13 @@ class ocado(scrapy.Spider):
         items = json.loads(response.text)
         for item in items:
             sku = item.get('sku','')
-            url = f"https://www.ocado.com/products/{sku}"
+            url = f"https://groceries.morrisons.com/products/{sku}"
             name = item.get('name','')
             price_dict = item.get('price',{})
             price = price_dict.get('current','')
             unit_price_dict = price_dict.get('unit',{})
             unit_price = f"{unit_price_dict.get('price','')} {unit_price_dict.get('per','')}"
-            image_url  = f"https://www.ocado.com/productImages/{sku[:3]}/{sku}_0_640x640.jpg"
+            image_url  = f"https://groceries.morrisons.com/productImages/{sku[:3]}/{sku}_0_640x640.jpg"
             sub_category = item.get('mainCategory','').replace('/','>')
             weight = item.get('catchWeight','')
             try:

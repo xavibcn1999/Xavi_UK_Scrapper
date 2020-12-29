@@ -60,6 +60,7 @@ class tesco3(scrapy.Spider):
                                  meta={"proxy": self.proxy,
                                        "heading": heading})
 
+
         next_page = response.xpath('//*[@class="icon-icon_whitechevronright"]/parent::a/@href').get('')
         if next_page:
             yield scrapy.Request(url = response.urljoin(next_page),
@@ -83,7 +84,10 @@ class tesco3(scrapy.Spider):
             m_ppq = ''
 
         available = response.xpath('//div[@class="product-details-tile"]//span[@aria-hidden="true"][contains(text(),"Add")]').get('')
-
+        try:
+            number_of_reviews = response.xpath('//div[@id="review-data"]//h4/text()').get('').replace('Reviews','').replace('Review','').strip()
+        except:
+            number_of_reviews = 0
         if available:
             availablility = 'Yes'
         else:
@@ -94,12 +98,13 @@ class tesco3(scrapy.Spider):
             'Price ': m_rrp,
             'Price per quantity': m_ppq,
             'Image URL': image_link,
-            'Image Path' : 'images/'+title_main.replace('/','|')+'.'+image_link.split('.')[-1].split('?')[0],
+            'Image Path' : 'images/'+title_main.replace('/','_')+'.'+image_link.split('.')[-1].split('?')[0],
             'Category' : response.meta['heading'],
             'Subcategory': breadcrumbs,
             'Availability' : availablility,
-            'Product URL': response.url
-
+            'Product URL': response.url,
+            'Review Count': number_of_reviews,
+            'Weight': ''
         }
 
         yield item
