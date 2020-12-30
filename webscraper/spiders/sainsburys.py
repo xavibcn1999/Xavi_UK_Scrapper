@@ -2,9 +2,8 @@
 import scrapy
 from datetime import datetime
 import json
+from nested_lookup import nested_lookup
 
-#from scrapy.utils.response import open_in_browser
-#open_in_browser(response)
 
 
 class sainsbury(scrapy.Spider):
@@ -14,7 +13,6 @@ class sainsbury(scrapy.Spider):
                        'FEED_URI': datetime.now().strftime('%Y_%m_%d__%H_%M') + 'sainsbury.csv',
                        'RETRY_TIMES': 5,
                        'COOKIES_ENABLED': True,
-                       'FEED_EXPORT_ENCODING' : "utf-8",
 
     }
     headers = {
@@ -30,13 +28,13 @@ class sainsbury(scrapy.Spider):
     }
     proxy = 'http://xavigv:GOkNQBPK2DplRGqw@proxy.packetstream.io:31112'
 
-    # def __init__(self, cat=None, *args, **kwargs):
-    #     super(tesco3, self).__init__(*args, **kwargs)
-    #     self.cat = cat
+    def __init__(self, cat=None, *args, **kwargs):
+        super(sainsbury, self).__init__(*args, **kwargs)
+        self.cat = cat
 
     def start_requests(self):
 
-        url = "https://www.sainsburys.co.uk/webapp/wcs/stores/servlet/gb/groceries/bakery/all-bread"
+        url = self.cat
         yield scrapy.Request(url,
                              headers=self.headers,
                              callback=self.parse,
@@ -52,46 +50,31 @@ class sainsbury(scrapy.Spider):
             price = trolly.xpath('.//*[@class="pricePerUnit"]/text()').get('').strip()
             ppq = ' '.join(trolly.xpath('.//*[@class="pricePerMeasure"]//text()').getall()).strip()
             sku_id = trolly.xpath('.//input[@name="ItemSKU_ID"]/@value').get('')
-            image = f"https://assets.sainsburys-groceries.co.uk/gol/{sku_id}/1/300x300.jpg"
-            add  = trolly.xpath('.//*[@class="button process addQty  "]').get('')
-            if add:
-                available = 'Yes'
-            else:
-                available = 'No'
+
             navs = response.xpath('//ul[@id="breadcrumbNavList"]//li[@class]/a//text()').getall()
             category = navs[-1]
             sub_category = ' > '.join(navs)
-            try:
-                reviews = ''.join([i.strip() for i in trolly.xpath('.//*[@class="numberOfReviews"]//text()').getall()]).split('(')[1].split(')')[0]
-            except:
-                reviews = ''
 
             final_item = {
                 'Product Name': name,
                 'Price ': price,
                 'Price per quantity': ppq,
-                'Image URL': image,
-                'Image Path': 'images/' + name.replace('/', '_') + '_' + sku_id + '.' +
-                              image.split('.')[-1].split('?')[0],
+                'Image URL': '',
+                'Image Path': '',
                 'Category': category,
                 'Subcategory': sub_category,
-                'Availability': available,
+                'Availability': '',
                 'Product URL': url,
-                'Review Count': reviews,
+                'Review Count': '',
                 'Weight': ''
             }
-
-            if trolly.xpath('.//div[@class="reviews"]').get(''):
-                yield final_item
-
-            else:
-                url  = f"https://www.sainsburys.co.uk/groceries-api/gol-services/product/v1/product?filter[product_seo_url]={url.split('shop/')[1]}&include[ASSOCIATIONS]=true&include[DIETARY_PROFILE]=true"
-                yield scrapy.Request(
-                    url = url,
-                    callback=self.parse_details,
-                    headers=self.headers,
-                    meta={"proxy": self.proxy, "final_item" : final_item}
-                )
+            api_url  = f"https://www.sainsburys.co.uk/groceries-api/gol-services/product/v1/product?filter[product_seo_url]={url.split('shop/')[1]}&include[ASSOCIATIONS]=true&include[DIETARY_PROFILE]=true"
+            yield scrapy.Request(
+                url = api_url,
+                callback=self.parse_details,
+                headers=self.headers,
+                meta={"proxy": self.proxy, "final_item" : final_item, "sku_id" : sku_id}
+            )
         next_page = response.xpath('//li[@class="next"]/a/@href').get('')
         if next_page:
             yield scrapy.Request(url = next_page,
@@ -107,6 +90,21 @@ class sainsbury(scrapy.Spider):
             review_count = json_dict['products'][0]['reviews']['total']
         except:
             review_count = ''
+        try:
+            image = nested_lookup('url',json_dict['products'][0]['assets']['images'])[-1]
+            final_item['Image URL'] = image
+            final_item['Image Path'] = 'images/' + final_item[ 'Product Name'].replace('/', '_') + '_' + response.meta['sku_id'] + '.' +image.split('.')[-1].split('?')[0]
+
+        except:
+            final_item['Image URL'] = ''
+            final_item['Image Path'] = ''
+
+        av = json_dict['products'][0]['is_available']
+        if av:
+            final_item['Availability'] = 'Yes'
+        else:
+            final_item['Availability'] = 'No'
+
         final_item['Review Count'] = review_count
         yield final_item
 

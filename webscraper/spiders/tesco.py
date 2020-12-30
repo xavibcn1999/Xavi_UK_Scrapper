@@ -11,19 +11,7 @@ class tesco3(scrapy.Spider):
                        'FEED_URI': datetime.now().strftime('%Y_%m_%d__%H_%M') + 'tesco3.csv',
                        'RETRY_TIMES': 5,
                        'COOKIES_ENABLED': False,
-                       'FEED_EXPORT_ENCODING' : "utf-8",
-                       'FEED_EXPORT_FIELDS' : [
-                                               'Product Name',
-                                                'Price',
-                                                'Price per quantity',
-                                                'Image URL',
-                                                'Image Path',
-                                                'Category',
-                                                'Subcategory',
-                                                'Availability',
-                                                'Product URL'
-                                                ]
-
+                       'FEED_EXPORT_ENCODING' : "utf-8"
     }
     headers = {
         'authority': 'www.tesco.com',
