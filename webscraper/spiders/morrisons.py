@@ -129,7 +129,8 @@ class morrisons(scrapy.Spider):
                 'Availability': availability,
                 'Product URL': url,
                 'Review Count' : review_count,
-                'Weight' : weight
+                'Weight' : weight,
+                'Brand': ''
             }
 
 
