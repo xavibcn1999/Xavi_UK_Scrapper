@@ -4,11 +4,11 @@ from datetime import datetime
 
 
 
-class britstore(scrapy.Spider):
-    name = 'britstore'
+class britsuperstore(scrapy.Spider):
+    name = 'britsuperstore'
     custom_settings = {'CONCURRENT_REQUESTS': 30,
                        'FEED_FORMAT': 'csv',
-                       'FEED_URI': datetime.now().strftime('%Y_%m_%d__%H_%M') + 'britstore.csv',
+                       'FEED_URI': datetime.now().strftime('%Y_%m_%d__%H_%M') + 'britsuperstore.csv',
                        'RETRY_TIMES': 5,
                        'COOKIES_ENABLED': False,
                        'FEED_EXPORT_ENCODING' : "utf-8"
@@ -28,7 +28,7 @@ class britstore(scrapy.Spider):
     proxy = 'http://xavigv:GOkNQBPK2DplRGqw@proxy.packetstream.io:31112'
 
     def __init__(self, cat=None, *args, **kwargs):
-        super(britstore, self).__init__(*args, **kwargs)
+        super(britsuperstore, self).__init__(*args, **kwargs)
         self.cat = cat
 
     def start_requests(self):
@@ -44,7 +44,7 @@ class britstore(scrapy.Spider):
 
         for row in rows:
             pid = row.xpath('./@id').get('').split('-')[-1]
-            title_main = row.xpath('.//h2[@class="product-name"]/text()').get('').strip()
+            title_main = ' '.join([i.strip() for i in row.xpath('.//h2[@class="product-name"]//text()').getall()]).strip()
             price = row.xpath('.//*[@class= "price"]/text()').get('')
             img = row.xpath('.//*[@class= "product-image"]//img/@src').get('')
             available =  row.xpath('.//button[@title="Add to basket"]')
