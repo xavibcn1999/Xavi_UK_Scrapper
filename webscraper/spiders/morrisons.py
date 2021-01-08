@@ -72,7 +72,6 @@ class morrisons(scrapy.Spider):
         json_dict = json.loads(resp.xpath('//script').get('').split('window.INITIAL_STATE = ')[1].rsplit(';', 1)[0])
         skus = list(set(nested_lookup('sku',json_dict)))
 
-        import ipdb;ipdb.set_trace()
         data_sku = resp.xpath('//*[@data-sku]/@data-sku').getall()
         all_sku = list(set(skus + data_sku))
         skus_list = []
