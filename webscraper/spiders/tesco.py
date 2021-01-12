@@ -86,7 +86,7 @@ class tesco3(scrapy.Spider):
             'Price ': m_rrp,
             'Price per quantity': m_ppq,
             'Image URL': image_link,
-            'Image Path' : 'images/'+title_main.replace('/','_')+'.'+image_link.split('.')[-1].split('?')[0],
+            'Image Path' : 'Tesco/'+title_main.replace('/','_')+'.'+image_link.split('.')[-1].split('?')[0],
             'Category' : response.meta['heading'],
             'Subcategory': breadcrumbs,
             'Availability' : availablility,
