@@ -126,7 +126,8 @@ class ocado(scrapy.Spider):
                 'Product URL': url,
                 'Review Count' : review_count,
                 'Weight' : weight,
-                'Brand': ''
+                'Brand': '',
+                'Store': 'Ocado'
             }
 
 

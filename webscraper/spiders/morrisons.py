@@ -5,6 +5,9 @@ import requests
 from scrapy.selector import Selector
 from nested_lookup import nested_lookup
 import json
+
+
+
 class morrisons(scrapy.Spider):
     name = 'morrisons'
     custom_settings = {'CONCURRENT_REQUESTS': 30,
@@ -129,7 +132,8 @@ class morrisons(scrapy.Spider):
                 'Product URL': url,
                 'Review Count' : review_count,
                 'Weight' : weight,
-                'Brand': ''
+                'Brand': '',
+                'Store': 'Morrisons'
             }
 
 

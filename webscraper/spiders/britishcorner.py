@@ -125,6 +125,7 @@ class britishcorner(scrapy.Spider):
             'Product URL': response.url,
             'Review Count': number_of_reviews,
             'Weight':  response.xpath('//li[@class="weight"]/text()').get('').strip(),
-            'Brand' : response.xpath('//li[@class="brand"]/a/text()').get('')
+            'Brand' : response.xpath('//li[@class="brand"]/a/text()').get(''),
+            'Store' : 'Britishcorner'
         }
         yield item

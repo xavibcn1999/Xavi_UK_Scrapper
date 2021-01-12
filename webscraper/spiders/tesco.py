@@ -93,7 +93,8 @@ class tesco3(scrapy.Spider):
             'Product URL': response.url,
             'Review Count': number_of_reviews,
             'Weight': '',
-            'Brand': ''
+            'Brand': '',
+            'Store': 'Tesco'
         }
 
         yield item

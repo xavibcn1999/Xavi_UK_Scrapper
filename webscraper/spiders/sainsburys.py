@@ -67,7 +67,8 @@ class sainsbury(scrapy.Spider):
                 'Product URL': url,
                 'Review Count': '',
                 'Weight': '',
-                'Brand': ''
+                'Brand': '',
+                'Store': 'Sainsbury'
             }
             api_url  = f"https://www.sainsburys.co.uk/groceries-api/gol-services/product/v1/product?filter[product_seo_url]={url.split('shop/')[1]}&include[ASSOCIATIONS]=true&include[DIETARY_PROFILE]=true"
             yield scrapy.Request(

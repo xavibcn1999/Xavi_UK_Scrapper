@@ -39,6 +39,7 @@ class britsuperstore(scrapy.Spider):
 
     def parse(self, response):
         rows = response.xpath('//*[@class="products-list"]/li')
+
         cat = response.xpath('//h1/text()').get('')
         sub_cat = ''.join([i.strip() for i in response.xpath('//div[@class="breadcrumbs"]//li//text()').getall()]).replace('|', ' > ')
 
@@ -61,10 +62,11 @@ class britsuperstore(scrapy.Spider):
                 'Category': cat,
                 'Subcategory': sub_cat,
                 'Availability': availablility,
-                'Product URL': response.url,
+                'Product URL': row.xpath('.//a[@title="View Details"]/@href').get(''),
                 'Review Count': '',
                 'Weight': '',
-                'Brand': ''
+                'Brand': '',
+                'Store': 'BritSuperstore'
             }
             yield item
         next_page =  response.xpath('//a[@title="Next"]/@href').get('')
