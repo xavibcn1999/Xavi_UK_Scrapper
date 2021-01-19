@@ -95,7 +95,7 @@ class sainsbury(scrapy.Spider):
         try:
             image = nested_lookup('url',json_dict['products'][0]['assets']['images'])[-1]
             final_item['Image URL'] = image
-            final_item['Image Path'] = 'Sainsbury/' + final_item[ 'Product Name'].replace('/', '_') + '_' + response.meta['sku_id'] + '.' +image.split('.')[-1].split('?')[0]
+            final_item['Image Path'] = 'Sainsbury/' + final_item[ 'Product Name'].replace('/', '_') + '.' +image.split('.')[-1].split('?')[0]
 
         except:
             final_item['Image URL'] = ''

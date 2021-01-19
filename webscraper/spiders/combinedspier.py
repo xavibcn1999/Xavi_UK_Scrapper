@@ -25,7 +25,6 @@ class combined(scrapy.Spider):
     def start_requests(self):
 
         sheet = self.cat
-        sheet = 'https://docs.google.com/spreadsheets/d/e/2PACX-1vRpzdf2pv1YKtA27XTP3A8RB0tevS0uuf0aCVpejqcU9-pACA7RM2j1zRCwjpPNOCQMrGCsZm1zf_pn/pub?output=csv'
         df = pd.read_csv(sheet)
         for i in range(len(df)):
             data = dict(df.iloc[i])
@@ -249,7 +248,7 @@ class combined(scrapy.Spider):
         try:
             image = nested_lookup('url', json_dict['products'][0]['assets']['images'])[-1]
             final_item['Image URL'] = image
-            final_item['Image Path'] = 'images/' + final_item['Product Name'].replace('/', '_') + '_' + json_dict['products'][0]['product_uid'] + '.' + image.split('.')[-1].split('?')[0]
+            final_item['Image Path'] = 'images/' + final_item['Product Name'].replace('/', '_') + '.' + image.split('.')[-1].split('?')[0]
 
         except:
             final_item['Image URL'] = ''
@@ -292,7 +291,7 @@ class combined(scrapy.Spider):
                 'Price ': '£ ' + str(price),
                 'Price per quantity': '£ ' + str(unit_price),
                 'Image URL': image_url,
-                'Image Path': 'images/' + name.replace('/', '_') + '_' + sku + '.' +
+                'Image Path': 'images/' + name.replace('/', '_') +  '.' +
                               image_url.split('.')[-1].split('?')[0],
                 'Category': category,
                 'Subcategory': sub_category,
@@ -333,7 +332,7 @@ class combined(scrapy.Spider):
                 'Price ': '£ ' + str(price),
                 'Price per quantity': '£ ' + str(unit_price),
                 'Image URL': image_url,
-                'Image Path': 'images/' + name.replace('/', '_') + '_' + sku + '.' +
+                'Image Path': 'images/' + name.replace('/', '_') +  '.' +
                               image_url.split('.')[-1].split('?')[0],
                 'Category': category,
                 'Subcategory': sub_category,

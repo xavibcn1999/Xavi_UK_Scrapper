@@ -119,7 +119,7 @@ class britishcorner(scrapy.Spider):
             'Price per quantity': '',
             'Image URL': image_link,
             'Image Path' : 'Britishcorner/'+title_main.replace('/','_')+'.'+image_link.split('.')[-1].split('?')[0],
-            'Category' : response.meta['heading'],
+            'Category' : breadcrumbs.split('>')[-1].strip(),
             'Subcategory': breadcrumbs,
             'Availability' : availablility,
             'Product URL': response.url,
