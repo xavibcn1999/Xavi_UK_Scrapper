@@ -35,6 +35,7 @@ class sainsbury(scrapy.Spider):
     def start_requests(self):
 
         url = self.cat
+
         yield scrapy.Request(url,
                              headers=self.headers,
                              callback=self.parse,
@@ -87,19 +88,30 @@ class sainsbury(scrapy.Spider):
 
     def parse_details(self,response):
         final_item = response.meta['final_item']
+
         json_dict = json.loads(response.text)
         try:
             review_count = json_dict['products'][0]['reviews']['total']
         except:
             review_count = ''
         try:
-            image = nested_lookup('url',json_dict['products'][0]['assets']['images'])[-1]
+            image = json_dict['products'][0]['assets']['plp_image']
             final_item['Image URL'] = image
-            final_item['Image Path'] = 'Sainsbury/' + final_item[ 'Product Name'].replace('/', '_') + '.' +image.split('.')[-1].split('?')[0]
-
+            final_item['Image Path'] = 'Sainsbury/' + final_item['Product Name'].replace('/', '_') + '.' + \
+                                   image.split('.')[-1].split('?')[0]
         except:
             final_item['Image URL'] = ''
             final_item['Image Path'] = ''
+
+        if final_item['Image URL'] == '':
+            try:
+                image = nested_lookup('url',json_dict['products'][0]['assets']['images'])[-1]
+                final_item['Image URL'] = image
+                final_item['Image Path'] = 'Sainsbury/' + final_item[ 'Product Name'].replace('/', '_') + '.' +image.split('.')[-1].split('?')[0]
+
+            except:
+                final_item['Image URL'] = ''
+                final_item['Image Path'] = ''
 
         av = json_dict['products'][0]['is_available']
         if av:
