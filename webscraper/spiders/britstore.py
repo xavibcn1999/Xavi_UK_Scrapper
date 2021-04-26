@@ -47,7 +47,7 @@ class britsuperstore(scrapy.Spider):
             pid = row.xpath('./@id').get('').split('-')[-1]
             title_main = ' '.join([i.strip() for i in row.xpath('.//h2[@class="product-name"]//text()').getall()]).strip()
             price = row.xpath('.//*[@class= "price"]/text()').get('')
-            img = row.xpath('.//*[@class= "product-image"]//img/@src').get('')
+            img = row.xpath('.//*[@class= "product-image"]//a[@title="View Details"]//img/@src').get('')
             available =  row.xpath('.//button[@title="Add to basket"]')
             if available:
                 availablility = 'Yes'
@@ -68,6 +68,7 @@ class britsuperstore(scrapy.Spider):
                 'Brand': '',
                 'Store': 'BritSuperstore'
             }
+
             yield item
         next_page =  response.xpath('//a[@title="Next"]/@href').get('')
 
