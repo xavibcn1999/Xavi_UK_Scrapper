@@ -20,7 +20,11 @@ class google_sheet(scrapy.Spider):
 
     proxy = 'http://xavigv:GOkNQBPK2DplRGqw@proxy.packetstream.io:31112'
 
-    input_file = 'https://docs.google.com/spreadsheets/d/e/2PACX-1vRvXHG33z87SPgvF6bdJY7Cs_-BIxTdMIAFfoZQAxh0-NMnSa6mqG-TmpmDiI254neZOUOxK_x7fL5I/pub?gid=0&single=true&output=csv'
+    input_file = 'https://docs.google.com/spreadsheets/d/e/2PACX-1vQtb-UKr49Cj5tAof845aBQnN6Z_fnfaeGvvfKjee-XWz2OmNFlqW-XkItXUkhjEt7Xnr50yGdu_wcC/pub?output=csv'
+
+
+
+
     #
     # def __init__(self, cat=None, *args, **kwargs):
     #     super(combined, self).__init__(*args, **kwargs)
