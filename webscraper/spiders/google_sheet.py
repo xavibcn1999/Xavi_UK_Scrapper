@@ -268,7 +268,7 @@ class google_sheet(scrapy.Spider):
         token = response.xpath('//input[@name="token"]/@value').get('')
         data = {
             'token': token,
-            'countryid': self.id
+            'countryid': '788'
         }
         yield scrapy.FormRequest(
 
