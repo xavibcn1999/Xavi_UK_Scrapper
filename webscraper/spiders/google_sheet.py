@@ -22,8 +22,9 @@ class google_sheet(scrapy.Spider):
 
     input_file = 'https://docs.google.com/spreadsheets/d/e/2PACX-1vQtb-UKr49Cj5tAof845aBQnN6Z_fnfaeGvvfKjee-XWz2OmNFlqW-XkItXUkhjEt7Xnr50yGdu_wcC/pub?output=csv'
 
-
-
+    proxies = {"http": 'http://xavigv:GOkNQBPK2DplRGqw@proxy.packetstream.io:31112',
+               "https": 'http://xavigv:GOkNQBPK2DplRGqw@proxy.packetstream.io:31112'
+               }
 
     #
     # def __init__(self, cat=None, *args, **kwargs):
@@ -242,7 +243,7 @@ class google_sheet(scrapy.Spider):
                 'Price ': price,
                 'Price per quantity': '',
                 'Image URL': img,
-                'Image Path': 'BritSuperstore/' + title_main.replace('/', '_') + '.' + img.split('.')[-1].split('?')[0],
+                'Image Path': 'gsheet_images/BritSuperstore_' + title_main.replace('/', '_') + '.' + img.split('.')[-1].split('?')[0],
                 'Category': cat,
                 'Subcategory': sub_cat,
                 'Availability': availablility,
@@ -331,7 +332,7 @@ class google_sheet(scrapy.Spider):
             'Price ': m_rrp,
             'Price per quantity': '',
             'Image URL': image_link,
-            'Image Path': 'Britishcorner/' + title_main.replace('/', '_') + '.' + image_link.split('.')[-1].split('?')[
+            'Image Path': 'gsheet_images/Britishcorner_' + title_main.replace('/', '_') + '.' + image_link.split('.')[-1].split('?')[
                 0],
             'Category': breadcrumbs.split('>')[-1].strip(),
             'Subcategory': breadcrumbs,
@@ -417,7 +418,7 @@ class google_sheet(scrapy.Spider):
         try:
             image = nested_lookup('url', json_dict['products'][0]['assets']['images'])[-1]
             final_item['Image URL'] = image
-            final_item['Image Path'] = 'images/' + final_item['Product Name'].replace('/', '_') + '.' + image.split('.')[-1].split('?')[0]
+            final_item['Image Path'] = 'gsheet_images/sainsbury_' + final_item['Product Name'].replace('/', '_') + '.' + image.split('.')[-1].split('?')[0]
 
         except:
             final_item['Image URL'] = ''
@@ -463,7 +464,7 @@ class google_sheet(scrapy.Spider):
                 'Price ': '£ ' + str(price),
                 'Price per quantity': '£ ' + str(unit_price),
                 'Image URL': image_url,
-                'Image Path': 'images/' + name.replace('/', '_') +  '.' +
+                'Image Path': 'gsheet_images/ocado_' + name.replace('/', '_') +  '.' +
                               image_url.split('.')[-1].split('?')[0],
                 'Category': category,
                 'Subcategory': sub_category,
@@ -504,7 +505,7 @@ class google_sheet(scrapy.Spider):
                 'Price ': '£ ' + str(price),
                 'Price per quantity': '£ ' + str(unit_price),
                 'Image URL': image_url,
-                'Image Path': 'images/' + name.replace('/', '_') +  '.' +
+                'Image Path': 'gsheet_images/morrisons_' + name.replace('/', '_') +  '.' +
                               image_url.split('.')[-1].split('?')[0],
                 'Category': category,
                 'Subcategory': sub_category,
@@ -564,7 +565,7 @@ class google_sheet(scrapy.Spider):
             'Price ': m_rrp,
             'Price per quantity': m_ppq,
             'Image URL': image_link,
-            'Image Path': 'images/' + title_main.replace('/', '_') + '.' + image_link.split('.')[-1].split('?')[0],
+            'Image Path': 'gsheet_images/tesco_' + title_main.replace('/', '_') + '.' + image_link.split('.')[-1].split('?')[0],
             'Category': breadcrumbs.split('>')[-1].strip(),
             'Subcategory': breadcrumbs,
             'Availability': availablility,
