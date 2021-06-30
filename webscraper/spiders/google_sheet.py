@@ -10,11 +10,10 @@ from scrapy.selector import Selector
 
 class google_sheet(scrapy.Spider):
     name = 'google_sheet'
-    custom_settings = {'CONCURRENT_REQUESTS': 30,
+    custom_settings = {'CONCURRENT_REQUESTS': 5,
                        'FEED_FORMAT': 'csv',
                        'FEED_URI': datetime.now().strftime('%Y_%m_%d__%H_%M') + 'google_sheet.csv',
                        'RETRY_TIMES': 5,
-                       'COOKIES_ENABLED': False,
                        'FEED_EXPORT_ENCODING' : "utf-8"
     }
 
@@ -378,9 +377,10 @@ class google_sheet(scrapy.Spider):
             yield scrapy.Request(
                 url=api_url,
                 callback=self.parse_sainsbury_items,
-                meta={"proxy": self.proxy, "final_item": final_item, "sku_id": sku_id}
+                meta={"proxy": self.proxy, "final_item": final_item, "sku_id": sku_id,"url" :url}
             )
         next_page = response.xpath('//li[@class="next"]/a/@href').get('')
+
         if next_page:
             yield scrapy.Request(url=next_page,
                                  callback=self.parse_sainsbury,
@@ -527,6 +527,7 @@ class google_sheet(scrapy.Spider):
         for product in products:
             yield scrapy.Request(url=response.urljoin(product),
                                  callback=self.parse_tesco_items,
+                                 dont_filter=True,
                                  meta={"proxy": self.proxy,
                                        "heading": heading})
 
