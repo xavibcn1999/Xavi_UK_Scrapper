@@ -7,20 +7,19 @@ from nested_lookup import nested_lookup
 import requests
 from scrapy.selector import Selector
 
-
 class google_sheet(scrapy.Spider):
     name = 'google_sheet'
     custom_settings = {'CONCURRENT_REQUESTS': 5,
                        'FEED_FORMAT': 'csv',
                        'FEED_URI': datetime.now().strftime('%Y_%m_%d__%H_%M') + 'google_sheet.csv',
                        'RETRY_TIMES': 5,
-                       'FEED_EXPORT_ENCODING' : "utf-8"
+                       'FEED_EXPORT_ENCODING' : "utf-8",
+                       'COOKIES_ENABLED' : False
     }
 
     proxy = 'http://xavigv:GOkNQBPK2DplRGqw@proxy.packetstream.io:31112'
 
     input_file = 'https://docs.google.com/spreadsheets/d/e/2PACX-1vQtb-UKr49Cj5tAof845aBQnN6Z_fnfaeGvvfKjee-XWz2OmNFlqW-XkItXUkhjEt7Xnr50yGdu_wcC/pub?output=csv'
-
     proxies = {"http": 'http://xavigv:GOkNQBPK2DplRGqw@proxy.packetstream.io:31112',
                "https": 'http://xavigv:GOkNQBPK2DplRGqw@proxy.packetstream.io:31112'
                }
