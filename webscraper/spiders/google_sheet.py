@@ -38,8 +38,7 @@ class google_sheet(scrapy.Spider):
         for i in range(len(df)):
             data = dict(df.iloc[i])
             url = data['URL']
-            if 'britishcornershop' not in url:
-                continue
+
             if 'morrisons.com' in url:
 
                 headers = {
@@ -278,7 +277,6 @@ class google_sheet(scrapy.Spider):
                              dont_filter=True)
 
     def parse_britishcorner_1(self, response):
-        import ipdb;ipdb.set_trace()
         products = response.xpath('//div[@class="product-details"]')
         heading = response.xpath('//h1/text()').get('')
         breadcrumbs = ' > '.join(
