@@ -50,6 +50,7 @@ class gsheet_britishcorner(scrapy.Spider):
     def start_requests2(self,response):
 
         df = pd.read_csv(self.settings.get('INPUT_FILE'))
+        df = df.fillna('')
         for i in range(len(df)):
             data = dict(df.iloc[i])
             url = data['URL']
