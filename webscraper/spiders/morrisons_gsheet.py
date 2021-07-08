@@ -59,7 +59,6 @@ class gsheet_morrisons(scrapy.Spider):
             url = data['URL']
             if 'morrisons' not in url:
                 continue
-            url = self.cat
             success = False
             retry_times = 10
             while not success and retry_times >= 0:
