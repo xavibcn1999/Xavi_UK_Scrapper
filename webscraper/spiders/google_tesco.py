@@ -7,11 +7,11 @@ from nested_lookup import nested_lookup
 import requests
 from scrapy.selector import Selector
 
-class google_sheet_tesco(scrapy.Spider):
-    name = 'google_sheet_tesco'
+class gsheet_tesco(scrapy.Spider):
+    name = 'gsheet_tesco'
     custom_settings = {'CONCURRENT_REQUESTS': 5,
                        'FEED_FORMAT': 'csv',
-                       'FEED_URI': datetime.now().strftime('%Y_%m_%d__%H_%M') + 'google_sheet_tesco.csv',
+                       'FEED_URI': datetime.now().strftime('%Y_%m_%d__%H_%M') + 'gsheet_tesco.csv',
                        'RETRY_TIMES': 10,
                        'FEED_EXPORT_ENCODING' : "utf-8",
                        'COOKIES_ENABLED' : False
@@ -33,8 +33,7 @@ class google_sheet_tesco(scrapy.Spider):
 
     def start_requests(self):
 
-        sheet = self.input_file
-        df = pd.read_csv(sheet)
+        df = pd.read_csv(self.settings.get('INPUT_FILE'))
         for i in range(len(df)):
             data = dict(df.iloc[i])
             url = data['URL']
