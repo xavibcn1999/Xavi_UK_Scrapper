@@ -103,7 +103,7 @@ class gsheet_tesco(scrapy.Spider):
             'Price ': m_rrp,
             'Price per quantity': m_ppq,
             'Image URL': image_link,
-            'Image Path': 'gsheet_images/tesco_' + title_main.replace('/', '_') + '.' + image_link.split('.')[-1].split('?')[0],
+            'Image Path': 'images/' + image_link.split('/')[-1].split('?')[0],
             'Category': breadcrumbs.split('>')[-1].strip(),
             'Subcategory': breadcrumbs,
             'Availability': availablility,
