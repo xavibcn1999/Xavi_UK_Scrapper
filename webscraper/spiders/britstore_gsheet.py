@@ -9,7 +9,7 @@ class gsheet_britsuperstore(scrapy.Spider):
     custom_settings = {'CONCURRENT_REQUESTS': 30,
                        'FEED_FORMAT': 'csv',
                        'FEED_URI': datetime.now().strftime('%Y_%m_%d__%H_%M') + 'gsheet_britsuperstore.csv',
-                       'RETRY_TIMES': 5,
+                       'RETRY_TIMES': 20,
                        'COOKIES_ENABLED': False,
                        'FEED_EXPORT_ENCODING' : "utf-8"
     }
