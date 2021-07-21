@@ -43,7 +43,7 @@ class gsheet_sainsbury(scrapy.Spider):
             yield scrapy.Request(url,
                                  headers=self.headers,
                                  callback=self.parse,
-                                 meta={"proxy": self.proxy
+                                 meta={"proxy": self.proxy,
                                        "counter" : 0},
                                  dont_filter=True)
         #
@@ -54,93 +54,95 @@ class gsheet_sainsbury(scrapy.Spider):
         #                      dont_filter=True)
 
     def parse(self, response):
+        products = response.xpath('//div[@class="productInfo"]')
+        for product in products:
+            name = product.xpath('.//h3/a/text()').get('').strip()
+            url = product.xpath('.//h3/a/@href').get('')
+            trolly = product.xpath('./following-sibling::div[@class="addToTrolleytabBox"]')[0]
+            price = trolly.xpath('.//*[@class="pricePerUnit"]/text()').get('').strip()
+            ppq = ' '.join(trolly.xpath('.//*[@class="pricePerMeasure"]//text()').getall()).strip()
+            sku_id = trolly.xpath('.//input[@name="ItemSKU_ID"]/@value').get('')
 
-        if response.status == 403:
-            if response.meta['counter'] < 5:
-                yield scrapy.Request(response.url,
-                                     headers=self.headers,
-                                     callback=self.parse,
-                                     meta={"proxy": self.proxy},
-                                     dont_filter=True)
-        else:
-            products = response.xpath('//div[@class="productInfo"]')
-            for product in products:
-                name = product.xpath('.//h3/a/text()').get('').strip()
-                url = product.xpath('.//h3/a/@href').get('')
-                trolly = product.xpath('./following-sibling::div[@class="addToTrolleytabBox"]')[0]
-                price = trolly.xpath('.//*[@class="pricePerUnit"]/text()').get('').strip()
-                ppq = ' '.join(trolly.xpath('.//*[@class="pricePerMeasure"]//text()').getall()).strip()
-                sku_id = trolly.xpath('.//input[@name="ItemSKU_ID"]/@value').get('')
+            navs = response.xpath('//ul[@id="breadcrumbNavList"]//li[@class]/a//text()').getall()
+            category = navs[-1]
+            sub_category = ' > '.join(navs)
 
-                navs = response.xpath('//ul[@id="breadcrumbNavList"]//li[@class]/a//text()').getall()
-                category = navs[-1]
-                sub_category = ' > '.join(navs)
-
-                final_item = {
-                    'Product Name': name,
-                    'Price ': price,
-                    'Price per quantity': ppq,
-                    'Image URL': '',
-                    'Image Path': '',
-                    'Category': category,
-                    'Subcategory': sub_category,
-                    'Availability': '',
-                    'Product URL': url,
-                    'Review Count': '',
-                    'Weight': '',
-                    'Brand': '',
-                    'Store': 'Sainsbury'
-                }
-                api_url  = f"https://www.sainsburys.co.uk/groceries-api/gol-services/product/v1/product?filter[product_seo_url]={url.split('shop/')[1]}&include[ASSOCIATIONS]=true&include[DIETARY_PROFILE]=true"
-                yield scrapy.Request(
-                    url = api_url,
-                    callback=self.parse_details,
-                    headers=self.headers,
-                    meta={"proxy": self.proxy, "final_item" : final_item, "sku_id" : sku_id}
-                )
-            next_page = response.xpath('//li[@class="next"]/a/@href').get('')
-            if next_page:
-                yield scrapy.Request(url = next_page,
-                                     headers=self.headers,
-                                     callback=self.parse,
-                                     meta={"proxy": self.proxy,"counter" : 0})
+            final_item = {
+                'Product Name': name,
+                'Price ': price,
+                'Price per quantity': ppq,
+                'Image URL': '',
+                'Image Path': '',
+                'Category': category,
+                'Subcategory': sub_category,
+                'Availability': '',
+                'Product URL': url,
+                'Review Count': '',
+                'Weight': '',
+                'Brand': '',
+                'Store': 'Sainsbury'
+            }
+            api_url  = f"https://www.sainsburys.co.uk/groceries-api/gol-services/product/v1/product?filter[product_seo_url]={url.split('shop/')[1]}&include[ASSOCIATIONS]=true&include[DIETARY_PROFILE]=true"
+            yield scrapy.Request(
+                url = api_url,
+                callback=self.parse_details,
+                headers=self.headers,
+                meta={"proxy": self.proxy, "final_item" : final_item, "sku_id" : sku_id, "counter" : 0}
+            )
+        next_page = response.xpath('//li[@class="next"]/a/@href').get('')
+        if next_page:
+            yield scrapy.Request(url = next_page,
+                                 headers=self.headers,
+                                 callback=self.parse,
+                                 meta={"proxy": self.proxy})
 
 
     def parse_details(self,response):
-        final_item = response.meta['final_item']
+        if response.status == 403:
+            if response.meta['counter'] < 5:
+                yield scrapy.Request(
+                    url=response.url,
+                    callback=self.parse_details,
+                    headers=self.headers,
+                    meta={"proxy": self.proxy, "final_item": response.meta['final_item'],
+                          "sku_id": response.meta['sku_id'], "counter" : response.meta['counter'] + 1}
+                )
+        else:
+            final_item = response.meta['final_item']
 
-        json_dict = json.loads(response.text)
-        try:
-            review_count = json_dict['products'][0]['reviews']['total']
-        except:
-            review_count = ''
-        try:
-            image = json_dict['products'][0]['assets']['plp_image']
-            final_item['Image URL'] = image
-            final_item['Image Path'] = 'Sainsbury/' + final_item['Product Name'].replace('/', '_') + '.' + \
-                                   image.split('.')[-1].split('?')[0]
-        except:
-            final_item['Image URL'] = ''
-            final_item['Image Path'] = ''
-
-        if final_item['Image URL'] == '':
+            json_dict = json.loads(response.text)
             try:
-                image = nested_lookup('url',json_dict['products'][0]['assets']['images'])[-1]
+                review_count = json_dict['products'][0]['reviews']['total']
+            except:
+                review_count = ''
+            try:
+                image = json_dict['products'][0]['assets']['plp_image']
                 final_item['Image URL'] = image
-                final_item['Image Path'] = 'images/' + image.split('/')[-1].split('?')[0],
-
+                final_item['Image Path'] = 'Sainsbury/' + final_item['Product Name'].replace('/', '_') + '.' + \
+                                       image.split('.')[-1].split('?')[0]
             except:
                 final_item['Image URL'] = ''
                 final_item['Image Path'] = ''
 
-        av = json_dict['products'][0]['is_available']
-        if av:
-            final_item['Availability'] = 'Yes'
-        else:
-            final_item['Availability'] = 'No'
+            if final_item['Image URL'] == '':
+                try:
+                    image = nested_lookup('url',json_dict['products'][0]['assets']['images'])[-1]
+                    final_item['Image URL'] = image
+                    final_item['Image Path'] = 'images/' + image.split('/')[-1].split('?')[0],
 
-        final_item['Review Count'] = review_count
-        yield final_item
+                except:
+                    final_item['Image URL'] = ''
+                    final_item['Image Path'] = ''
+
+            av = json_dict['products'][0]['is_available']
+            if av:
+                final_item['Availability'] = 'Yes'
+            else:
+                final_item['Availability'] = 'No'
+
+            final_item['Review Count'] = review_count
+            yield final_item
+
 
 
 
