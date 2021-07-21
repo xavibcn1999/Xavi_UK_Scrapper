@@ -9,11 +9,11 @@ import pandas as pd
 
 class gsheet_sainsbury(scrapy.Spider):
     name = 'gsheet_sainsbury'
-    custom_settings = {'CONCURRENT_REQUESTS': 30,
+    custom_settings = {'CONCURRENT_REQUESTS': 5,
                        'FEED_FORMAT': 'csv',
                        'FEED_URI': datetime.now().strftime('%Y_%m_%d__%H_%M') + 'gsheet_sainsbury.csv',
-                       'RETRY_TIMES': 5,
-                       'COOKIES_ENABLED': True,
+                       'RETRY_TIMES': 10,
+                       # 'COOKIES_ENABLED': True,
 
     }
     headers = {
