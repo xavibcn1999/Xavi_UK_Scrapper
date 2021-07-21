@@ -6,7 +6,7 @@ import pandas as pd
 
 class gsheet_britsuperstore(scrapy.Spider):
     name = 'gsheet_britsuperstore'
-    custom_settings = {'CONCURRENT_REQUESTS': 30,
+    custom_settings = {'CONCURRENT_REQUESTS': 5,
                        'FEED_FORMAT': 'csv',
                        'FEED_URI': datetime.now().strftime('%Y_%m_%d__%H_%M') + 'gsheet_britsuperstore.csv',
                        'RETRY_TIMES': 20,
