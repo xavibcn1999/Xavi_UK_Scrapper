@@ -10,7 +10,7 @@ import pandas as pd
 class gsheet_sainsbury(scrapy.Spider):
     name = 'gsheet_sainsbury'
     handle_httpstatus_list = [403]
-    custom_settings = {'CONCURRENT_REQUESTS': 4,
+    custom_settings = {'CONCURRENT_REQUESTS': 1,
                        'FEED_FORMAT': 'csv',
                        'FEED_URI': datetime.now().strftime('%Y_%m_%d__%H_%M') + 'gsheet_sainsbury.csv',
                        'RETRY_TIMES': 10,
@@ -112,7 +112,7 @@ class gsheet_sainsbury(scrapy.Spider):
     def parse_details(self,response):
         # import ipdb;ipdb.set_trace()
         if response.status == 403:
-            if response.meta['counter'] < 5:
+            if response.meta['counter'] < 100:
                 yield scrapy.Request(
                     url=response.url,
                     callback=self.parse_details,
