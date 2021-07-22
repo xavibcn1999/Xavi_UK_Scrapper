@@ -10,12 +10,15 @@ import pandas as pd
 class gsheet_sainsbury(scrapy.Spider):
     name = 'gsheet_sainsbury'
     handle_httpstatus_list = [403]
-    custom_settings = {'CONCURRENT_REQUESTS': 35,
+    custom_settings = {'CONCURRENT_REQUESTS': 4,
                        'FEED_FORMAT': 'csv',
                        'FEED_URI': datetime.now().strftime('%Y_%m_%d__%H_%M') + 'gsheet_sainsbury.csv',
                        'RETRY_TIMES': 10,
+                       'DOWNLOAD_DELAY' : 1.5,
+                       'AUTOTHROTTLE_ENABLED' : True,
+                       'AUTOTHROTTLE_START_DELAY' : 2,
+                       'AUTOTHROTTLE_TARGET_CONCURRENCY' : 6,
                        # 'COOKIES_ENABLED': True,
-
     }
     headers = {
         'authority': 'www.sainsburys.co.uk',
@@ -44,16 +47,22 @@ class gsheet_sainsbury(scrapy.Spider):
                                  headers=self.headers,
                                  callback=self.parse,
                                  meta={"proxy": self.proxy,
-                                       "counter" : 0},
+                                       "counter" : 0,
+                                       "url" : url},
                                  dont_filter=True)
         #
-        # yield scrapy.Request('https://www.sainsburys.co.uk/shop/gb/groceries/beauty-and-cosmetics/bar-soap#langId=44&storeId=10151&catalogId=10241&categoryId=450408&parent_category_rn=448352&top_category=448352&pageSize=60&orderBy=FAVOURITES_FIRST&searchTerm=&beginIndex=0',
+
+        # url = 'https://www.sainsburys.co.uk/shop/gb/groceries/health-beauty/all-shampoo---conditioners#langId=44&storeId=10151&catalogId=10241&categoryId=247822&parent_category_rn=12448&top_category=12448&pageSize=60&orderBy=FAVOURITES_ONLY%7CSEQUENCING%7CTOP_SELLERS%7CNEW&searchTerm=&beginIndex=0&hideFilters=true&facet=&facet='
+        # yield scrapy.Request(url,
         #                      headers=self.headers,
         #                      callback=self.parse,
-        #                      meta={"proxy": self.proxy},
+        #                      meta={"proxy": self.proxy,
+        #                            "counter": 0,
+        #                            "url": url},
         #                      dont_filter=True)
 
     def parse(self, response):
+
         products = response.xpath('//div[@class="productInfo"]')
         for product in products:
             name = product.xpath('.//h3/a/text()').get('').strip()
@@ -80,7 +89,8 @@ class gsheet_sainsbury(scrapy.Spider):
                 'Review Count': '',
                 'Weight': '',
                 'Brand': '',
-                'Store': 'Sainsbury'
+                'Store': 'Sainsbury',
+                'Main URL' : response.meta['url']
             }
             api_url  = f"https://www.sainsburys.co.uk/groceries-api/gol-services/product/v1/product?filter[product_seo_url]={url.split('shop/')[1]}&include[ASSOCIATIONS]=true&include[DIETARY_PROFILE]=true"
             yield scrapy.Request(
@@ -89,15 +99,18 @@ class gsheet_sainsbury(scrapy.Spider):
                 headers=self.headers,
                 meta={"proxy": self.proxy, "final_item" : final_item, "sku_id" : sku_id, "counter" : 0}
             )
+
+            # yield final_item
         next_page = response.xpath('//li[@class="next"]/a/@href').get('')
         if next_page:
             yield scrapy.Request(url = next_page,
                                  headers=self.headers,
                                  callback=self.parse,
-                                 meta={"proxy": self.proxy})
+                                 meta={"proxy": self.proxy, "url" : response.meta['url'] })
 
 
     def parse_details(self,response):
+        # import ipdb;ipdb.set_trace()
         if response.status == 403:
             if response.meta['counter'] < 5:
                 yield scrapy.Request(
