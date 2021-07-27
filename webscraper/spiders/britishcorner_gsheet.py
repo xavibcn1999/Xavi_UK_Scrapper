@@ -10,10 +10,10 @@ import pandas as pd
 
 class gsheet_britishcorner(scrapy.Spider):
     name = 'gsheet_britishcorner'
-    custom_settings = {'CONCURRENT_REQUESTS': 30,
+    custom_settings = {'CONCURRENT_REQUESTS': 1,
                        'FEED_FORMAT': 'csv',
                        'FEED_URI': datetime.now().strftime('%Y_%m_%d__%H_%M') + 'gsheet_britishcorner.csv',
-                       'RETRY_TIMES': 5,
+                       'RETRY_TIMES': 100,
                        'COOKIES_ENABLED': True,
                        'FEED_EXPORT_ENCODING' : "utf-8"
     }
@@ -82,6 +82,8 @@ class gsheet_britishcorner(scrapy.Spider):
                 dont_filter=True
             )
 
+            break
+
     def start_requests3(self,response):
 
         url = response.meta['cat_url']
@@ -102,9 +104,13 @@ class gsheet_britishcorner(scrapy.Spider):
                                        "heading": heading,
                                        "subcat" : breadcrumbs})
 
+        import ipdb;ipdb.set_trace()
 
         next_page = response.urljoin(response.xpath('//li/a[contains(text(),"Next")]/@href').get(''))
+
         if next_page and 'javascript' not in next_page:
+            self.logger.info(f"{next_page} next page found")
+
             yield scrapy.Request(url = next_page,
                                  headers=self.headers,
                                  callback=self.parse,
