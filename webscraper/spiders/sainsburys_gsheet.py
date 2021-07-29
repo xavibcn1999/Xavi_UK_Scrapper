@@ -13,11 +13,11 @@ class gsheet_sainsbury(scrapy.Spider):
     custom_settings = {'CONCURRENT_REQUESTS': 1,
                        'FEED_FORMAT': 'csv',
                        'FEED_URI': datetime.now().strftime('%Y_%m_%d__%H_%M') + 'gsheet_sainsbury.csv',
-                       'RETRY_TIMES': 10,
+                       'RETRY_TIMES': 100,
                        'DOWNLOAD_DELAY' : 1.5,
                        'AUTOTHROTTLE_ENABLED' : True,
                        'AUTOTHROTTLE_START_DELAY' : 2,
-                       'AUTOTHROTTLE_TARGET_CONCURRENCY' : 6,
+                       'AUTOTHROTTLE_TARGET_CONCURRENCY' : 1,
                        # 'COOKIES_ENABLED': True,
     }
     headers = {

@@ -15,6 +15,10 @@ class gsheet_britishcorner(scrapy.Spider):
                        'FEED_URI': datetime.now().strftime('%Y_%m_%d__%H_%M') + 'gsheet_britishcorner.csv',
                        'RETRY_TIMES': 100,
                        'COOKIES_ENABLED': True,
+                       'DOWNLOAD_DELAY': 1.5,
+                       'AUTOTHROTTLE_ENABLED': True,
+                       'AUTOTHROTTLE_START_DELAY': 2,
+                       'AUTOTHROTTLE_TARGET_CONCURRENCY': 1,
                        'FEED_EXPORT_ENCODING' : "utf-8"
     }
     headers = {
@@ -104,7 +108,6 @@ class gsheet_britishcorner(scrapy.Spider):
                                        "heading": heading,
                                        "subcat" : breadcrumbs})
 
-        import ipdb;ipdb.set_trace()
 
         next_page = response.urljoin(response.xpath('//li/a[contains(text(),"Next")]/@href').get(''))
 
