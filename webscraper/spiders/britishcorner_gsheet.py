@@ -55,6 +55,8 @@ class gsheet_britishcorner(scrapy.Spider):
 
         df = pd.read_csv(self.settings.get('INPUT_FILE'))
         df = df.fillna('')
+
+        self.logger.info(f"Total number of urls from sheet for Britishcorner : {len(df)}")
         for i in range(len(df)):
             data = dict(df.iloc[i])
             url = data['URL']
@@ -75,6 +77,8 @@ class gsheet_britishcorner(scrapy.Spider):
                 'token': token,
                 'countryid': country
             }
+
+            self.logger.info(f"Adding {url} to queue.")
             yield scrapy.FormRequest(
 
                 url= 'https://www.britishcornershop.co.uk/shopping_basket.asp?action=country',
@@ -86,16 +90,19 @@ class gsheet_britishcorner(scrapy.Spider):
                 dont_filter=True
             )
 
-            break
+
 
     def start_requests3(self,response):
 
         url = response.meta['cat_url']
+
         yield scrapy.Request(url, headers=self.headers, callback=self.parse, meta={"proxy": self.proxy},
                              dont_filter=True)
 
     def parse(self, response):
+        self.logger.info(f'Processing {response.url}')
         products = response.xpath('//div[@class="product-details"]')
+        self.logger.info(f'Found {len(products)} for {response.url}')
         heading = response.xpath('//h1/text()').get('')
         breadcrumbs = ' > '.join([i.strip() for i in response.xpath('//*[@class="breadcrumbs content-container clear"]//li//text()').getall() if i.strip() and i.strip()!='Home'])
 
