@@ -96,7 +96,9 @@ class gsheet_britishcorner(scrapy.Spider):
 
         url = response.meta['cat_url']
 
-        yield scrapy.Request(url, headers=self.headers, callback=self.parse, meta={"proxy": self.proxy},
+        yield scrapy.Request(url,
+                             # headers=self.headers,
+                             callback=self.parse, meta={"proxy": self.proxy},
                              dont_filter=True)
 
     def parse(self, response):
@@ -122,7 +124,7 @@ class gsheet_britishcorner(scrapy.Spider):
             self.logger.info(f"{next_page} next page found")
 
             yield scrapy.Request(url = next_page,
-                                 headers=self.headers,
+                                 # headers=self.headers,
                                  callback=self.parse,
                                  meta={"proxy": self.proxy})
 
