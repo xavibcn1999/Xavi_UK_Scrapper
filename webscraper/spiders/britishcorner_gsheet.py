@@ -20,6 +20,7 @@ class gsheet_britishcorner(scrapy.Spider):
                        'AUTOTHROTTLE_START_DELAY': 2,
                        'AUTOTHROTTLE_TARGET_CONCURRENCY': 1,
                        'FEED_EXPORT_ENCODING' : "utf-8",
+                       'DEPTH_PRIORITY' : -1000
     }
     headers = {
         'authority': 'www.britishcornershop.co.uk',
@@ -66,6 +67,8 @@ class gsheet_britishcorner(scrapy.Spider):
                                  callback=self.start_requests1,
                                  meta={"proxy": self.proxy,
                                        "cat_url" : cat_url,
+                                       'dont_merge_cookies': True,
+                                        'cookiejar' : i,
                                        "country" : country},
                                  dont_filter=True)
 
@@ -75,7 +78,8 @@ class gsheet_britishcorner(scrapy.Spider):
                              callback=self.start_requests2,
                              meta={"proxy": self.proxy,
                                    "cat_url" : response.meta['cat_url'],
-                                   "country" : response.meta['country']
+                                   "country" : response.meta['country'],
+                                   'cookiejar' : response.meta['cookiejar']
                                    },
                              dont_filter=True)
 
@@ -114,7 +118,8 @@ class gsheet_britishcorner(scrapy.Spider):
             formdata=data,
             callback=self.start_requests3,
             meta= {
-                'cat_url' :  response.meta['cat_url']
+                'cat_url' :  response.meta['cat_url'],
+                'cookiejar': response.meta['cookiejar']
             },
             dont_filter=True
         )
@@ -128,13 +133,17 @@ class gsheet_britishcorner(scrapy.Spider):
 
         yield scrapy.Request(url,
                              # headers=self.headers,
-                             callback=self.parse, meta={"proxy": self.proxy},
+                             callback=self.parse,
+                             meta={"proxy": self.proxy,
+                                   'cat_url' : response.meta['cat_url'],
+                                   'cookiejar': response.meta['cookiejar']
+                                   },
                              dont_filter=True)
 
     def parse(self, response):
         self.logger.info(f'Processing {response.url}')
         products = response.xpath('//div[@class="product-details"]')
-        self.logger.info(f'Found {len(products)} for {response.url}')
+        self.logger.info(f'Found {len(products)} for {response.url} - {response.meta["cat_url"]}')
         heading = response.xpath('//h1/text()').get('')
         breadcrumbs = ' > '.join([i.strip() for i in response.xpath('//*[@class="breadcrumbs content-container clear"]//li//text()').getall() if i.strip() and i.strip()!='Home'])
 
@@ -145,24 +154,27 @@ class gsheet_britishcorner(scrapy.Spider):
                                  callback=self.parse_details,
                                  meta={"proxy": self.proxy,
                                        "heading": heading,
-                                       "subcat" : breadcrumbs})
+                                       "subcat" : breadcrumbs,
+                                       'cookiejar' : response.meta['cookiejar']})
 
 
         next_page = response.urljoin(response.xpath('//li/a[contains(text(),"Next")]/@href').get(''))
 
         if next_page and 'javascript' not in next_page:
-            self.logger.info(f"{next_page} next page found")
-            cookies =  dict(response.request.headers)[b'Cookie'][0].decode()
+            self.logger.info(f"{next_page} next page found for {response.meta['cat_url']}")
+            # cookies =  dict(response.request.headers)[b'Cookie'][0].decode()
             yield scrapy.Request(url = next_page,
                                  # headers=self.headers,
 
-                                 headers={
-                                     **self.headers,
-                                     'cookie' : cookies
-                                 },
+                                 # headers={
+                                 #     **self.headers,
+                                 #     'cookie' : cookies
+                                 # },
                                  callback=self.parse,
                                  dont_filter=True,
-                                 meta={"proxy": self.proxy})
+                                 meta={"proxy": self.proxy,
+                                       'cat_url' : response.meta['cat_url'],
+                                       'cookiejar' : response.meta['cookiejar']})
 
 
 
