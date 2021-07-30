@@ -19,7 +19,7 @@ class gsheet_britishcorner(scrapy.Spider):
                        'AUTOTHROTTLE_ENABLED': True,
                        'AUTOTHROTTLE_START_DELAY': 2,
                        'AUTOTHROTTLE_TARGET_CONCURRENCY': 1,
-                       'FEED_EXPORT_ENCODING' : "utf-8"
+                       'FEED_EXPORT_ENCODING' : "utf-8",
     }
     headers = {
         'authority': 'www.britishcornershop.co.uk',
@@ -42,24 +42,13 @@ class gsheet_britishcorner(scrapy.Spider):
 
 
     def start_requests(self):
-        url = 'https://www.britishcornershop.co.uk'
-        yield scrapy.Request(url, headers=self.headers, callback=self.start_requests1, meta={"proxy": self.proxy},
-                             dont_filter=True)
-
-    def start_requests1(self,response):
-        url = 'https://www.britishcornershop.co.uk/shopping_basket.asp?action=country&cid=0'
-        yield scrapy.Request(url, callback=self.start_requests2, meta={"proxy": self.proxy},
-                             dont_filter=True)
-
-    def start_requests2(self,response):
-
         df = pd.read_csv(self.settings.get('INPUT_FILE'))
         df = df.fillna('')
 
         self.logger.info(f"Total number of urls from sheet for Britishcorner : {len(df)}")
         for i in range(len(df)):
             data = dict(df.iloc[i])
-            url = data['URL']
+            cat_url = data['URL']
             try:
                 country = data['country']
             except:
@@ -68,27 +57,68 @@ class gsheet_britishcorner(scrapy.Spider):
                 country = '788'
             else:
                 country = str(country)
-            if 'britishcornershop' not in url:
+            if 'britishcornershop' not in cat_url:
                 continue
+            url = 'https://www.britishcornershop.co.uk'
+            self.logger.info(f"Adding {cat_url} to queue.")
+
+            yield scrapy.Request(url, headers=self.headers,
+                                 callback=self.start_requests1,
+                                 meta={"proxy": self.proxy,
+                                       "cat_url" : cat_url,
+                                       "country" : country},
+                                 dont_filter=True)
+
+    def start_requests1(self,response):
+        url = 'https://www.britishcornershop.co.uk/shopping_basket.asp?action=country&cid=0'
+        yield scrapy.Request(url,
+                             callback=self.start_requests2,
+                             meta={"proxy": self.proxy,
+                                   "cat_url" : response.meta['cat_url'],
+                                   "country" : response.meta['country']
+                                   },
+                             dont_filter=True)
+
+    def start_requests2(self,response):
+
+        # df = pd.read_csv(self.settings.get('INPUT_FILE'))
+        # df = df.fillna('')
+        #
+        # self.logger.info(f"Total number of urls from sheet for Britishcorner : {len(df)}")
+        # for i in range(len(df)):
+        #     data = dict(df.iloc[i])
+        #     url = data['URL']
+        #
+        #     # url = 'https://www.britishcornershop.co.uk/cakes-and-cake-bars-bakery'
+        #     try:
+        #         country = data['country']
+        #     except:
+        #         country = ''
+        #     if not country:
+        #         country = '788'
+        #     else:
+        #         country = str(country)
+        #     if 'britishcornershop' not in url:
+        #         continue
 
 
-            token = response.xpath('//input[@name="token"]/@value').get('')
-            data = {
-                'token': token,
-                'countryid': country
-            }
+        token = response.xpath('//input[@name="token"]/@value').get('')
+        data = {
+            'token': token,
+            'countryid': response.meta['country']
+        }
 
-            self.logger.info(f"Adding {url} to queue.")
-            yield scrapy.FormRequest(
+        yield scrapy.FormRequest(
 
-                url= 'https://www.britishcornershop.co.uk/shopping_basket.asp?action=country',
-                formdata=data,
-                callback=self.start_requests3,
-                meta= {
-                    'cat_url' : url
-                },
-                dont_filter=True
-            )
+            url= 'https://www.britishcornershop.co.uk/shopping_basket.asp?action=country',
+            formdata=data,
+            callback=self.start_requests3,
+            meta= {
+                'cat_url' :  response.meta['cat_url']
+            },
+            dont_filter=True
+        )
+
 
 
 
@@ -122,10 +152,16 @@ class gsheet_britishcorner(scrapy.Spider):
 
         if next_page and 'javascript' not in next_page:
             self.logger.info(f"{next_page} next page found")
-
+            cookies =  dict(response.request.headers)[b'Cookie'][0].decode()
             yield scrapy.Request(url = next_page,
                                  # headers=self.headers,
+
+                                 headers={
+                                     **self.headers,
+                                     'cookie' : cookies
+                                 },
                                  callback=self.parse,
+                                 dont_filter=True,
                                  meta={"proxy": self.proxy})
 
 
