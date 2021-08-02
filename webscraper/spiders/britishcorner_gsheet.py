@@ -50,6 +50,7 @@ class gsheet_britishcorner(scrapy.Spider):
         for i in range(len(df)):
             data = dict(df.iloc[i])
             cat_url = data['URL']
+            # cat_url = 'https://www.britishcornershop.co.uk/lip-care-toiletries'
             try:
                 country = data['country']
             except:
@@ -71,6 +72,7 @@ class gsheet_britishcorner(scrapy.Spider):
                                         'cookiejar' : i,
                                        "country" : country},
                                  dont_filter=True)
+            # break
 
     def start_requests1(self,response):
         url = 'https://www.britishcornershop.co.uk/shopping_basket.asp?action=country&cid=0'
@@ -158,12 +160,12 @@ class gsheet_britishcorner(scrapy.Spider):
                                        'cookiejar' : response.meta['cookiejar']})
 
 
-        next_page = response.urljoin(response.xpath('//li/a[contains(text(),"Next")]/@href').get(''))
-
+        next_page = response.xpath('//li/a[contains(text(),"Next")]/@href').get('')
         if next_page and 'javascript' not in next_page:
+
             self.logger.info(f"{next_page} next page found for {response.meta['cat_url']}")
             # cookies =  dict(response.request.headers)[b'Cookie'][0].decode()
-            yield scrapy.Request(url = next_page,
+            yield scrapy.Request(url = response.urljoin(next_page),
                                  # headers=self.headers,
 
                                  # headers={
