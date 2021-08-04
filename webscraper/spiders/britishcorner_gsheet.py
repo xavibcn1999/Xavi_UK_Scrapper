@@ -6,7 +6,7 @@ import pandas as pd
 #from scrapy.utils.response import open_in_browser
 #import open_in_browser(response)
 
-
+#some changes
 
 class gsheet_britishcorner(scrapy.Spider):
     name = 'gsheet_britishcorner'
