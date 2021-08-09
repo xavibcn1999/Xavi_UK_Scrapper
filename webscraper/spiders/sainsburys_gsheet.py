@@ -14,7 +14,7 @@ class gsheet_sainsbury(scrapy.Spider):
                        'FEED_FORMAT': 'csv',
                        'FEED_URI': datetime.now().strftime('%Y_%m_%d__%H_%M') + 'gsheet_sainsbury.csv',
                        'RETRY_TIMES': 100,
-                       'DOWNLOAD_DELAY' : 1.5,
+                       'DOWNLOAD_DELAY' : 3.5,
                        'AUTOTHROTTLE_ENABLED' : True,
                        'AUTOTHROTTLE_START_DELAY' : 2,
                        'AUTOTHROTTLE_TARGET_CONCURRENCY' : 1,
@@ -48,6 +48,7 @@ class gsheet_sainsbury(scrapy.Spider):
                                  callback=self.parse,
                                  meta={"proxy": self.proxy,
                                        "counter" : 0,
+                                       'cookiejar': i,
                                        "url" : url},
                                  dont_filter=True)
         #
@@ -97,7 +98,11 @@ class gsheet_sainsbury(scrapy.Spider):
                 url = api_url,
                 callback=self.parse_details,
                 headers=self.headers,
-                meta={"proxy": self.proxy, "final_item" : final_item, "sku_id" : sku_id, "counter" : 0}
+                meta={"proxy": self.proxy,
+                      "final_item" : final_item,
+                      "sku_id" : sku_id,
+                      'cookiejar': response.meta['cookiejar'],
+                      "counter" : 0}
             )
 
             # yield final_item
@@ -106,7 +111,9 @@ class gsheet_sainsbury(scrapy.Spider):
             yield scrapy.Request(url = next_page,
                                  headers=self.headers,
                                  callback=self.parse,
-                                 meta={"proxy": self.proxy, "url" : response.meta['url'] })
+                                 meta={"proxy": self.proxy,
+                                       "url" : response.meta['url'],
+                                       'cookiejar': response.meta['cookiejar']})
 
 
     def parse_details(self,response):
@@ -118,6 +125,7 @@ class gsheet_sainsbury(scrapy.Spider):
                     callback=self.parse_details,
                     headers=self.headers,
                     meta={"proxy": self.proxy, "final_item": response.meta['final_item'],
+                          'cookiejar': response.meta['cookiejar'],
                           "sku_id": response.meta['sku_id'], "counter" : response.meta['counter'] + 1}
                 )
         else:
