@@ -123,7 +123,7 @@ class gsheet_ocado(scrapy.Spider):
                 'Price ' : '£ ' + str(price),
                 'Price per quantity': '£ ' + str(unit_price),
                 'Image URL': image_url,
-                'Image Path': 'images/' + image_url.split('/')[-1].split('?')[0],
+                'Image URL': 'images/' + image_url.split('/')[-1].split('?')[0],
                 'Category': category,
                 'Subcategory': sub_category,
                 'Availability': availability,

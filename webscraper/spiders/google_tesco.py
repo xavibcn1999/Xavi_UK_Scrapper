@@ -19,7 +19,7 @@ class gsheet_tesco(scrapy.Spider):
     }
 
     # proxy = 'http://xavigv:GOkNQBPK2DplRGqw@proxy.packetstream.io:31112'
-    proxy = 'http://amitupreti:RefzyvyXp1QVZRfx@proxy.packetstream.io:31112'
+    proxy = 'http://xavigv:GOkNQBPK2DplRGqw@proxy.packetstream.io:31112'
 
     input_file = 'https://docs.google.com/spreadsheets/d/e/2PACX-1vQtb-UKr49Cj5tAof845aBQnN6Z_fnfaeGvvfKjee-XWz2OmNFlqW-XkItXUkhjEt7Xnr50yGdu_wcC/pub?output=csv'
     proxies = {"http": 'http://xavigv:GOkNQBPK2DplRGqw@proxy.packetstream.io:31112',
