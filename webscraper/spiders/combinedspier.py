@@ -10,7 +10,7 @@ from scrapy.utils.response import open_in_browser
 
 class combined(scrapy.Spider):
     name = 'combined'
-    custom_settings = {'CONCURRENT_REQUESTS': 30,
+    custom_settings = {'CONCURRENT_REQUESTS': 3,
                        'FEED_FORMAT': 'csv',
                        'FEED_URI': datetime.now().strftime('%Y_%m_%d__%H_%M') + 'combined.csv',
                        'RETRY_TIMES': 5,
@@ -38,135 +38,135 @@ class combined(scrapy.Spider):
             url = data['URL']
 
             # url = 'https://groceries.morrisons.com/products/523351011'
-            if 'morrisons' in url:
-                if 'tesco.com' in url:
-                    headers = {
-                        'authority': 'www.tesco.com',
-                        'cache-control': 'max-age=0',
-                        'upgrade-insecure-requests': '1',
-                        'user-agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/86.0.4240.198 Safari/537.36',
-                        'accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,image/apng,*/*;q=0.8,application/signed-exchange;v=b3;q=0.9',
-                        'sec-fetch-site': 'none',
-                        'sec-fetch-mode': 'navigate',
-                        'sec-fetch-user': '?1',
-                        'sec-fetch-dest': 'document',
-                        'accept-language': 'en-GB,en-US;q=0.9,en;q=0.8,la;q=0.7'
-                    }
+            # if 'morrisons' in url:
+            if 'tesco.com' in url:
+                headers = {
+                    'authority': 'www.tesco.com',
+                    'cache-control': 'max-age=0',
+                    'upgrade-insecure-requests': '1',
+                    'user-agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/86.0.4240.198 Safari/537.36',
+                    'accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,image/apng,*/*;q=0.8,application/signed-exchange;v=b3;q=0.9',
+                    'sec-fetch-site': 'none',
+                    'sec-fetch-mode': 'navigate',
+                    'sec-fetch-user': '?1',
+                    'sec-fetch-dest': 'document',
+                    'accept-language': 'en-GB,en-US;q=0.9,en;q=0.8,la;q=0.7'
+                }
 
-                    yield scrapy.Request(url, headers=headers, callback=self.parse_tesco, meta={"proxy": self.proxy},
-                                         dont_filter=True)
-                elif 'morrisons.com' in url:
+                yield scrapy.Request(url, headers=headers, callback=self.parse_tesco, meta={"proxy": self.proxy},
+                                     dont_filter=True)
+            elif 'morrisons.com' in url:
 
-                    headers = {
-                        'Connection': 'keep-alive',
-                        'Cache-Control': 'max-age=0',
-                        'Upgrade-Insecure-Requests': '1',
-                        'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/87.0.4280.88 Safari/537.36',
-                        'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,image/apng,*/*;q=0.8,application/signed-exchange;v=b3;q=0.9',
-                        'Sec-Fetch-Site': 'none',
-                        'Sec-Fetch-Mode': 'navigate',
-                        'Sec-Fetch-User': '?1',
-                        'Sec-Fetch-Dest': 'document',
-                        'Accept-Language': 'en-GB,en-US;q=0.9,en;q=0.8,la;q=0.7',
+                headers = {
+                    'Connection': 'keep-alive',
+                    'Cache-Control': 'max-age=0',
+                    'Upgrade-Insecure-Requests': '1',
+                    'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/87.0.4280.88 Safari/537.36',
+                    'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,image/apng,*/*;q=0.8,application/signed-exchange;v=b3;q=0.9',
+                    'Sec-Fetch-Site': 'none',
+                    'Sec-Fetch-Mode': 'navigate',
+                    'Sec-Fetch-User': '?1',
+                    'Sec-Fetch-Dest': 'document',
+                    'Accept-Language': 'en-GB,en-US;q=0.9,en;q=0.8,la;q=0.7',
 
-                    }
-                    if '-' in url:
-                        sku = url.split('-')[-1].strip()
-                    else:
-                        sku = url.split('/')[-1]
-                    sku_url = f"https://groceries.morrisons.com/webshop/api/v1/products?skus={sku}"
+                }
+                if '-' in url:
+                    sku = url.split('-')[-1].strip()
+                else:
+                    sku = url.split('/')[-1]
+                sku_url = f"https://groceries.morrisons.com/webshop/api/v1/products?skus={sku}"
 
-                    yield scrapy.Request(
-                        url=sku_url,
-                        headers=headers,
-                        callback=self.parse_morrisons
-                    )
+                yield scrapy.Request(
+                    url=sku_url,
+                    headers=headers,
+                    callback=self.parse_morrisons
+                )
 
 
 
-                elif 'ocado.com' in url:
-                    headers = {
-                        'Connection': 'keep-alive',
-                        'Cache-Control': 'max-age=0',
-                        'Upgrade-Insecure-Requests': '1',
-                        'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/87.0.4280.88 Safari/537.36',
-                        'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,image/apng,*/*;q=0.8,application/signed-exchange;v=b3;q=0.9',
-                        'Sec-Fetch-Site': 'none',
-                        'Sec-Fetch-Mode': 'navigate',
-                        'Sec-Fetch-User': '?1',
-                        'Sec-Fetch-Dest': 'document',
-                        'Accept-Language': 'en-GB,en-US;q=0.9,en;q=0.8,la;q=0.7',
+            elif 'ocado.com' in url:
+                headers = {
+                    'Connection': 'keep-alive',
+                    'Cache-Control': 'max-age=0',
+                    'Upgrade-Insecure-Requests': '1',
+                    'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/87.0.4280.88 Safari/537.36',
+                    'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,image/apng,*/*;q=0.8,application/signed-exchange;v=b3;q=0.9',
+                    'Sec-Fetch-Site': 'none',
+                    'Sec-Fetch-Mode': 'navigate',
+                    'Sec-Fetch-User': '?1',
+                    'Sec-Fetch-Dest': 'document',
+                    'Accept-Language': 'en-GB,en-US;q=0.9,en;q=0.8,la;q=0.7',
 
-                    }
+                }
 
-                    if '-' in url:
-                        sku = url.split('-')[-1].strip()
-                    else:
-                        sku = url.split('/')[-1]
-                    sku_url = f"https://www.ocado.com/webshop/api/v1/products?skus={sku}"
+                if '-' in url:
+                    sku = url.split('-')[-1].strip()
+                else:
+                    sku = url.split('/')[-1]
+                sku_url = f"https://www.ocado.com/webshop/api/v1/products?skus={sku}"
 
-                    yield scrapy.Request(
-                        url=sku_url,
-                        headers=headers,
-                        callback=self.parse_ocado
-                    )
-                elif 'sainsburys' in url:
-                    headers = {
-                        'authority': 'www.sainsburys.co.uk',
-                        'upgrade-insecure-requests': '1',
-                        'user-agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/87.0.4280.88 Safari/537.36',
-                        'accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,image/apng,*/*;q=0.8,application/signed-exchange;v=b3;q=0.9',
-                        'sec-fetch-site': 'none',
-                        'sec-fetch-mode': 'navigate',
-                        'sec-fetch-user': '?1',
-                        'sec-fetch-dest': 'document',
-                        'accept-language': 'en-GB,en-US;q=0.9,en;q=0.8,la;q=0.7',
-                    }
-                    api_url = f"https://www.sainsburys.co.uk/groceries-api/gol-services/product/v1/product?filter[product_seo_url]=gb/groceries/{url.split('product/')[1]}&include[ASSOCIATIONS]=true&include[DIETARY_PROFILE]=true"
-                    yield scrapy.Request(api_url,
-                                 headers=headers,
-                                 callback=self.parse_sainsbury,
-                                 dont_filter=True,
-                                meta= {
-                                    'url' : url
-                                })
-                elif 'britishcornershop' in url:
-                    headers = {
-                        'authority': 'www.britishcornershop.co.uk',
-                        'cache-control': 'max-age=0',
-                        'sec-ch-ua': '"Google Chrome";v="87", " Not;A Brand";v="99", "Chromium";v="87"',
-                        'sec-ch-ua-mobile': '?0',
-                        'upgrade-insecure-requests': '1',
-                        'user-agent': 'Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/87.0.4280.88 Safari/537.36',
-                        'accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,image/apng,*/*;q=0.8,application/signed-exchange;v=b3;q=0.9',
-                        'sec-fetch-site': 'same-origin',
-                        'sec-fetch-mode': 'navigate',
-                        'sec-fetch-user': '?1',
-                        'sec-fetch-dest': 'document',
-                        'referer': 'https://www.britishcornershop.co.uk/cakes-and-cake-bars-bakery',
-                        'accept-language': 'en-GB,en-US;q=0.9,en;q=0.8,la;q=0.7',
-                    }
-                    yield scrapy.Request(url=url,
-                                         headers=headers,
-                                         callback=self.parse_britishcorner)
+                yield scrapy.Request(
+                    url=sku_url,
+                    headers=headers,
+                    callback=self.parse_ocado
+                )
+            elif 'sainsburys' in url:
+                headers = {
+                    'authority': 'www.sainsburys.co.uk',
+                    'upgrade-insecure-requests': '1',
+                    'user-agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/87.0.4280.88 Safari/537.36',
+                    'accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,image/apng,*/*;q=0.8,application/signed-exchange;v=b3;q=0.9',
+                    'sec-fetch-site': 'none',
+                    'sec-fetch-mode': 'navigate',
+                    'sec-fetch-user': '?1',
+                    'sec-fetch-dest': 'document',
+                    'accept-language': 'en-GB,en-US;q=0.9,en;q=0.8,la;q=0.7',
+                }
+                api_url = f"https://www.sainsburys.co.uk/groceries-api/gol-services/product/v1/product?filter[product_seo_url]=gb/groceries/{url.split('product/')[1]}&include[ASSOCIATIONS]=true&include[DIETARY_PROFILE]=true"
+                yield scrapy.Request(api_url,
+                             headers=headers,
+                             callback=self.parse_sainsbury,
+                             dont_filter=True,
+                            meta= {
+                                'url' : url
+                            })
+            elif 'britishcornershop' in url:
+                headers = {
+                    'authority': 'www.britishcornershop.co.uk',
+                    'cache-control': 'max-age=0',
+                    'sec-ch-ua': '"Google Chrome";v="87", " Not;A Brand";v="99", "Chromium";v="87"',
+                    'sec-ch-ua-mobile': '?0',
+                    'upgrade-insecure-requests': '1',
+                    'user-agent': 'Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/87.0.4280.88 Safari/537.36',
+                    'accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,image/apng,*/*;q=0.8,application/signed-exchange;v=b3;q=0.9',
+                    'sec-fetch-site': 'same-origin',
+                    'sec-fetch-mode': 'navigate',
+                    'sec-fetch-user': '?1',
+                    'sec-fetch-dest': 'document',
+                    'referer': 'https://www.britishcornershop.co.uk/cakes-and-cake-bars-bakery',
+                    'accept-language': 'en-GB,en-US;q=0.9,en;q=0.8,la;q=0.7',
+                }
+                yield scrapy.Request(url=url,
+                                     headers=headers,
+                                     callback=self.parse_britishcorner)
 
-                elif 'britsuperstore.com' in url:
-                    headers = {
-                        'Connection': 'keep-alive',
-                        'Cache-Control': 'max-age=0',
-                        'Upgrade-Insecure-Requests': '1',
-                        'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/87.0.4280.88 Safari/537.36',
-                        'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,image/apng,*/*;q=0.8,application/signed-exchange;v=b3;q=0.9',
-                        'Sec-Fetch-Site': 'cross-site',
-                        'Sec-Fetch-Mode': 'navigate',
-                        'Sec-Fetch-User': '?1',
-                        'Sec-Fetch-Dest': 'document',
-                        'Accept-Language': 'en-GB,en-US;q=0.9,en;q=0.8,la;q=0.7',
-                    }
-    
-                    yield scrapy.Request(url=url,
-                                         headers=headers,
-                                         callback=self.parse_britsuperstore)
+            elif 'britsuperstore.com' in url:
+                headers = {
+                    'Connection': 'keep-alive',
+                    'Cache-Control': 'max-age=0',
+                    'Upgrade-Insecure-Requests': '1',
+                    'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/87.0.4280.88 Safari/537.36',
+                    'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,image/apng,*/*;q=0.8,application/signed-exchange;v=b3;q=0.9',
+                    'Sec-Fetch-Site': 'cross-site',
+                    'Sec-Fetch-Mode': 'navigate',
+                    'Sec-Fetch-User': '?1',
+                    'Sec-Fetch-Dest': 'document',
+                    'Accept-Language': 'en-GB,en-US;q=0.9,en;q=0.8,la;q=0.7',
+                }
+
+                yield scrapy.Request(url=url,
+                                     headers=headers,
+                                     callback=self.parse_britsuperstore)
 
     def parse_britsuperstore(self,response):
 
