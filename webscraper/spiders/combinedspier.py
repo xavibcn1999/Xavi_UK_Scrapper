@@ -14,7 +14,7 @@ class combined(scrapy.Spider):
                        'FEED_FORMAT': 'csv',
                        'FEED_URI': datetime.now().strftime('%Y_%m_%d__%H_%M') + 'combined.csv',
                        'RETRY_TIMES': 5,
-                       'COOKIES_ENABLED': False,
+                       # 'COOKIES_ENABLED': False,
                        'FEED_EXPORT_ENCODING' : "utf-8",
                        # 'REDIRECT_MAX_TIMES' : 100,
                        # 'HTTPCACHE_ENABLED' : True
@@ -29,16 +29,14 @@ class combined(scrapy.Spider):
 
     def start_requests(self):
 
+
         sheet = self.cat
         df = pd.read_csv(sheet)
         for i in range(len(df)):
-        # for i in range(1):
 
             data = dict(df.iloc[i])
             url = data['URL']
 
-            # url = 'https://groceries.morrisons.com/products/523351011'
-            # if 'morrisons' in url:
             if 'tesco.com' in url:
                 headers = {
                     'authority': 'www.tesco.com',
@@ -103,6 +101,7 @@ class combined(scrapy.Spider):
                     sku = url.split('-')[-1].strip()
                 else:
                     sku = url.split('/')[-1]
+
                 sku_url = f"https://www.ocado.com/webshop/api/v1/products?skus={sku}"
 
                 yield scrapy.Request(
@@ -122,13 +121,17 @@ class combined(scrapy.Spider):
                     'sec-fetch-dest': 'document',
                     'accept-language': 'en-GB,en-US;q=0.9,en;q=0.8,la;q=0.7',
                 }
-                api_url = f"https://www.sainsburys.co.uk/groceries-api/gol-services/product/v1/product?filter[product_seo_url]=gb/groceries/{url.split('product/')[1]}&include[ASSOCIATIONS]=true&include[DIETARY_PROFILE]=true"
+                key = f"gb/groceries/{url.split('/', len(url.split('/')) - 2)[-1]}"
+
+                api_url = f"https://www.sainsburys.co.uk/groceries-api/gol-services/product/v1/product?filter[product_seo_url]={key}"
                 yield scrapy.Request(api_url,
                              headers=headers,
                              callback=self.parse_sainsbury,
                              dont_filter=True,
+
                             meta= {
-                                'url' : url
+                                'url' : url,
+                                'proxy' : self.proxy
                             })
             elif 'britishcornershop' in url:
                 headers = {
@@ -237,6 +240,7 @@ class combined(scrapy.Spider):
     def parse_sainsbury(self,response):
 
         json_dict = json.loads(response.text)
+
         name = json_dict['products'][0]['name']
         unit_price = json_dict['products'][0]['unit_price']
         retail_price = json_dict['products'][0]['retail_price'].get('price','')
@@ -279,6 +283,8 @@ class combined(scrapy.Spider):
             final_item['Availability'] = 'No'
 
         final_item['Review Count'] = review_count
+
+
         yield final_item
     def parse_ocado(self,response):
         items = json.loads(response.text)

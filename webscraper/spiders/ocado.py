@@ -69,7 +69,7 @@ class ocado(scrapy.Spider):
 
         resp = Selector(text=response.text)
         category = resp.xpath('//nav//li//text()').getall()[-1]
-        json_dict = json.loads(resp.xpath('//script').get('').split('window.INITIAL_STATE = ')[1].rsplit(';', 1)[0])
+        json_dict = json.loads(resp.xpath('//script').get(  '').split('window.INITIAL_STATE = ')[1].rsplit(';', 1)[0])
         skus = list(set(nested_lookup('sku',json_dict)))
         skus_list = []
 
