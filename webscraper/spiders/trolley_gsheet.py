@@ -9,11 +9,11 @@ from scrapy.selector import Selector
 
 from scrapy.utils.response import open_in_browser
 
-class trolley(scrapy.Spider):
-    name = 'trolley'
+class gsheet_trolley(scrapy.Spider):
+    name = 'gsheet_trolley'
     custom_settings = {'CONCURRENT_REQUESTS': 1,
                        'FEED_FORMAT': 'csv',
-                       'FEED_URI': datetime.now().strftime('%Y_%m_%d__%H_%M') + 'trolley.csv',
+                       'FEED_URI': datetime.now().strftime('%Y_%m_%d__%H_%M') + 'gsheet_trolley.csv',
                        'RETRY_TIMES': 10,
                        'FEED_EXPORT_ENCODING' : "utf-8",
                        'COOKIES_ENABLED' : False
@@ -27,30 +27,39 @@ class trolley(scrapy.Spider):
                "https": 'http://xavigv:GOkNQBPK2DplRGqw@proxy.packetstream.io:31112'
                }
 
-    def __init__(self, cat=None, *args, **kwargs):
-        super(trolley, self).__init__(*args, **kwargs)
-        self.cat = cat
-
-    headers = {
-        'Connection': 'keep-alive',
-        'Cache-Control': 'max-age=0',
-        'sec-ch-ua': '"Chromium";v="92", " Not A;Brand";v="99", "Google Chrome";v="92"',
-        'sec-ch-ua-mobile': '?0',
-        'Upgrade-Insecure-Requests': '1',
-        'User-Agent': 'Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/92.0.4515.131 Safari/537.36',
-        'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,image/apng,*/*;q=0.8,application/signed-exchange;v=b3;q=0.9',
-        'Sec-Fetch-Site': 'none',
-        'Sec-Fetch-Mode': 'navigate',
-        'Sec-Fetch-User': '?1',
-        'Sec-Fetch-Dest': 'document',
-        'Accept-Language': 'en-GB,en-US;q=0.9,en;q=0.8,la;q=0.7',
-    }
+    #
+    # def __init__(self, cat=None, *args, **kwargs):
+    #     super(combined, self).__init__(*args, **kwargs)
+    #     self.cat = cat
 
     def start_requests(self):
 
-        url = self.cat
-        yield scrapy.Request(url, headers=self.headers, callback=self.parse_trolley, meta={"proxy": self.proxy},
-                             dont_filter=True)
+        df = pd.read_csv(self.settings.get('INPUT_FILE'))
+        for i in range(len(df)):
+        # for i in range(1):
+            data = dict(df.iloc[i])
+            url = data['URL']
+
+            # url = 'https://trolley.co.uk/browse/baby-toddler-kids'
+
+            if  'trolley.co.uk' in url:
+                headers = {
+                    'Connection': 'keep-alive',
+                    'Cache-Control': 'max-age=0',
+                    'sec-ch-ua': '"Chromium";v="92", " Not A;Brand";v="99", "Google Chrome";v="92"',
+                    'sec-ch-ua-mobile': '?0',
+                    'Upgrade-Insecure-Requests': '1',
+                    'User-Agent': 'Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/92.0.4515.131 Safari/537.36',
+                    'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,image/apng,*/*;q=0.8,application/signed-exchange;v=b3;q=0.9',
+                    'Sec-Fetch-Site': 'none',
+                    'Sec-Fetch-Mode': 'navigate',
+                    'Sec-Fetch-User': '?1',
+                    'Sec-Fetch-Dest': 'document',
+                    'Accept-Language': 'en-GB,en-US;q=0.9,en;q=0.8,la;q=0.7',
+                }
+
+                yield scrapy.Request(url, headers=headers, callback=self.parse_trolley, meta={"proxy": self.proxy},
+                                     dont_filter=True)
 
 
     def parse_trolley(self,response):
@@ -65,6 +74,7 @@ class trolley(scrapy.Spider):
                     "proxy": self.proxy
                 }
             )
+            # break
 
         next_page = response.xpath('//a[@class="-next"]/@href').get('')
 
