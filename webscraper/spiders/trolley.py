@@ -55,6 +55,8 @@ class trolley(scrapy.Spider):
 
     def parse_trolley(self,response):
 
+        category = response.xapath('//h1//text()').get('').strip()
+
         links = response.xpath('//div[@class="product-listing"]/a/@href').getall()
 
         for link in links:
@@ -62,7 +64,8 @@ class trolley(scrapy.Spider):
                 url = response.urljoin(link),
                 callback=self.parse_detail,
                 meta={
-                    "proxy": self.proxy
+                    "proxy": self.proxy,
+                    "category" : category
                 }
             )
 
@@ -107,8 +110,9 @@ class trolley(scrapy.Spider):
             'Product Name' : name,
             'Units' : quantity,
             'Weight' : weights,
-            'Image URLe' : f"images/{image_path}",
-            'Image URL' : image_url,
+            'Category' : response.meta['category'],
+            'Image URL' : f"images/{image_path}",
+            'Image Path' : image_url,
             'URL' : response.url
         }
 
