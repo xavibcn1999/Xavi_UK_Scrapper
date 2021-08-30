@@ -36,7 +36,6 @@ class combined(scrapy.Spider):
 
             data = dict(df.iloc[i])
             url = data['URL']
-
             if 'tesco.com' in url:
                 headers = {
                     'authority': 'www.tesco.com',
@@ -51,7 +50,9 @@ class combined(scrapy.Spider):
                     'accept-language': 'en-GB,en-US;q=0.9,en;q=0.8,la;q=0.7'
                 }
 
-                yield scrapy.Request(url, headers=headers, callback=self.parse_tesco, meta={"proxy": self.proxy},
+                yield scrapy.Request(url, headers=headers, callback=self.parse_tesco,
+                                     meta={"proxy": self.proxy,
+                                           'cookiejar': i},
                                      dont_filter=True)
             elif 'morrisons.com' in url:
 
@@ -77,7 +78,9 @@ class combined(scrapy.Spider):
                 yield scrapy.Request(
                     url=sku_url,
                     headers=headers,
-                    callback=self.parse_morrisons
+                    callback=self.parse_morrisons,
+                    meta={"proxy": self.proxy,
+                          'cookiejar': i},
                 )
 
 
@@ -107,7 +110,9 @@ class combined(scrapy.Spider):
                 yield scrapy.Request(
                     url=sku_url,
                     headers=headers,
-                    callback=self.parse_ocado
+                    callback=self.parse_ocado,
+                    meta={"proxy": self.proxy,
+                          'cookiejar': i},
                 )
             elif 'sainsburys' in url:
                 headers = {
@@ -128,10 +133,10 @@ class combined(scrapy.Spider):
                              headers=headers,
                              callback=self.parse_sainsbury,
                              dont_filter=True,
-
                             meta= {
                                 'url' : url,
-                                'proxy' : self.proxy
+                                'proxy' : self.proxy,
+                                'cookiejar': i
                             })
             elif 'britishcornershop' in url:
                 headers = {
@@ -151,7 +156,10 @@ class combined(scrapy.Spider):
                 }
                 yield scrapy.Request(url=url,
                                      headers=headers,
-                                     callback=self.parse_britishcorner)
+                                     callback=self.parse_britishcorner,
+                                     meta={"proxy": self.proxy,
+                                           'cookiejar': i},
+                                     )
 
             elif 'britsuperstore.com' in url:
                 headers = {
@@ -169,7 +177,10 @@ class combined(scrapy.Spider):
 
                 yield scrapy.Request(url=url,
                                      headers=headers,
-                                     callback=self.parse_britsuperstore)
+                                     callback=self.parse_britsuperstore,
+                                     meta={"proxy": self.proxy,
+                                           'cookiejar': i},
+                                     )
 
     def parse_britsuperstore(self,response):
 
@@ -237,6 +248,7 @@ class combined(scrapy.Spider):
             'Store' : 'Britishcorner'
         }
         yield item
+
     def parse_sainsbury(self,response):
 
         json_dict = json.loads(response.text)
@@ -329,18 +341,17 @@ class combined(scrapy.Spider):
             yield final_item
 
 
-    def pre_parse_morrisons(self,response):
-
-        response.xpath('//meta[@property="og:url"]')
-        breakpoint()
-        sku = url.split('-')[-1].strip()
-        sku_url = f"https://groceries.morrisons.com/webshop/api/v1/products?skus={sku}"
-
-        yield scrapy.Request(
-            url=sku_url,
-            headers=headers,
-            callback=self.parse_morrisons
-        )
+    # def pre_parse_morrisons(self,response):
+    #
+    #     response.xpath('//meta[@property="og:url"]')
+    #     sku = url.split('-')[-1].strip()
+    #     sku_url = f"https://groceries.morrisons.com/webshop/api/v1/products?skus={sku}"
+    #
+    #     yield scrapy.Request(
+    #         url=sku_url,
+    #         headers=headers,
+    #         callback=self.parse_morrisons
+    #     )
 
     def parse_morrisons(self,response):
         items = json.loads(response.text)
@@ -386,6 +397,7 @@ class combined(scrapy.Spider):
 
             yield final_item
     def parse_tesco(self,response):
+        breakpoint()
         breadcrumbs = ' > '.join(response.xpath('//nav[@aria-label="breadcrumb"]//li//text()').getall())
         image_link = response.xpath('//div[@class="product-image__container"]/img/@src').get('')
         title_main = response.xpath('//h1/text()').get('')

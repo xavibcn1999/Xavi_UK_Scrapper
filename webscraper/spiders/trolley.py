@@ -55,7 +55,7 @@ class trolley(scrapy.Spider):
 
     def parse_trolley(self,response):
 
-        category = response.xapath('//h1//text()').get('').strip()
+        category = response.xpath('//h1//text()').get('').strip()
 
         links = response.xpath('//div[@class="product-listing"]/a/@href').getall()
 
@@ -111,9 +111,10 @@ class trolley(scrapy.Spider):
             'Units' : quantity,
             'Weight' : weights,
             'Category' : response.meta['category'],
-            'Image URL' : f"images/{image_path}",
-            'Image Path' : image_url,
-            'URL' : response.url
+            'Image Path' : f"images/{image_path}",
+            'Image URL' : image_url,
+            'URL' : response.url,
+            'Store' : 'Trolley'
         }
 
         for market in markets:
@@ -124,9 +125,9 @@ class trolley(scrapy.Spider):
 
             final_item = {
                 **item,
-                'Stores' : store_name,
+                'Shop Name' : store_name,
                 'Price' : price,
-                'Store URLs' : store_url
+                'Shop URL' : store_url,
             }
 
             yield final_item

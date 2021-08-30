@@ -64,7 +64,7 @@ class gsheet_trolley(scrapy.Spider):
 
     def parse_trolley(self,response):
 
-        category = response.xapath('//h1//text()').get('').strip()
+        category = response.xpath('//h1//text()').get('').strip()
 
         links = response.xpath('//div[@class="product-listing"]/a/@href').getall()
 
@@ -121,8 +121,8 @@ class gsheet_trolley(scrapy.Spider):
             'Units': quantity,
             'Weight': weights,
             'Category': response.meta['category'],
-            'Image URL': f"images/{image_path}",
-            'Image Path': image_url,
+            'Image Path': f"images/{image_path}",
+            'Image URL': image_url,
             'URL': response.url
         }
 
