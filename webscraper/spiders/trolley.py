@@ -21,6 +21,7 @@ class trolley(scrapy.Spider):
     }
 
     proxy = 'http://xavigv:GOkNQBPK2DplRGqw@proxy.packetstream.io:31112'
+    # proxy = ''
 
     input_file = 'https://docs.google.com/spreadsheets/d/e/2PACX-1vQtb-UKr49Cj5tAof845aBQnN6Z_fnfaeGvvfKjee-XWz2OmNFlqW-XkItXUkhjEt7Xnr50yGdu_wcC/pub?output=csv'
     proxies = {"http": 'http://xavigv:GOkNQBPK2DplRGqw@proxy.packetstream.io:31112',
@@ -59,10 +60,12 @@ class trolley(scrapy.Spider):
 
         links = response.xpath('//div[@class="product-listing"]/a/@href').getall()
 
+
         for link in links:
             yield scrapy.Request(
                 url = response.urljoin(link),
                 callback=self.parse_detail,
+                headers = self.headers,
                 meta={
                     "proxy": self.proxy,
                     "category" : category
@@ -75,6 +78,8 @@ class trolley(scrapy.Spider):
             yield scrapy.Request(
                 url = response.urljoin(next_page),
                 callback=self.parse_trolley,
+                headers=self.headers,
+
                 meta={
                     "proxy": self.proxy
                 }
@@ -103,7 +108,7 @@ class trolley(scrapy.Spider):
             image_url = ''
             image_path = ''
 
-        markets = response.xpath('//div[@class="comparison-table"]/div')
+        markets = response.xpath('//div[@class="comparison-table"]/div[@class="_item"]')
 
         item = {
             'Brand' : brand,
@@ -116,7 +121,6 @@ class trolley(scrapy.Spider):
             'URL' : response.url,
             'Store' : 'Trolley'
         }
-
         for market in markets:
             store_name = market.xpath('.//svg[contains(@class,"store-logo")]/@title').get('')
             price = market.xpath('.//div[@class="_price"]//text()').get('')

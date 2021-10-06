@@ -10,7 +10,7 @@ import json
 
 class morrisons(scrapy.Spider):
     name = 'morrisons'
-    custom_settings = {'CONCURRENT_REQUESTS': 30,
+    custom_settings = {'CONCURRENT_REQUESTS': 5,
                        'FEED_FORMAT': 'csv',
                        'FEED_URI': datetime.now().strftime('%Y_%m_%d__%H_%M') + 'morrisons.csv',
                        'RETRY_TIMES': 5,
@@ -125,7 +125,8 @@ class morrisons(scrapy.Spider):
                 'Price ' : '£ ' + str(price),
                 'Price per quantity': '£ ' + str(unit_price),
                 'Image URL': image_url,
-                'Image Path': 'Morrisons/' + name.replace('/', '_') + '.' + image_url.split('.')[-1].split('?')[0],
+                # 'Image Path': 'Morrisons/' + name.replace('/', '_') + '.' + image_url.split('.')[-1].split('?')[0],
+                'Image Path': 'Morrisons/' + sku + '.' + image_url.split('.')[-1].split('?')[0],
                 'Category': category,
                 'Subcategory': sub_category,
                 'Availability': availability,

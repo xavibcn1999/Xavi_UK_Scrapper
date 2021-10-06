@@ -8,7 +8,7 @@ from nested_lookup import nested_lookup
 
 class sainsbury(scrapy.Spider):
     name = 'sainsbury'
-    custom_settings = {'CONCURRENT_REQUESTS': 30,
+    custom_settings = {'CONCURRENT_REQUESTS': 5,
                        'FEED_FORMAT': 'csv',
                        'FEED_URI': datetime.now().strftime('%Y_%m_%d__%H_%M') + 'sainsbury.csv',
                        'RETRY_TIMES': 5,
@@ -97,8 +97,10 @@ class sainsbury(scrapy.Spider):
         try:
             image = json_dict['products'][0]['assets']['plp_image']
             final_item['Image URL'] = image
-            final_item['Image Path'] = 'Sainsbury/' + final_item['Product Name'].replace('/', '_') + '.' + \
-                                   image.split('.')[-1].split('?')[0]
+            # final_item['Image Path'] = 'Sainsbury/' + final_item['Product Name'].replace('/', '_') + '.' + \
+            #                        image.split('.')[-1].split('?')[0]
+            final_item['Image Path'] = 'Sainsbury/' + final_item['Image URL'].split('/gol/')[-1].split('/')[0] + '.' + \
+                                       image.split('.')[-1].split('?')[0]
         except:
             final_item['Image URL'] = ''
             final_item['Image Path'] = ''
@@ -107,7 +109,8 @@ class sainsbury(scrapy.Spider):
             try:
                 image = nested_lookup('url',json_dict['products'][0]['assets']['images'])[-1]
                 final_item['Image URL'] = image
-                final_item['Image Path'] = 'Sainsbury/' + final_item[ 'Product Name'].replace('/', '_') + '.' +image.split('.')[-1].split('?')[0]
+                # final_item['Image Path'] = 'Sainsbury/' + final_item[ 'Product Name'].replace('/', '_') + '.' +image.split('.')[-1].split('?')[0]
+                final_item['Image Path'] = 'Sainsbury/' + final_item[ 'Image URL'].split('/gol/')[-1].split('/')[0] + '.' +image.split('.')[-1].split('?')[0]
 
             except:
                 final_item['Image URL'] = ''
