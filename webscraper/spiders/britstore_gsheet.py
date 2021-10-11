@@ -63,7 +63,7 @@ class gsheet_britsuperstore(scrapy.Spider):
                 'Price per quantity': '',
                 'Image URL': img,
                 # 'Image Path': 'images/' + img.split('/')[-1].split('?')[0],
-                'Image Path': 'images/' + img.split('/')[-1].split('-')[-1].split('.')[0] + img.split('.')[-1].split('?')[0],
+                'Image Path': 'images/' + img.split('/')[-1].split('-')[-1].split('.')[0] + '.' +img.split('.')[-1].split('?')[0],
                 'Category': cat,
                 'Subcategory': sub_cat,
                 'Availability': availablility,

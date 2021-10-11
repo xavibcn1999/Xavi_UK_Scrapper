@@ -59,7 +59,7 @@ class britsuperstore(scrapy.Spider):
                 'Price per quantity': '',
                 'Image URL': img,
                 # 'Image Path': 'BritSuperstore/' + title_main.replace('/', '_')  +'.' + img.split('.')[-1].split('?')[0],
-                'Image Path': 'BritSuperstore/' + img.split('/')[-1].split('-')[-1].split('.')[0] + img.split('.')[-1].split('?')[0],
+                'Image Path': 'BritSuperstore/' + img.split('/')[-1].split('-')[-1].split('.')[0] +'.'+img.split('.')[-1].split('?')[0],
                 'Category': cat,
                 'Subcategory': sub_cat,
                 'Availability': availablility,
@@ -69,6 +69,7 @@ class britsuperstore(scrapy.Spider):
                 'Brand': '',
                 'Store': 'BritSuperstore'
             }
+
 
             yield item
         next_page =  response.xpath('//a[@title="Next"]/@href').get('')
