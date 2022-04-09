@@ -4,6 +4,7 @@ import scrapy
 from scrapy.selector import Selector
 from scrapy.utils.response import open_in_browser
 from datetime import datetime
+import json
 class etsy(scrapy.Spider):
     name = 'etsy'
     custom_settings = {'CONCURRENT_REQUESTS': 15,
@@ -44,12 +45,17 @@ class etsy(scrapy.Spider):
         'TE': 'trailers'
     }
 
+    # proxy = 'http://xavigv:bBatK&p5xbhFLCuq@proxy.packetstream.io:31112'2022_04_05__21_47electricmannuals.csv
+    proxy = ''
 
     def start_requests(self):
         yield scrapy.Request(
             url ='https://www.etsy.com/uk/search?q=candle&page=1&ref=pagination',
             callback=self.parse_page,
             headers=self.headers,
+            meta = {
+                'proxy' : self.proxy
+            }
 
         )
 
@@ -72,7 +78,10 @@ class etsy(scrapy.Spider):
             yield scrapy.Request(
                 url = product_url,
                 callback = self.parse_product,
-                headers=self.headers
+                headers=self.headers,
+                meta = {
+                    'proxy' : self.proxy
+                }
             )
 
         data = {
@@ -148,13 +157,28 @@ class etsy(scrapy.Spider):
         self.headers_new['x-csrf-token'] = csrf
         self.headers_new['X-Page-GUID'] = page_guid
 
+
         yield scrapy.FormRequest(
             url= 'https://www.etsy.com/api/v3/ajax/bespoke/member/neu/specs/listingCards',
             callback=self.parse_details,
+            meta = {
+                'proxy': self.proxy
+            },
             # body=json.dumps(data),
             formdata=data,
             headers=self.headers_new
         )
+
+        next_page = response.xpath('//span[contains(text(),"Next")]/parent::a/@href').get('')
+        if next_page:
+            yield scrapy.Request(
+                url=next_page,
+                callback=self.parse_page,
+                headers=self.headers,
+                meta={
+                    'proxy': self.proxy
+                }
+            )
 
     def parse_details(self,response):
         details_json = json.loads(response.text)
@@ -171,6 +195,9 @@ class etsy(scrapy.Spider):
             yield scrapy.Request(
                 url = product_url,
                 callback = self.parse_product,
+                meta = {
+                    'proxy': self.proxy
+                },
                 headers=self.headers
             )
 
@@ -182,7 +209,8 @@ class etsy(scrapy.Spider):
             callback = self.parse_seller,
             meta = {
                 'item_count' : {},
-                'seller_link' :  response.xpath('//a[contains(@aria-label,"View more products from shop owner")]/@href').get('').split('?')[0]
+                'seller_link' :  response.xpath('//a[contains(@aria-label,"View more products from shop owner")]/@href').get('').split('?')[0],
+                'proxy': self.proxy
             },
             headers=self.headers
         )
@@ -192,7 +220,10 @@ class etsy(scrapy.Spider):
 
         if response.meta['item_count'] == {}:
             rating = response.xpath('//input[@name="rating"]/@value').get('')
-            reviewCount = response.text.split('"reviewCount":')[1].split(',')[0].replace('"','').replace('}','').strip()
+            try:
+                reviewCount = response.text.split('"reviewCount":')[1].split(',')[0].replace('"','').replace('}','').strip()
+            except:
+                reviewCount = 0
             total_sales = response.xpath('//div[contains(text(),"Sales")]/text()').get('').replace('Sales','').strip()
             seller_name = response.xpath('//h1/div/text()').get('').strip()
 
@@ -224,7 +255,7 @@ class etsy(scrapy.Spider):
             yield scrapy.Request(
                 url = next_page,
                 callback = self.parse_seller,
-                meta = {'rating':rating,'reviewCount':reviewCount,'item_count':item_count,'total_sales':total_sales,'seller_name':seller_name,'seller_link':seller_link},
+                meta = {'rating':rating,'reviewCount':reviewCount,'item_count':item_count,'total_sales':total_sales,'seller_name':seller_name,'seller_link':seller_link,'proxy':self.proxy},
                 headers=self.headers
             )
 
