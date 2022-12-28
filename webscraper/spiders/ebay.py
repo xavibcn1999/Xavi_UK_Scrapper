@@ -54,101 +54,101 @@ class ebay(scrapy.Spider):
 
     def start_requests(self):
 
-        # df = pd.read_csv(self.url)
+        df = pd.read_csv(self.url)
 
-        # urls = df['url'].tolist()
-
-        # # for url in urls:
-                
-        # #     yield scrapy.Request(
-        # #         url=url,
-        # #         headers=header.generate(),
-        # #         callback=self.parse,
-        # #         meta={
-        # #             'url': url,
-        # #             'proxy': self.proxy
-        # #         }
-        # #     )
-        # ranges = {
-
-        #     '0-1000': 1,
-        #     # '500-1500': 1,
-        #     # '1500-2000': 5,
-    
-
-        # }
-        
-
-        # # urls = [
-        # #     'https://www.ebay.co.uk/b/Fiction-Non-Fiction-Books/261186/bn_450928?Genre=Art%2520%2526%2520Culture&rt=nc&_udlo=12.01&_udhi=12.02&&LH_ItemCondition=2750%7C4000%7C5000%7C6000%7C10&mag=1',
-        # #      'https://www.ebay.co.uk/b/Fiction-Non-Fiction-Books/261186/bn_450928?Genre=Art%2520%2526%2520Culture&rt=nc'
-        # # ]
-
-        # # final_urls = [
-        # #     # 'https://www.ebay.co.uk/b/Fiction-Non-Fiction-Books/261186/bn_450928?Genre=Art%2520%2526%2520Culture&rt=nc&_udlo=12.01&_udhi=12.02&&LH_ItemCondition=2750%7C4000%7C5000%7C6000%7C10&mag=1',
-        # #      'https://www.ebay.co.uk/b/Fiction-Non-Fiction-Books/261186/bn_450928?Genre=Art%2520%2526%2520Culture&rt=nc'
-        # # ]
-
-        # final_urls = []
-
-        
-        # # final_urls = []
+        urls = df['url'].tolist()
 
         # for url in urls:
-
-        #     if '_uldo' in url or '_udhi' in url:
-        #         final_urls.append(url)
-        #         continue
-
-        #     # add over 2000
-
-        #     final_urls.append(url + '&_udlo=1000')
-
-        #     for item in ranges:
-
-        #         start = int(item.split('-')[0])
-        #         end = int(item.split('-')[-1])
-        #         counter = ranges[item]
-        #         while start < end:
-        #             try:
-
-        #                 url = url + '&_udlo=' + str(start) + '&_udhi=' + str(start + counter)
-
-        #                 final_urls.append(url)
-        #                 # self.logger.info(url)
-                  
-        #             except Exception as e:
-        #                 print(e)
-
-
-        #             start += counter
-
-        # for url in final_urls:
-
+                
         #     yield scrapy.Request(
         #         url=url,
-        #         # headers=self.headers,
         #         headers=header.generate(),
         #         callback=self.parse,
         #         meta={
         #             'url': url,
-        #             'proxy': self.proxy,
+        #             'proxy': self.proxy
         #         }
         #     )
+        ranges = {
+
+            '0-1000': 1,
+            # '500-1500': 1,
+            # '1500-2000': 5,
+    
+
+        }
+        
+
+        # urls = [
+        #     'https://www.ebay.co.uk/b/Fiction-Non-Fiction-Books/261186/bn_450928?Genre=Art%2520%2526%2520Culture&rt=nc&_udlo=12.01&_udhi=12.02&&LH_ItemCondition=2750%7C4000%7C5000%7C6000%7C10&mag=1',
+        #      'https://www.ebay.co.uk/b/Fiction-Non-Fiction-Books/261186/bn_450928?Genre=Art%2520%2526%2520Culture&rt=nc'
+        # ]
+
+        # final_urls = [
+        #     # 'https://www.ebay.co.uk/b/Fiction-Non-Fiction-Books/261186/bn_450928?Genre=Art%2520%2526%2520Culture&rt=nc&_udlo=12.01&_udhi=12.02&&LH_ItemCondition=2750%7C4000%7C5000%7C6000%7C10&mag=1',
+        #      'https://www.ebay.co.uk/b/Fiction-Non-Fiction-Books/261186/bn_450928?Genre=Art%2520%2526%2520Culture&rt=nc'
+        # ]
+
+        final_urls = []
+
+        
+        # final_urls = []
+
+        for url in urls:
+
+            if '_uldo' in url or '_udhi' in url:
+                final_urls.append(url)
+                continue
+
+            # add over 2000
+
+            final_urls.append(url + '&_udlo=1000')
+
+            for item in ranges:
+
+                start = int(item.split('-')[0])
+                end = int(item.split('-')[-1])
+                counter = ranges[item]
+                while start < end:
+                    try:
+
+                        url = url + '&_udlo=' + str(start) + '&_udhi=' + str(start + counter)
+
+                        final_urls.append(url)
+                        # self.logger.info(url)
+                  
+                    except Exception as e:
+                        print(e)
+
+
+                    start += counter
+
+        for url in final_urls:
+
+            yield scrapy.Request(
+                url=url,
+                # headers=self.headers,
+                headers=header.generate(),
+                callback=self.parse,
+                meta={
+                    'url': url,
+                    'proxy': self.proxy,
+                }
+            )
 
 
 
-        yield scrapy.Request(
+        # yield scrapy.Request(
 
-            url = 'https://www.ebay.co.uk/itm/374168471149',
-            # headers=self.headers,
-            headers=header.generate(),
-            callback=self.parse_item,
-            meta={
-                # 'url': url,
-                'proxy': self.proxy,
-            }
-        )
+        #     url = 'https://www.ebay.co.uk/itm/374168471149',
+        #     # headers=self.headers,
+        #     headers=header.generate(),
+        #     callback=self.parse_item,
+        #     meta={
+        #         # 'url': url,
+        #         'proxy': self.proxy,
+        #     }
+        # )
 
    
 
@@ -289,7 +289,7 @@ class ebay(scrapy.Spider):
 
         if not condition_variable:
             condition_variable = response.xpath('//div[@class="s-name" and contains(text(),"Condition")]//following-sibling::div//text()').get('')
-            
+
         if not condition_variable:
             condition_variable = ' '.join(response.xpath('//span[@class="ux-textspans" and text() = "Condition:"]/ancestor::div[@class="ux-labels-values__labels"]/following-sibling::div//span[@class="ux-textspans"]//text()').getall())
 
@@ -353,7 +353,6 @@ class ebay(scrapy.Spider):
             '13_UPC': "'" + upc,
         }
 
-        breakpoint()
 
 
         yield item
