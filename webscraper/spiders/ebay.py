@@ -140,7 +140,7 @@ class ebay(scrapy.Spider):
 
         # yield scrapy.Request(
 
-        #     url = 'https://www.ebay.co.uk/p/87165593',
+        #     url = 'https://www.ebay.co.uk/p/10046645292',
         #     # headers=self.headers,
         #     headers=header.generate(),
         #     callback=self.parse_item,
@@ -301,6 +301,9 @@ class ebay(scrapy.Spider):
         
         condition_variable = condition_variable.split(':')[0]
 
+        if not condition_variable:
+            condition_variable = response.xpath('//h2[@class="theme-title"]//text()').get('').split(':')[0]
+
         # format Section
 
         format = response.xpath('//span[@class="ux-textspans" and text() = "Format:"]/ancestor::div[@class="ux-labels-values__labels"]/following-sibling::div//span[@class="ux-textspans"]//text()').get('')
@@ -355,6 +358,7 @@ class ebay(scrapy.Spider):
             '12_GTIN': "'" + gtin,
             '13_UPC': "'" + upc,
         }
+
 
 
 
