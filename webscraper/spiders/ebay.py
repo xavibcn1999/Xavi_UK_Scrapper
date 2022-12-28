@@ -140,7 +140,7 @@ class ebay(scrapy.Spider):
 
         # yield scrapy.Request(
 
-        #     url = 'https://www.ebay.co.uk/p/10046645292',
+        #     url = 'https://www.ebay.co.uk/p/89596368',
         #     # headers=self.headers,
         #     headers=header.generate(),
         #     callback=self.parse_item,
