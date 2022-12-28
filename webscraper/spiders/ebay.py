@@ -140,7 +140,7 @@ class ebay(scrapy.Spider):
 
         # yield scrapy.Request(
 
-        #     url = 'https://www.ebay.co.uk/p/89596368',
+        #     url = 'file:///C:/Users/shres/Downloads/test.html',
         #     # headers=self.headers,
         #     headers=header.generate(),
         #     callback=self.parse_item,
@@ -305,6 +305,11 @@ class ebay(scrapy.Spider):
             condition_variable = response.xpath('//h2[@class="theme-title"]//text()').get('').split(':')[0]
 
         # format Section
+
+        if condition_variable == 'Your pick':
+            condition_variable = response.xpath('//div[@class="theme-header"]')[1].xpath('.//text()').get('')
+
+            price = response.xpath('//div[@class="theme-info"]')[1].xpath('.//div[@class="price"]//text()').get('').replace('�','£')
 
         format = response.xpath('//span[@class="ux-textspans" and text() = "Format:"]/ancestor::div[@class="ux-labels-values__labels"]/following-sibling::div//span[@class="ux-textspans"]//text()').get('')
 
