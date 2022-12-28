@@ -14,7 +14,7 @@ header = Headers(browser="chrome",  # Generate only Chrome UA
 
 class ebay(scrapy.Spider):
     name = 'ebay'
-    custom_settings = {'CONCURRENT_REQUESTS': 25,
+    custom_settings = {'CONCURRENT_REQUESTS': 7,
                        'FEED_FORMAT': 'csv',
                        'FEED_URI': datetime.now().strftime('%Y_%m_%d__%H_%M') + 'ebay.csv',
                        'RETRY_TIMES': 15,
@@ -54,101 +54,101 @@ class ebay(scrapy.Spider):
 
     def start_requests(self):
 
-        df = pd.read_csv(self.url)
+        # df = pd.read_csv(self.url)
 
-        urls = df['url'].tolist()
+        # urls = df['url'].tolist()
 
-        for url in urls:
+        # # for url in urls:
                 
-            yield scrapy.Request(
-                url=url,
-                headers=header.generate(),
-                callback=self.parse,
-                meta={
-                    'url': url,
-                    'proxy': self.proxy
-                }
-            )
-        ranges = {
+        # #     yield scrapy.Request(
+        # #         url=url,
+        # #         headers=header.generate(),
+        # #         callback=self.parse,
+        # #         meta={
+        # #             'url': url,
+        # #             'proxy': self.proxy
+        # #         }
+        # #     )
+        # ranges = {
 
-            '0-500': 0.1,
-            '500-1500': 1,
-            '1500-2000': 5,
+        #     '0-1000': 1,
+        #     # '500-1500': 1,
+        #     # '1500-2000': 5,
     
 
-        }
+        # }
         
 
-        # urls = [
-        #     'https://www.ebay.co.uk/b/Fiction-Non-Fiction-Books/261186/bn_450928?Genre=Art%2520%2526%2520Culture&rt=nc&_udlo=12.01&_udhi=12.02&&LH_ItemCondition=2750%7C4000%7C5000%7C6000%7C10&mag=1',
-        #      'https://www.ebay.co.uk/b/Fiction-Non-Fiction-Books/261186/bn_450928?Genre=Art%2520%2526%2520Culture&rt=nc'
-        # ]
+        # # urls = [
+        # #     'https://www.ebay.co.uk/b/Fiction-Non-Fiction-Books/261186/bn_450928?Genre=Art%2520%2526%2520Culture&rt=nc&_udlo=12.01&_udhi=12.02&&LH_ItemCondition=2750%7C4000%7C5000%7C6000%7C10&mag=1',
+        # #      'https://www.ebay.co.uk/b/Fiction-Non-Fiction-Books/261186/bn_450928?Genre=Art%2520%2526%2520Culture&rt=nc'
+        # # ]
 
-        # final_urls = [
-        #     # 'https://www.ebay.co.uk/b/Fiction-Non-Fiction-Books/261186/bn_450928?Genre=Art%2520%2526%2520Culture&rt=nc&_udlo=12.01&_udhi=12.02&&LH_ItemCondition=2750%7C4000%7C5000%7C6000%7C10&mag=1',
-        #      'https://www.ebay.co.uk/b/Fiction-Non-Fiction-Books/261186/bn_450928?Genre=Art%2520%2526%2520Culture&rt=nc'
-        # ]
+        # # final_urls = [
+        # #     # 'https://www.ebay.co.uk/b/Fiction-Non-Fiction-Books/261186/bn_450928?Genre=Art%2520%2526%2520Culture&rt=nc&_udlo=12.01&_udhi=12.02&&LH_ItemCondition=2750%7C4000%7C5000%7C6000%7C10&mag=1',
+        # #      'https://www.ebay.co.uk/b/Fiction-Non-Fiction-Books/261186/bn_450928?Genre=Art%2520%2526%2520Culture&rt=nc'
+        # # ]
 
-        final_urls = []
-
-        
         # final_urls = []
 
-        for url in urls:
+        
+        # # final_urls = []
 
-            if '_uldo' in url or '_udhi' in url:
-                final_urls.append(url)
-                continue
+        # for url in urls:
 
-            # add over 2000
+        #     if '_uldo' in url or '_udhi' in url:
+        #         final_urls.append(url)
+        #         continue
 
-            final_urls.append(url + '&_udlo=2000')
+        #     # add over 2000
 
-            for item in ranges:
+        #     final_urls.append(url + '&_udlo=1000')
 
-                start = int(item.split('-')[0])
-                end = int(item.split('-')[-1])
-                counter = ranges[item]
-                while start < end:
-                    try:
+        #     for item in ranges:
 
-                        url = url + '&_udlo=' + str(start) + '&_udhi=' + str(start + counter)
+        #         start = int(item.split('-')[0])
+        #         end = int(item.split('-')[-1])
+        #         counter = ranges[item]
+        #         while start < end:
+        #             try:
 
-                        final_urls.append(url)
-                        # self.logger.info(url)
+        #                 url = url + '&_udlo=' + str(start) + '&_udhi=' + str(start + counter)
+
+        #                 final_urls.append(url)
+        #                 # self.logger.info(url)
                   
-                    except Exception as e:
-                        print(e)
+        #             except Exception as e:
+        #                 print(e)
 
 
-                    start += counter
+        #             start += counter
 
-        for url in final_urls:
+        # for url in final_urls:
 
-            yield scrapy.Request(
-                url=url,
-                # headers=self.headers,
-                headers=header.generate(),
-                callback=self.parse,
-                meta={
-                    'url': url,
-                    'proxy': self.proxy,
-                }
-            )
+        #     yield scrapy.Request(
+        #         url=url,
+        #         # headers=self.headers,
+        #         headers=header.generate(),
+        #         callback=self.parse,
+        #         meta={
+        #             'url': url,
+        #             'proxy': self.proxy,
+        #         }
+        #     )
 
 
 
-        # yield scrapy.Request(
+        yield scrapy.Request(
 
-        #     url = 'https://www.ebay.co.uk/p/1105391581',
-        #     # headers=self.headers,
-        #     headers=header.generate(),
-        #     callback=self.parse_item,
-        #     meta={
-        #         # 'url': url,
-        #         'proxy': self.proxy,
-        #     }
-        # )
+            url = 'https://www.ebay.co.uk/itm/374168471149',
+            # headers=self.headers,
+            headers=header.generate(),
+            callback=self.parse_item,
+            meta={
+                # 'url': url,
+                'proxy': self.proxy,
+            }
+        )
 
    
 
@@ -285,13 +285,18 @@ class ebay(scrapy.Spider):
 
         # condition Section
 
-        condition = response.xpath('//span[@class="ux-textspans" and text() = "Condition:"]/ancestor::div[@class="ux-labels-values__labels"]/following-sibling::div//span[@class="ux-textspans"]//text()').get('')
+        condition_variable = response.xpath('//span[contains(text(),"Condition:")]/parent::div[@class="d-item-condition-label"]/following-sibling::div//span[@class="ux-textspans"]//text()').get('')
 
-        if not condition:
-            condition = response.xpath('//div[@class="s-name" and contains(text(),"Condition")]//following-sibling::div//text()').get('')
+        if not condition_variable:
+            condition_variable = response.xpath('//div[@class="s-name" and contains(text(),"Condition")]//following-sibling::div//text()').get('')
+            
+        if not condition_variable:
+            condition_variable = ' '.join(response.xpath('//span[@class="ux-textspans" and text() = "Condition:"]/ancestor::div[@class="ux-labels-values__labels"]/following-sibling::div//span[@class="ux-textspans"]//text()').getall())
 
         
-        condition = condition.split(':')[0]
+
+        
+        condition_variable = condition_variable.split(':')[0]
 
         # format Section
 
@@ -333,22 +338,22 @@ class ebay(scrapy.Spider):
 
 
         item = {
-            '1_Book Title': title,
-            '2_Product URL': response.url.split('?')[0],
-            '3_Product Images': images,
-            '4_Price': price,
-            '5_Shipping Price': shipping_cost,
-            '6_Weight': item_weight,
-            '7_Condition': condition,
-            '8_Format': format,
-            '9_ISBN-13': "'" + isbn13,
+            '01_Book Title': title,
+            '02_Product URL': response.url.split('?')[0],
+            '03_Product Images': images,
+            '04_Price': price,
+            '05_Shipping Price': shipping_cost,
+            '06_Weight': item_weight,
+            '07_Condition': condition_variable,
+            '08_Format': format,
             '10_ISBN-10': "'" + isbn10,
+            '09_ISBN-13': "'" + isbn13,
             '11_EAN': "'" + ean,
             '12_GTIN': "'" + gtin,
             '13_UPC': "'" + upc,
         }
 
-
+        breakpoint()
 
 
         yield item
