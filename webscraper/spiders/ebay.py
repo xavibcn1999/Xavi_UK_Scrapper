@@ -140,7 +140,7 @@ class ebay(scrapy.Spider):
 
         # yield scrapy.Request(
 
-        #     url = 'https://www.ebay.co.uk/itm/374168471149',
+        #     url = 'https://www.ebay.co.uk/p/87165593',
         #     # headers=self.headers,
         #     headers=header.generate(),
         #     callback=self.parse_item,
@@ -228,6 +228,9 @@ class ebay(scrapy.Spider):
         title = ' '.join([i.strip() for i in response.xpath('//h1//text()').getall() if i.strip()])
 
         images = ';'.join([i.replace('-l64.jpg', '-l640.jpg') for i in response.xpath('//div[@class="ux-image-filmstrip-carousel"]//img/@src').getall()])
+
+        if not images:
+            images = ';'.join([i.replace('-l64.jpg', '-l640.jpg') for i in response.xpath('//div[@id="primary-gallery"]//img/@src').getall() if'/images/' in i])
 
         if not images:
             images = response.xpath('//meta[@property="og:image"]/@content').get('')
@@ -352,6 +355,7 @@ class ebay(scrapy.Spider):
             '12_GTIN': "'" + gtin,
             '13_UPC': "'" + upc,
         }
+
 
 
 
