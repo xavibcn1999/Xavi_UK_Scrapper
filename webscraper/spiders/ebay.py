@@ -14,10 +14,10 @@ header = Headers(browser="chrome",  # Generate only Chrome UA
 
 class ebay(scrapy.Spider):
     name = 'ebay'
-    custom_settings = {'CONCURRENT_REQUESTS': 5,
+    custom_settings = {'CONCURRENT_REQUESTS': 25,
                        'FEED_FORMAT': 'csv',
                        'FEED_URI': datetime.now().strftime('%Y_%m_%d__%H_%M') + 'ebay.csv',
-                       'RETRY_TIMES': 5,
+                       'RETRY_TIMES': 15,
                        'COOKIES_ENABLED': True,
                        'FEED_EXPORT_ENCODING' : "utf-8"
     }
@@ -69,12 +69,14 @@ class ebay(scrapy.Spider):
                     'proxy': self.proxy
                 }
             )
-        # ranges = {
-        #     '25-500': 0.1,
-        #     '500-1500': 1,
-        #     '1500-2000': 5,
+        ranges = {
 
-        # }
+            '0-500': 0.1,
+            '500-1500': 1,
+            '1500-2000': 5,
+    
+
+        }
         
 
         # urls = [
@@ -87,49 +89,54 @@ class ebay(scrapy.Spider):
         #      'https://www.ebay.co.uk/b/Fiction-Non-Fiction-Books/261186/bn_450928?Genre=Art%2520%2526%2520Culture&rt=nc'
         # ]
 
+        final_urls = []
+
         
-        # # final_urls = []
+        # final_urls = []
 
-        # for url in urls:
+        for url in urls:
 
-        #     if '_uldo' in url or '_udhi' in url:
-        #         final_urls.append(url)
-        #         continue
+            if '_uldo' in url or '_udhi' in url:
+                final_urls.append(url)
+                continue
 
-        #     for item in ranges:
+            # add over 2000
 
-        #         start = int(item.split('-')[0])
-        #         end = int(item.split('-')[-1])
-        #         counter = ranges[item]
-        #         while start < end:
-        #             try:
+            final_urls.append(url + '&_udlo=2000')
 
-        #                 url = url + '&_udlo=' + str(start) + '&_udhi=' + str(start + counter)
+            for item in ranges:
 
-        #                 final_urls.append(url)
-        #                 # self.logger.info(url)
+                start = int(item.split('-')[0])
+                end = int(item.split('-')[-1])
+                counter = ranges[item]
+                while start < end:
+                    try:
+
+                        url = url + '&_udlo=' + str(start) + '&_udhi=' + str(start + counter)
+
+                        final_urls.append(url)
+                        # self.logger.info(url)
                   
-        #             except Exception as e:
-        #                 print(e)
+                    except Exception as e:
+                        print(e)
 
 
-        #             start += counter
+                    start += counter
 
-        # for url in final_urls:
+        for url in final_urls:
 
-        #     yield scrapy.Request(
-        #         url=url,
-        #         # headers=self.headers,
-        #         headers=header.generate(),
-        #         callback=self.parse,
-        #         meta={
-        #             'url': url,
-        #             'proxy': self.proxy,
-        #         }
-        #     )
+            yield scrapy.Request(
+                url=url,
+                # headers=self.headers,
+                headers=header.generate(),
+                callback=self.parse,
+                meta={
+                    'url': url,
+                    'proxy': self.proxy,
+                }
+            )
 
 
-        #     break
 
         # yield scrapy.Request(
 
@@ -283,6 +290,9 @@ class ebay(scrapy.Spider):
         if not condition:
             condition = response.xpath('//div[@class="s-name" and contains(text(),"Condition")]//following-sibling::div//text()').get('')
 
+        
+        condition = condition.split(':')[0]
+
         # format Section
 
         format = response.xpath('//span[@class="ux-textspans" and text() = "Format:"]/ancestor::div[@class="ux-labels-values__labels"]/following-sibling::div//span[@class="ux-textspans"]//text()').get('')
@@ -323,23 +333,22 @@ class ebay(scrapy.Spider):
 
 
         item = {
-            'Book Title': title,
-            'Product URL': response.url.split('?')[0],
-            'Product Images': images,
-            'ISBN-13': "'" + isbn13,
-            'ISBN-10': "'" + isbn10,
-            'Price': price,
-            'Shipping Price': shipping_cost,
-            'Weight': item_weight,
-            'Condition': condition,
-            'Format': format,
-            'EAN': "'" + ean,
-            'UPC': "'" + upc,
-            'GTIN': "'" + gtin,
+            '1_Book Title': title,
+            '2_Product URL': response.url.split('?')[0],
+            '3_Product Images': images,
+            '4_Price': price,
+            '5_Shipping Price': shipping_cost,
+            '6_Weight': item_weight,
+            '7_Condition': condition,
+            '8_Format': format,
+            '9_ISBN-13': "'" + isbn13,
+            '10_ISBN-10': "'" + isbn10,
+            '11_EAN': "'" + ean,
+            '12_GTIN': "'" + gtin,
+            '13_UPC': "'" + upc,
         }
 
 
-  
 
 
         yield item
