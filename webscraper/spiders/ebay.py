@@ -56,6 +56,8 @@ class ebay(scrapy.Spider):
 
         df = pd.read_csv(self.url)
 
+        df = df.fillna('')
+
         urls = df['url'].tolist()
 
         range_url = df['range'].tolist()[0]
@@ -111,8 +113,10 @@ class ebay(scrapy.Spider):
 
         
         # final_urls = []
-
         for url in urls:
+
+            if url.strip() == '':
+                continue
 
             if '_uldo' in url or '_udhi' in url:
                 final_urls.append(url)
