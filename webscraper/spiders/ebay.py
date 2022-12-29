@@ -18,7 +18,7 @@ class ebay(scrapy.Spider):
                        'FEED_FORMAT': 'csv',
                        'FEED_URI': datetime.now().strftime('%Y_%m_%d__%H_%M') + 'ebay.csv',
                        'RETRY_TIMES': 15,
-                       'COOKIES_ENABLED': True,
+                       'COOKIES_ENABLED': False,
                        'FEED_EXPORT_ENCODING' : "utf-8"
     }
     headers = {
@@ -36,9 +36,9 @@ class ebay(scrapy.Spider):
 
     proxy = 'http://xavigv:GOkNQBPK2DplRGqw_country-UnitedKingdom@proxy.packetstream.io:31112'
 
-    def __init__(self, url=None, *args, **kwargs):
-        super(ebay, self).__init__(*args, **kwargs)
-        self.url = url
+    # def __init__(self, url=None, *args, **kwargs):
+    #     super(ebay, self).__init__(*args, **kwargs)
+    #     self.url = url
 
     # proxy = ''
 
@@ -51,12 +51,14 @@ class ebay(scrapy.Spider):
     #         self.id  = str(id)
 
     # file = 'https://docs.google.com/spreadsheets/d/e/2PACX-1vTeZxZduOfcazmDjKEGfYmHpJD1J1BGODjyAF91v8DMRMgR5fZQc9CAUPXuTQQMMAQHNyxTKTsLce04/pub?gid=0&single=true&output=csv'
-
+    url = 'https://docs.google.com/spreadsheets/d/e/2PACX-1vTeZxZduOfcazmDjKEGfYmHpJD1J1BGODjyAF91v8DMRMgR5fZQc9CAUPXuTQQMMAQHNyxTKTsLce04/pub?gid=0&single=true&output=csv'
     def start_requests(self):
 
         df = pd.read_csv(self.url)
 
         urls = df['url'].tolist()
+
+        range_url = df['range'].tolist()[0]
 
         # for url in urls:
                 
@@ -69,14 +71,30 @@ class ebay(scrapy.Spider):
         #             'proxy': self.proxy
         #         }
         #     )
-        ranges = {
 
-            '0-1000': 1,
-            # '500-1500': 1,
-            # '1500-2000': 5,
+
+
+        # ranges = {
+
+        #     '0-1000': 1,
+        #     # '500-1500': 1,
+        #     # '1500-2000': 5,
     
 
+        # }
+        range_new = {
+
         }
+
+        for drange in range_url.split(','):
+
+            if len(drange.split(':')) == 2:
+                range_new[drange.split(':')[0].strip()] = int(drange.split(':')[1].strip())
+            else:
+                range_new[drange.strip()] = 0
+
+
+
         
 
         # urls = [
@@ -101,14 +119,18 @@ class ebay(scrapy.Spider):
                 continue
 
             # add over 2000
+            
+            # final_urls.append(url + '&_udlo=1000')
 
-            final_urls.append(url + '&_udlo=1000')
+            for item in range_new:
 
-            for item in ranges:
+                if range_new[item] == 0:
+                    final_urls.append(url + f'&_udlo={item}')
+                    continue
 
                 start = int(item.split('-')[0])
                 end = int(item.split('-')[-1])
-                counter = ranges[item]
+                counter = range_new[item]
                 while start < end:
                     try:
 
@@ -235,6 +257,11 @@ class ebay(scrapy.Spider):
         if not images:
             images = response.xpath('//meta[@property="og:image"]/@content').get('')
 
+        try:
+            final_image = images.split(';')[0]
+        except:
+            final_image = ''
+
 
         # Price Section
 
@@ -351,7 +378,7 @@ class ebay(scrapy.Spider):
         item = {
             '01_Book Title': title,
             '02_Product URL': response.url.split('?')[0],
-            '03_Product Images': images,
+            '03_Product Images': final_image,
             '04_Price': price,
             '05_Shipping Price': shipping_cost,
             '06_Weight': item_weight,
