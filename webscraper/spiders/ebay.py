@@ -36,9 +36,9 @@ class ebay(scrapy.Spider):
 
     proxy = 'http://xavigv:GOkNQBPK2DplRGqw_country-UnitedKingdom@proxy.packetstream.io:31112'
 
-    # def __init__(self, url=None, *args, **kwargs):
-    #     super(ebay, self).__init__(*args, **kwargs)
-    #     self.url = url
+    def __init__(self, url=None, *args, **kwargs):
+        super(ebay, self).__init__(*args, **kwargs)
+        self.url = url
 
     # proxy = ''
 
@@ -51,7 +51,7 @@ class ebay(scrapy.Spider):
     #         self.id  = str(id)
 
     # file = 'https://docs.google.com/spreadsheets/d/e/2PACX-1vTeZxZduOfcazmDjKEGfYmHpJD1J1BGODjyAF91v8DMRMgR5fZQc9CAUPXuTQQMMAQHNyxTKTsLce04/pub?gid=0&single=true&output=csv'
-    url = 'https://docs.google.com/spreadsheets/d/e/2PACX-1vTeZxZduOfcazmDjKEGfYmHpJD1J1BGODjyAF91v8DMRMgR5fZQc9CAUPXuTQQMMAQHNyxTKTsLce04/pub?gid=0&single=true&output=csv'
+    # url = 'https://docs.google.com/spreadsheets/d/e/2PACX-1vTeZxZduOfcazmDjKEGfYmHpJD1J1BGODjyAF91v8DMRMgR5fZQc9CAUPXuTQQMMAQHNyxTKTsLce04/pub?gid=0&single=true&output=csv'
     def start_requests(self):
 
         df = pd.read_csv(self.url)
