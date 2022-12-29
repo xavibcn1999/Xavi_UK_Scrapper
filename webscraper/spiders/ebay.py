@@ -91,7 +91,10 @@ class ebay(scrapy.Spider):
         for drange in range_url.split(','):
 
             if len(drange.split(':')) == 2:
-                range_new[drange.split(':')[0].strip()] = int(drange.split(':')[1].strip())
+                try:
+                    range_new[drange.split(':')[0].strip()] = int(drange.split(':')[1].strip())
+                except:
+                    range_new[drange.split(':')[0].strip()] = float(drange.split(':')[1].strip())
             else:
                 range_new[drange.strip()] = 0
 
@@ -125,7 +128,6 @@ class ebay(scrapy.Spider):
             # add over 2000
             
             # final_urls.append(url + '&_udlo=1000')
-
             for item in range_new:
 
                 if range_new[item] == 0:
@@ -135,12 +137,13 @@ class ebay(scrapy.Spider):
                 start = int(item.split('-')[0])
                 end = int(item.split('-')[-1])
                 counter = range_new[item]
+
                 while start < end:
                     try:
 
-                        url = url + '&_udlo=' + str(start) + '&_udhi=' + str(start + counter)
+                        new_url = url + '&_udlo=' + str(start) + '&_udhi=' + str(start + counter)
 
-                        final_urls.append(url)
+                        final_urls.append(new_url)
                         # self.logger.info(url)
                   
                     except Exception as e:
@@ -148,6 +151,7 @@ class ebay(scrapy.Spider):
 
 
                     start += counter
+
 
         for url in final_urls:
 
