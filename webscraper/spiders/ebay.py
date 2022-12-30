@@ -133,9 +133,15 @@ class ebay(scrapy.Spider):
                 if range_new[item] == 0:
                     final_urls.append(url + f'&_udlo={item}')
                     continue
+                try:
+                    start = int(item.split('-')[0])
+                except:
+                    start = float(item.split('-')[0])
 
-                start = int(item.split('-')[0])
-                end = int(item.split('-')[-1])
+                try:
+                    end = int(item.split('-')[-1])
+                except:
+                    end = float(item.split('-')[-1])
                 counter = range_new[item]
 
                 while start < end:
