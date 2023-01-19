@@ -36,15 +36,15 @@ class ebay_top3(scrapy.Spider):
 
     proxy = 'http://xavigv:GOkNQBPK2DplRGqw_country-UnitedKingdom@proxy.packetstream.io:31112'
 
-    def __init__(self, url=None, *args, **kwargs):
-        super(ebay_top3, self).__init__(*args, **kwargs)
-        self.url = url
+    # def __init__(self, url=None, *args, **kwargs):
+    #     super(ebay_top3, self).__init__(*args, **kwargs)
+    #     self.url = url
 
    
     # file = 'https://docs.google.com/spreadsheets/d/e/2PACX-1vTeZxZduOfcazmDjKEGfYmHpJD1J1BGODjyAF91v8DMRMgR5fZQc9CAUPXuTQQMMAQHNyxTKTsLce04/pub?gid=0&single=true&output=csv'
     # url = 'https://docs.google.com/spreadsheets/d/e/2PACX-1vTeZxZduOfcazmDjKEGfYmHpJD1J1BGODjyAF91v8DMRMgR5fZQc9CAUPXuTQQMMAQHNyxTKTsLce04/pub?gid=0&single=true&output=csv'
     
-    # url = 'https://docs.google.com/spreadsheets/d/e/2PACX-1vR7IVO_B95bONHJX6ahtm9K8INz0Tt1bajd9EiqCYfpHk7b68UmlxvXxe7Gw1dX6EuSVFPhc8fhM4NI/pub?gid=0&single=true&output=csv'
+    url = 'https://docs.google.com/spreadsheets/d/e/2PACX-1vR7IVO_B95bONHJX6ahtm9K8INz0Tt1bajd9EiqCYfpHk7b68UmlxvXxe7Gw1dX6EuSVFPhc8fhM4NI/pub?gid=0&single=true&output=csv'
     def start_requests(self):
 
         df = pd.read_csv(self.url)
@@ -70,18 +70,21 @@ class ebay_top3(scrapy.Spider):
             image = image.replace('s-l225.webp', 's-l500.jpg')
 
             shipping_cost = listing.xpath('.//span[@class="s-item__shipping s-item__logisticsCost"]/text()').get('')
-
             if not shipping_cost:
                 shipping_cost = listing.xpath('.//span[@class="s-item__dynamic s-item__freeXDays"]//text()').get('')
-
-
+            try:
+                item_number = listing.xpath('.//a/@href').get('').split('/itm/')[1].split('?')[0]
+            except:
+                item_number = ''
             yield {
                 'URL': response.url,
                 'Image URL': image,
                 'Product Title': title,
                 'Product Price': price,
                 'Shipping Fee': shipping_cost,
-                'Postion': rank + 1
+                'Postion': rank + 1,
+                'Item Number': item_number,
+
 
             }
 
