@@ -36,15 +36,15 @@ class ebay_top3(scrapy.Spider):
 
     proxy = 'http://xavigv:GOkNQBPK2DplRGqw_country-UnitedKingdom@proxy.packetstream.io:31112'
 
-    # def __init__(self, url=None, *args, **kwargs):
-    #     super(ebay_top3, self).__init__(*args, **kwargs)
-    #     self.url = url
+    def __init__(self, url=None, *args, **kwargs):
+        super(ebay_top3, self).__init__(*args, **kwargs)
+        self.url = url
 
    
     # file = 'https://docs.google.com/spreadsheets/d/e/2PACX-1vTeZxZduOfcazmDjKEGfYmHpJD1J1BGODjyAF91v8DMRMgR5fZQc9CAUPXuTQQMMAQHNyxTKTsLce04/pub?gid=0&single=true&output=csv'
     # url = 'https://docs.google.com/spreadsheets/d/e/2PACX-1vTeZxZduOfcazmDjKEGfYmHpJD1J1BGODjyAF91v8DMRMgR5fZQc9CAUPXuTQQMMAQHNyxTKTsLce04/pub?gid=0&single=true&output=csv'
     
-    url = 'https://docs.google.com/spreadsheets/d/e/2PACX-1vR7IVO_B95bONHJX6ahtm9K8INz0Tt1bajd9EiqCYfpHk7b68UmlxvXxe7Gw1dX6EuSVFPhc8fhM4NI/pub?gid=0&single=true&output=csv'
+    # url = 'https://docs.google.com/spreadsheets/d/e/2PACX-1vR7IVO_B95bONHJX6ahtm9K8INz0Tt1bajd9EiqCYfpHk7b68UmlxvXxe7Gw1dX6EuSVFPhc8fhM4NI/pub?gid=0&single=true&output=csv'
     def start_requests(self):
 
         df = pd.read_csv(self.url)
