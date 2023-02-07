@@ -12,8 +12,8 @@ header = Headers(browser="chrome",  # Generate only Chrome UA
 
 
 
-class ebay_top3(scrapy.Spider):
-    name = 'ebay_top3'
+class ebay_top3_ean(scrapy.Spider):
+    name = 'ebay_top3_ean'
     custom_settings = {'CONCURRENT_REQUESTS': 1,
                        'FEED_FORMAT': 'csv',
                        'FEED_URI': datetime.now().strftime('%Y_%m_%d__%H_%M') + 'ebay.csv',
@@ -37,7 +37,7 @@ class ebay_top3(scrapy.Spider):
     proxy = 'http://xavigv:GOkNQBPK2DplRGqw_country-UnitedKingdom@proxy.packetstream.io:31112'
 
     def __init__(self, url=None, *args, **kwargs):
-        super(ebay_top3, self).__init__(*args, **kwargs)
+        super(ebay_top3_ean, self).__init__(*args, **kwargs)
         self.url = url
 
    
@@ -58,12 +58,11 @@ class ebay_top3(scrapy.Spider):
                 nkw = ''
             yield scrapy.Request(url=request_url, callback=self.parse, headers=self.headers, 
             meta={'proxy': self.proxy,
-            'nkw': nkw
-            })
+            'nkw': nkw})
        
 
     def parse(self, response):
-        nkw = response.meta['nkw']
+
 
         listings = response.xpath('//ul//div[@class="s-item__wrapper clearfix"]')[:3]
 
@@ -91,7 +90,7 @@ class ebay_top3(scrapy.Spider):
                 seller_name = seller_name.strip()
             item = {
                 'URL': response.url,
-                'NKW': nkw,
+                'NKW': response.meta['nkw'],
                 'Image URL': image,
                 'Product Title': title,
                 'Product Price': price,
@@ -103,7 +102,30 @@ class ebay_top3(scrapy.Spider):
 
             }
 
-            yield item
+            yield scrapy.Request(
+                url=link,
+                callback=self.parse_item,
+                headers=self.headers,
+                meta={'item': item, 'proxy': self.proxy}
+
+            )
+
+    def parse_item(self, response):
+        item = response.meta['item']
+
+        # ISBN Section
+
+        ean = response.xpath('//span[@class="ux-textspans" and text() = "EAN:"]/ancestor::div[@class="ux-labels-values__labels"]/following-sibling::div//span[@class="ux-textspans"]//text()').get('')
+
+        if not ean:
+            ean = response.xpath('//div[@class="s-name" and contains(text(),"EAN")]//following-sibling::div//text()').get('')
+
+
+
+        item['EAN'] = ean
+
+        yield item
+
       
 
 
