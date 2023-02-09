@@ -91,7 +91,7 @@ class ebay_top3(scrapy.Spider):
                 seller_name = seller_name.strip()
             item = {
                 'URL': response.url,
-                'NKW': nkw,
+                'NKW': "'" + nkw,
                 'Image URL': image,
                 'Product Title': title,
                 'Product Price': price,
