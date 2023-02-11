@@ -90,7 +90,7 @@ class ebay_top3_ean(scrapy.Spider):
                 seller_name = seller_name.strip()
             item = {
                 'URL': response.url,
-                'NKW': response.meta['nkw'],
+                'NKW': "'" + response.meta['nkw'],
                 'Image URL': image,
                 'Product Title': title,
                 'Product Price': price,
@@ -101,7 +101,7 @@ class ebay_top3_ean(scrapy.Spider):
 
 
             }
-
+            
             yield scrapy.Request(
                 url=link,
                 callback=self.parse_item,
