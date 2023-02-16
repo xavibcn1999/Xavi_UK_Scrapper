@@ -36,15 +36,15 @@ class wob(scrapy.Spider):
 
     proxy = 'http://xavigv:GOkNQBPK2DplRGqw_country-UnitedKingdom@proxy.packetstream.io:31112'
 
-    # def __init__(self, url=None, *args, **kwargs):
-    #     super(wob, self).__init__(*args, **kwargs)
-    #     self.url = url
+    def __init__(self, url=None, *args, **kwargs):
+        super(wob, self).__init__(*args, **kwargs)
+        self.url = url
 
    
     # file = 'https://docs.google.com/spreadsheets/d/e/2PACX-1vTeZxZduOfcazmDjKEGfYmHpJD1J1BGODjyAF91v8DMRMgR5fZQc9CAUPXuTQQMMAQHNyxTKTsLce04/pub?gid=0&single=true&output=csv'
     # url = 'https://docs.google.com/spreadsheets/d/e/2PACX-1vTeZxZduOfcazmDjKEGfYmHpJD1J1BGODjyAF91v8DMRMgR5fZQc9CAUPXuTQQMMAQHNyxTKTsLce04/pub?gid=0&single=true&output=csv'
     
-    url = 'https://docs.google.com/spreadsheets/d/e/2PACX-1vQ_8YsQ7wbLePLwLuVuz8bBM9yXqD_ft6eyubLVMJ1At6mGtnXqjD3BIEhpa5QnyrAE5wC7skw1z4Ng/pub?gid=0&single=true&output=csv'
+    # url = 'https://docs.google.com/spreadsheets/d/e/2PACX-1vQ_8YsQ7wbLePLwLuVuz8bBM9yXqD_ft6eyubLVMJ1At6mGtnXqjD3BIEhpa5QnyrAE5wC7skw1z4Ng/pub?gid=0&single=true&output=csv'
     def start_requests(self):
 
         df = pd.read_csv(self.url)
@@ -52,11 +52,32 @@ class wob(scrapy.Spider):
         url_list = [i for i in df['url'].tolist() if i.strip()]
 
         for request_url in url_list:
-          
-            yield scrapy.Request(url=request_url, callback=self.parse, headers=self.headers, 
-            meta={'proxy': self.proxy})
+
+            scraper_api_url = "https://app.scrapingbee.com/api/v1/?api_key=983IPC5B84DYDQ17HHD3DQS5TBGFSL6DIQDRJJGNE3SITJP7Z12HV6LPDR3BB5GA21J2WR8SWF7KOH1F&url=YOUR-URL&custom_google=True".replace('YOUR-URL', request_url)
+            self.logger.info('Scraper API URL: %s', scraper_api_url)
+            yield scrapy.Request(url=scraper_api_url, callback=self.parse_google, headers=self.headers,
+            meta={
+                'request_url': request_url,
+            })
        
 
+
+    def parse_google(self, response):
+
+        request_url_key = response.meta['request_url'].split('+')[-1]
+        try:
+            wob_link = [i for i in response.xpath('//h3/parent::a/@href').getall() if request_url_key in i][0]
+
+            yield scrapy.Request(url=wob_link, callback=self.parse, headers=self.headers, 
+            meta={'proxy': self.proxy,
+            
+                'request_url': response.meta['request_url'],
+            })
+
+        except Exception as e:
+            self.logger.info('Search result not found for: %s', response.meta['request_url']')
+
+        
     def parse(self, response):
 
         title = ' '.join([i.strip() for i in response.xpath('//h1[@class="title d-none d-md-block"]//text()').getall() if i.strip()])
@@ -73,6 +94,7 @@ class wob(scrapy.Spider):
        
 
         item = {
+            'Request URL': response.meta['request_url'],
             'URL': response.url,
             'Image URL': image,
             'Product Title': title,
