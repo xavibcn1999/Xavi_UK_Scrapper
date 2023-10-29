@@ -3,7 +3,6 @@ import scrapy
 from datetime import datetime
 import pandas as pd
 from fake_headers import Headers
-import smtplib
 
 from scrapy.utils.response import open_in_browser
 #import open_in_browser(response)
@@ -105,29 +104,16 @@ class ebay_top3(scrapy.Spider):
             }
 
             yield item
+      
 
-# ... (todo lo demás permanece igual) ...
 
-    def close(self, reason):
-        # Esta función se ejecuta cuando el spider se cierra
-        self.send_email()
 
-    def send_email(self):
-        # Datos del correo
-        sender_email = "xavialerts@gmail.com"
-        receiver_email = "xaviergomezvidal@gmail.com"
-        password = "xavialerts123"
-        subject = "Scrapy Alert"
-        body = "The spider has finished its job."
 
-        # Construyendo el correo
-        message = f"Subject: {subject}\n\n{body}"
 
-        # Enviando el correo
-        with smtplib.SMTP_SSL("smtp.gmail.com", 465) as server:
-            server.login(sender_email, password)
-            server.sendmail(sender_email, receiver_email, message)
+        
 
+        
+       
       
 
 
