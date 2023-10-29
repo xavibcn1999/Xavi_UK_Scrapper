@@ -113,21 +113,24 @@ class ebay_top3(scrapy.Spider):
         self.send_email()
 
     def send_email(self):
-        # Datos del correo
-        sender_email = "xavusiness@gmail.com"
-        receiver_email = "xaviergomezvidal@gmail.com"
-        password = "api-258C6D46609A11EEBD95F23C91C88F4E"
-        subject = "Scrapy Alert"
-        body = "The spider has finished its job."
+    # Datos del correo
+    sender_email = "xavusiness@gmail.com"
+    receiver_email = "xaviergomezvidal@gmail.com"
+    password = "api-258C6D46609A11EEBD95F23C91C88F4E"
+    subject = "Scrapy Alert"
+    body = "The spider has finished its job."
 
-        # Construyendo el correo
-        message = f"Subject: {subject}\n\n{body}"
+    # Construyendo el correo
+    message = f"Subject: {subject}\n\n{body}"
 
+    try:
         # Enviando el correo
-        with smtplib.SMTP_SSL("mail.smtp2go.com", 465) as server:  # Cambiamos el servidor y puerto por el de smtp2go
-        server.login(AlertsZyte, u3G1ZYGI2lCAl3Lo)  # Aquí, sender_email es el "username" de smtp2go
-        server.sendmail(sender_email, receiver_email, message)
-
+        with smtplib.SMTP_SSL("mail.smtp2go.com", 465) as server:
+            server.login(sender_email, password)  # Corregido para usar sender_email y password
+            server.sendmail(sender_email, receiver_email, message)
+        print("Correo enviado exitosamente")
+    except Exception as e:
+        print(f"Error al enviar el correo: {e}")
 
 
         
