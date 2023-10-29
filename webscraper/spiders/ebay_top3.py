@@ -124,14 +124,13 @@ class ebay_top3(scrapy.Spider):
     message = f"Subject: {subject}\n\n{body}"
 
     try:
-        # Enviando el correo
-        with smtplib.SMTP_SSL("mail.smtp2go.com", 465) as server:
-            server.login(sender_email, password)  # Corregido para usar sender_email y password
-            server.sendmail(sender_email, receiver_email, message)
-        print("Correo enviado exitosamente")
-    except Exception as e:
-        print(f"Error al enviar el correo: {e}")
-
+    # Enviando el correo
+    with smtplib.SMTP_SSL("mail.smtp2go.com", 465) as server:
+        server.login("AlertsZyte", "u3G1ZYGI2lCAl3Lo")  # Corregido para usar sender_email y password
+        server.sendmail(sender_email, receiver_email, message)
+    print("Correo enviado exitosamente")
+except Exception as e:
+    print(f"Error al enviar el correo: {e}")
 
         
 
