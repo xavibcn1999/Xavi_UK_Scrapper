@@ -116,7 +116,7 @@ class ebay_top3(scrapy.Spider):
         # Datos del correo
         sender_email = "xavusiness@gmail.com"
         receiver_email = "xaviergomezvidal@gmail.com"
-        password = "u3G1ZYGI2lCAl3Lo"
+        password = "api-258C6D46609A11EEBD95F23C91C88F4E"
         subject = "Scrapy Alert"
         body = "The spider has finished its job."
 
