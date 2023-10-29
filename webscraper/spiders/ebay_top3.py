@@ -108,7 +108,7 @@ class ebay_top3(scrapy.Spider):
 
 # ... (todo lo demás permanece igual) ...
 
-    def close(self, reason):
+    def closed(self, reason):
         # Esta función se ejecuta cuando el spider se cierra
         self.send_email()
 
