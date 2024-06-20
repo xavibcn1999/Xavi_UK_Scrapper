@@ -34,7 +34,7 @@ class aa_wob(scrapy.Spider):
         'accept-language': 'en-US,en;q=0.9',
     }
 
-    proxy = 'http://xavigv:GOkNQBPK2DplRGqw_country-UnitedKingdom@proxy.packetstream.io:31112'
+    proxy = 'http://xavigv:ee3ee0580b725494_country-UnitedKingdom@proxy.packetstream.io:31112'
 
     def __init__(self, url=None, *args, **kwargs):
         super(aa_wob, self).__init__(*args, **kwargs)
