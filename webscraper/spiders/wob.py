@@ -73,7 +73,7 @@ class aa_wob(scrapy.Spider):
         conditon = listing.xpath('.//div[@class="condition"]/span/text()').get('')
         isbn_13 = listing.xpath('.//label[@class="attributeTitle" and contains(text(),"ISBN 13")]/following-sibling::div/text()').get('')
         isbn_10 = listing.xpath('.//label[@class="attributeTitle" and contains(text(),"ISBN 10")]/following-sibling::div/text()').get('')
-       
+
         item = {
             'Request URL': response.meta['request_url'],
             'URL': response.url,
@@ -84,6 +84,7 @@ class aa_wob(scrapy.Spider):
             'ISBN 13': isbn_13,
             'ISBN 10': isbn_10,
         }
-       
+
         yield item
+
 
