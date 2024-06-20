@@ -84,5 +84,3 @@ class aa_wob(scrapy.Spider):
         }
        
         yield item
-
-
