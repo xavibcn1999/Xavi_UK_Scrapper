@@ -7,23 +7,19 @@ from fake_headers import Headers
 from scrapy.utils.response import open_in_browser
 #import open_in_browser(response)
 header = Headers(browser="chrome",  # Generate only Chrome UA
-                 os="win",  # Generate only Windows platform
+                 os="win",  # Generate ony Windows platform
                  headers=True)
+
+
 
 class aa_wob(scrapy.Spider):
     name = 'aa_wob'
-    custom_settings = {
-        'CONCURRENT_REQUESTS': 16,
-        'FEED_FORMAT': 'csv',
-        'FEED_URI': datetime.now().strftime('%Y_%m_%d__%H_%M') + 'ebay.csv',
-        'RETRY_TIMES': 5,
-        'COOKIES_ENABLED': False,
-        'FEED_EXPORT_ENCODING': "utf-8",
-        'AUTOTHROTTLE_ENABLED': True,
-        'AUTOTHROTTLE_START_DELAY': 1,
-        'AUTOTHROTTLE_MAX_DELAY': 60,
-        'AUTOTHROTTLE_TARGET_CONCURRENCY': 1.0,
-        'AUTOTHROTTLE_DEBUG': False,
+    custom_settings = {'CONCURRENT_REQUESTS': 1,
+                       'FEED_FORMAT': 'csv',
+                       'FEED_URI': datetime.now().strftime('%Y_%m_%d__%H_%M') + 'ebay.csv',
+                       'RETRY_TIMES': 15,
+                       'COOKIES_ENABLED': False,
+                       'FEED_EXPORT_ENCODING' : "utf-8"
     }
     headers = {
         'authority': 'www.ebay.com',
@@ -44,40 +40,49 @@ class aa_wob(scrapy.Spider):
         super(aa_wob, self).__init__(*args, **kwargs)
         self.url = url
 
+   
     # file = 'https://docs.google.com/spreadsheets/d/e/2PACX-1vTeZxZduOfcazmDjKEGfYmHpJD1J1BGODjyAF91v8DMRMgR5fZQc9CAUPXuTQQMMAQHNyxTKTsLce04/pub?gid=0&single=true&output=csv'
     # url = 'https://docs.google.com/spreadsheets/d/e/2PACX-1vTeZxZduOfcazmDjKEGfYmHpJD1J1BGODjyAF91v8DMRMgR5fZQc9CAUPXuTQQMMAQHNyxTKTsLce04/pub?gid=0&single=true&output=csv'
     
     # url = 'https://docs.google.com/spreadsheets/d/e/2PACX-1vQ_8YsQ7wbLePLwLuVuz8bBM9yXqD_ft6eyubLVMJ1At6mGtnXqjD3BIEhpa5QnyrAE5wC7skw1z4Ng/pub?gid=0&single=true&output=csv'
     def start_requests(self):
+
         df = pd.read_csv(self.url)
+
         url_list = [i for i in df['url'].tolist() if i.strip()]
 
         for request_url in url_list:
+
             yield scrapy.Request(url=request_url, callback=self.parse, headers=self.headers, meta={'request_url': request_url})
-
+        
     def parse(self, response):
-        # Limitar el número de elementos que se extraen
-        listings = response.xpath('//div[@class="listing"]')[:3]  # Ajusta el selector y el límite según sea necesario
 
-        for listing in listings:
-            title = ' '.join([i.strip() for i in listing.xpath('.//h1[@class="title d-none d-md-block"]//text()').getall() if i.strip()])
-            price = listing.xpath('.//div[@class="price"]/text()').get('').strip()
-            image = listing.xpath('.//div[@class="imageHolder"]//img/@src').get('')
-            conditon = listing.xpath('.//div[@class="condition"]/span/text()').get('')
-            isbn_13 = listing.xpath('.//label[@class="attributeTitle" and contains(text(),"ISBN 13")]/following-sibling::div/text()').get('')
-            isbn_10 = listing.xpath('.//label[@class="attributeTitle" and contains(text(),"ISBN 10")]/following-sibling::div/text()').get('')
+        title = ' '.join([i.strip() for i in response.xpath('//h1[@class="title d-none d-md-block"]//text()').getall() if i.strip()])
 
-            item = {
-                'Request URL': response.meta['request_url'],
-                'URL': response.url,
-                'Image URL': image,
-                'Product Title': title,
-                'Product Price': price,
-                'Condition': conditon,
-                'ISBN 13': isbn_13,
-                'ISBN 10': isbn_10,
-            }
+        price = response.xpath('//div[@class="price"]/text()').get('').strip()
 
-            yield item
+        image = response.xpath('//div[@class="imageHolder"]//img/@src').get('')
+
+        
+        conditon = response.xpath('//div[@class="condition"]/span/text()').get('')
+
+        isbn_13 = response.xpath('//label[@class="attributeTitle" and contains(text(),"ISBN 13")]/following-sibling::div/text()').get('')
+        isbn_10 = response.xpath('//label[@class="attributeTitle" and contains(text(),"ISBN 10")]/following-sibling::div/text()').get('')
+       
+
+        item = {
+            'Request URL': response.meta['request_url'],
+            'URL': response.url,
+            'Image URL': image,
+            'Product Title': title,
+            'Product Price': price,
+            'Condition': conditon,
+            'ISBN 13': isbn_13,
+            'ISBN 10': isbn_10,
+
+
+        }
+       
+        yield item
 
 
