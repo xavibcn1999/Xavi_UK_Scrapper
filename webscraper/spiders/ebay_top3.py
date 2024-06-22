@@ -51,6 +51,11 @@ class ebay_top3(scrapy.Spider):
                                  meta={'proxy': self.proxy, 'nkw': nkw})
 
     def parse(self, response):
+        # Verificar si hay productos de vendedores internacionales
+        if response.xpath('//p[contains(text(), "items found from eBay international sellers")]'):
+            self.logger.info("Productos de vendedores internacionales encontrados. Deteniendo extracción para esta URL.")
+            return  # Detener la extracción para esta URL y continuar con la siguiente
+
         nkw = response.meta['nkw']
         listings = response.xpath('//ul//div[@class="s-item__wrapper clearfix"]')[:3]
 
@@ -85,6 +90,7 @@ class ebay_top3(scrapy.Spider):
                 'Seller Name': seller_name,
             }
             yield item
+
 
       
 
