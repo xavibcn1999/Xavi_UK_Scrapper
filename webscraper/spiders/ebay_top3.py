@@ -3,23 +3,21 @@ import scrapy
 from datetime import datetime
 import pandas as pd
 from fake_headers import Headers
-
 from scrapy.utils.response import open_in_browser
-#import open_in_browser(response)
+
 header = Headers(browser="chrome",  # Generate only Chrome UA
                  os="win",  # Generate ony Windows platform
                  headers=True)
 
-
-
 class ebay_top3(scrapy.Spider):
     name = 'ebay_top3'
-    custom_settings = {'CONCURRENT_REQUESTS': 1,
-                       'FEED_FORMAT': 'csv',
-                       'FEED_URI': datetime.now().strftime('%Y_%m_%d__%H_%M') + 'ebay.csv',
-                       'RETRY_TIMES': 15,
-                       'COOKIES_ENABLED': False,
-                       'FEED_EXPORT_ENCODING' : "utf-8"
+    custom_settings = {
+        'CONCURRENT_REQUESTS': 16,
+        'FEED_FORMAT': 'csv',
+        'FEED_URI': datetime.now().strftime('%Y_%m_%d__%H_%M') + 'ebay.csv',
+        'RETRY_TIMES': 15,
+        'COOKIES_ENABLED': True,  # Enable cookies to see if it helps
+        'FEED_EXPORT_ENCODING': "utf-8"
     }
     headers = {
         'authority': 'www.ebay.com',
@@ -40,15 +38,8 @@ class ebay_top3(scrapy.Spider):
         super(ebay_top3, self).__init__(*args, **kwargs)
         self.url = url
 
-   
-    # file = 'https://docs.google.com/spreadsheets/d/e/2PACX-1vTeZxZduOfcazmDjKEGfYmHpJD1J1BGODjyAF91v8DMRMgR5fZQc9CAUPXuTQQMMAQHNyxTKTsLce04/pub?gid=0&single=true&output=csv'
-    # url = 'https://docs.google.com/spreadsheets/d/e/2PACX-1vTeZxZduOfcazmDjKEGfYmHpJD1J1BGODjyAF91v8DMRMgR5fZQc9CAUPXuTQQMMAQHNyxTKTsLce04/pub?gid=0&single=true&output=csv'
-    
-    # url = 'https://docs.google.com/spreadsheets/d/e/2PACX-1vR7IVO_B95bONHJX6ahtm9K8INz0Tt1bajd9EiqCYfpHk7b68UmlxvXxe7Gw1dX6EuSVFPhc8fhM4NI/pub?gid=0&single=true&output=csv'
     def start_requests(self):
-
         df = pd.read_csv(self.url)
-
         url_list = [i for i in df['url'].tolist() if i.strip()]
 
         for request_url in url_list:
@@ -57,27 +48,21 @@ class ebay_top3(scrapy.Spider):
             except:
                 nkw = ''
             yield scrapy.Request(url=request_url, callback=self.parse, headers=self.headers, 
-            meta={'proxy': self.proxy,
-            'nkw': nkw
-            })
-       
+                                 meta={'proxy': self.proxy, 'nkw': nkw})
 
     def parse(self, response):
         nkw = response.meta['nkw']
-
         listings = response.xpath('//ul//div[@class="s-item__wrapper clearfix"]')[:3]
 
         for rank, listing in enumerate(listings):
-
             link = listing.xpath('.//a/@href').get('')
             title = listing.xpath('.//span[@role="heading"]/text()').get('')
-
             price = listing.xpath('.//span[@class="s-item__price"]/text()').get('')
+            if not price:
+                price = listing.xpath('.//span[@class="s-item__price"]/span/text()').get('')
 
             image = listing.xpath('.//div[contains(@class,"s-item__image")]//img/@src').get('')
-
             image = image.replace('s-l225.webp', 's-l500.jpg')
-
             shipping_cost = listing.xpath('.//span[@class="s-item__shipping s-item__logisticsCost"]/text()').get('')
             if not shipping_cost:
                 shipping_cost = listing.xpath('.//span[@class="s-item__dynamic s-item__freeXDays"]//text()').get('')
@@ -86,7 +71,6 @@ class ebay_top3(scrapy.Spider):
             except:
                 item_number = ''
             seller_name = listing.xpath('.//*[@class="s-item__seller-info-text"]//text()').get('').split('(')[0]
-
             if seller_name:
                 seller_name = seller_name.strip()
             item = {
@@ -99,11 +83,9 @@ class ebay_top3(scrapy.Spider):
                 'Postion': rank + 1,
                 'Item Number': item_number,
                 'Seller Name': seller_name,
-
-
             }
-
             yield item
+
       
 
         
