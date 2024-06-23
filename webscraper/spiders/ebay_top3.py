@@ -17,7 +17,8 @@ class ebay_top3(scrapy.Spider):
         'FEED_URI': datetime.now().strftime('%Y_%m_%d__%H_%M') + 'ebay.csv',
         'RETRY_TIMES': 15,
         'COOKIES_ENABLED': True,  # Enable cookies to see if it helps
-        'FEED_EXPORT_ENCODING': "utf-8"
+        'FEED_EXPORT_ENCODING': "utf-8",
+        'HTTPPROXY_ENABLED': True,
     }
     headers = {
         'authority': 'www.ebay.com',
@@ -47,10 +48,18 @@ class ebay_top3(scrapy.Spider):
                 nkw = request_url.split('_nkw=')[1].split('&')[0]
             except:
                 nkw = ''
-            yield scrapy.Request(url=request_url, callback=self.parse, headers=self.headers, 
-                                 meta={'proxy': self.proxy, 'nkw': nkw})
+            yield scrapy.Request(
+                url=request_url,
+                callback=self.parse,
+                headers=self.headers, 
+                meta={'proxy': self.proxy, 'nkw': nkw}
+            )
 
     def parse(self, response):
+        if 'items found from eBay international sellers' in response.text:
+            self.logger.info('Found international sellers message, skipping this URL.')
+            return
+        
         nkw = response.meta['nkw']
         listings = response.xpath('//ul//div[@class="s-item__wrapper clearfix"]')[:2]
 
