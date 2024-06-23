@@ -12,18 +12,18 @@ header = Headers(browser="chrome",  # Generate only Chrome UA
 class ebay_top3(scrapy.Spider):
     name = 'ebay_top3'
     custom_settings = {
-        'CONCURRENT_REQUESTS': 16,
+        'CONCURRENT_REQUESTS': 32,  # Aumenta el número de solicitudes simultáneas
         'FEED_FORMAT': 'csv',
         'FEED_URI': datetime.now().strftime('%Y_%m_%d__%H_%M') + 'ebay.csv',
         'RETRY_TIMES': 15,
         'COOKIES_ENABLED': True,  # Enable cookies to see if it helps
         'FEED_EXPORT_ENCODING': "utf-8",
-        'HTTPPROXY_ENABLED': True,
+        'DOWNLOAD_DELAY': 0.25,  # Añade un pequeño retraso entre solicitudes
     }
     headers = {
         'authority': 'www.ebay.com',
         'upgrade-insecure-requests': '1',
-        'user-agent': 'Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/97.0.4692.99 Safari/537.36',
+        'user-agent': header.generate()['User-Agent'],
         'accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,image/apng,*/*;q=0.8,application/signed-exchange;v=b3;q=0.9',
         'sec-gpc': '1',
         'sec-fetch-site': 'none',
@@ -48,12 +48,8 @@ class ebay_top3(scrapy.Spider):
                 nkw = request_url.split('_nkw=')[1].split('&')[0]
             except:
                 nkw = ''
-            yield scrapy.Request(
-                url=request_url,
-                callback=self.parse,
-                headers=self.headers, 
-                meta={'proxy': self.proxy, 'nkw': nkw}
-            )
+            yield scrapy.Request(url=request_url, callback=self.parse, headers=self.headers, 
+                                 meta={'proxy': self.proxy, 'nkw': nkw})
 
     def parse(self, response):
         if 'items found from eBay international sellers' in response.text:
@@ -61,7 +57,7 @@ class ebay_top3(scrapy.Spider):
             return
         
         nkw = response.meta['nkw']
-        listings = response.xpath('//ul//div[@class="s-item__wrapper clearfix"]')[:2]
+        listings = response.xpath('//ul//div[@class="s-item__wrapper clearfix"]')[:2]  # Solo extrae las dos primeras posiciones
 
         for rank, listing in enumerate(listings):
             link = listing.xpath('.//a/@href').get('')
@@ -75,9 +71,9 @@ class ebay_top3(scrapy.Spider):
             shipping_cost = listing.xpath('.//span[@class="s-item__shipping s-item__logisticsCost"]/text()').get('')
             if not shipping_cost:
                 shipping_cost = listing.xpath('.//span[@class="s-item__dynamic s-item__freeXDays"]//text()').get('')
-            
+
             item_location = listing.xpath('.//span[@class="s-item__location s-item__itemLocation"]/span[@class="ITALIC"]/text()').get('')
-            
+
             try:
                 item_number = listing.xpath('.//a/@href').get('').split('/itm/')[1].split('?')[0]
             except:
@@ -93,7 +89,7 @@ class ebay_top3(scrapy.Spider):
                 'Product Price': price,
                 'Shipping Fee': shipping_cost,
                 'Item Location': item_location,
-                'Postion': rank + 1,
+                'Position': rank + 1,
                 'Item Number': item_number,
                 'Seller Name': seller_name,
             }
