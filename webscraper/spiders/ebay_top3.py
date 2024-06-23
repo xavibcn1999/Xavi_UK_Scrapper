@@ -12,13 +12,12 @@ header = Headers(browser="chrome",  # Generate only Chrome UA
 class ebay_top3(scrapy.Spider):
     name = 'ebay_top3'
     custom_settings = {
-        'CONCURRENT_REQUESTS': 32,  # Aumenta el número de solicitudes simultáneas
+        'CONCURRENT_REQUESTS': 16,
         'FEED_FORMAT': 'csv',
         'FEED_URI': datetime.now().strftime('%Y_%m_%d__%H_%M') + 'ebay.csv',
         'RETRY_TIMES': 15,
         'COOKIES_ENABLED': True,  # Enable cookies to see if it helps
-        'FEED_EXPORT_ENCODING': "utf-8",
-        'DOWNLOAD_DELAY': 0.25,  # Añade un pequeño retraso entre solicitudes
+        'FEED_EXPORT_ENCODING': "utf-8"
     }
     headers = {
         'authority': 'www.ebay.com',
@@ -57,7 +56,7 @@ class ebay_top3(scrapy.Spider):
             return
         
         nkw = response.meta['nkw']
-        listings = response.xpath('//ul//div[@class="s-item__wrapper clearfix"]')[:2]  # Solo extrae las dos primeras posiciones
+        listings = response.xpath('//ul//div[@class="s-item__wrapper clearfix"]')[:3]  # Ajusta el límite según sea necesario
 
         for rank, listing in enumerate(listings):
             link = listing.xpath('.//a/@href').get('')
@@ -73,6 +72,9 @@ class ebay_top3(scrapy.Spider):
                 shipping_cost = listing.xpath('.//span[@class="s-item__dynamic s-item__freeXDays"]//text()').get('')
 
             item_location = listing.xpath('.//span[@class="s-item__location s-item__itemLocation"]/span[@class="ITALIC"]/text()').get('')
+            if item_location and 'United Kingdom' not in item_location:
+                self.logger.info('Item not from UK, skipping.')
+                continue
 
             try:
                 item_number = listing.xpath('.//a/@href').get('').split('/itm/')[1].split('?')[0]
