@@ -1,4 +1,4 @@
-      # -*- coding: utf-8 -*-
+# -*- coding: utf-8 -*-
 import scrapy
 from datetime import datetime
 import pandas as pd
@@ -52,7 +52,7 @@ class ebay_top3(scrapy.Spider):
 
     def parse(self, response):
         nkw = response.meta['nkw']
-        listings = response.xpath('//ul//div[@class="s-item__wrapper clearfix"]')[:3]
+        listings = response.xpath('//ul//div[@class="s-item__wrapper clearfix"]')[:2]
 
         for rank, listing in enumerate(listings):
             link = listing.xpath('.//a/@href').get('')
@@ -66,6 +66,9 @@ class ebay_top3(scrapy.Spider):
             shipping_cost = listing.xpath('.//span[@class="s-item__shipping s-item__logisticsCost"]/text()').get('')
             if not shipping_cost:
                 shipping_cost = listing.xpath('.//span[@class="s-item__dynamic s-item__freeXDays"]//text()').get('')
+            
+            item_location = listing.xpath('.//span[@class="s-item__location s-item__itemLocation"]/span[@class="ITALIC"]/text()').get('')
+            
             try:
                 item_number = listing.xpath('.//a/@href').get('').split('/itm/')[1].split('?')[0]
             except:
@@ -80,6 +83,7 @@ class ebay_top3(scrapy.Spider):
                 'Product Title': title,
                 'Product Price': price,
                 'Shipping Fee': shipping_cost,
+                'Item Location': item_location,
                 'Postion': rank + 1,
                 'Item Number': item_number,
                 'Seller Name': seller_name,
