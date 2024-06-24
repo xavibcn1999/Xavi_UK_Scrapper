@@ -40,7 +40,7 @@ class aa_wob(scrapy.Spider):
 
     def start_requests(self):
         df = pd.read_csv(self.url)
-        url_list = [i for i in df['url'].tolist() if i.strip()]
+        url_list = [i for i in df['url'].tolist() if i.strip() and not i.startswith("#VALUE!")]
 
         for request_url in url_list:
             yield scrapy.Request(url=request_url, callback=self.parse, headers=self.headers, meta={'request_url': request_url})
