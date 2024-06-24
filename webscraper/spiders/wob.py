@@ -69,4 +69,16 @@ class aa_wob(scrapy.Spider):
         variants = response.xpath('//div[@class="variants order-md-2"]/a')
         for variant in variants:
             condition = variant.xpath('.//span[@class="variantName"]/text()').get('')
-            price = variant.xpath('.//span[@class="
+            price = variant.xpath('.//span[@class="variantPrice"]/text()').get('').strip()
+
+            # Omitir la variante si es igual al precio y estado principal
+            if price != main_price or condition != main_condition:
+                item = {
+                    'URL': response.url,
+                    'Image URL': image,
+                    'Product Title': title,
+                    'Product Price': price,
+                    'Condition': condition,
+                    'ISBN 13': isbn_13,
+                }
+                yield item
