@@ -17,7 +17,8 @@ class aa_wob(scrapy.Spider):
         'FEED_URI': datetime.now().strftime('%Y_%m_%d__%H_%M') + 'wob.csv',
         'RETRY_TIMES': 15,
         'COOKIES_ENABLED': False,
-        'FEED_EXPORT_ENCODING': "utf-8"
+        'FEED_EXPORT_ENCODING': "utf-8",
+        'FEED_EXPORT_FIELDS': ["URL", "Image URL", "Product Title", "Product Price", "Condition", "ISBN 13"]  # Specify the order of columns
     }
     headers = {
         'authority': 'www.wob.com',
