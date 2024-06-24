@@ -55,31 +55,34 @@ class aa_wob(scrapy.Spider):
         main_condition = response.xpath('//div[@class="order-md-1 prices mt-md-3"]//div[@class="condition"]/span/text()').get('')
 
         # Crear un item para el precio y estado principal
-        if main_price and main_condition:
-            item = {
-                'URL': response.url,
-                'Image URL': image,
-                'Product Title': title,
-                'Product Price': main_price,
-                'Condition': main_condition,
-                'ISBN 13': isbn_13,
-            }
-            yield item
+        main_item = {
+            'URL': response.url,
+            'Image URL': image,
+            'Product Title': title,
+            'Product Price': main_price,
+            'Condition': main_condition,
+            'ISBN 13': isbn_13,
+        }
 
         # Extraer variantes si existen
         variants = response.xpath('//div[@class="variants order-md-2"]/a')
+        variants_extracted = False
         for variant in variants:
             condition = variant.xpath('.//span[@class="variantName"]/text()').get('')
             price = variant.xpath('.//span[@class="variantPrice"]/text()').get('').strip()
 
-            # Omitir la variante si es igual al precio y estado principal
-            if price != main_price or condition != main_condition:
-                item = {
-                    'URL': response.url,
-                    'Image URL': image,
-                    'Product Title': title,
-                    'Product Price': price,
-                    'Condition': condition,
-                    'ISBN 13': isbn_13,
-                }
-                yield item
+            # Crear un item para cada variante
+            item = {
+                'URL': response.url,
+                'Image URL': image,
+                'Product Title': title,
+                'Product Price': price,
+                'Condition': condition,
+                'ISBN 13': isbn_13,
+            }
+            variants_extracted = True
+            yield item
+
+        # Si no hay variantes, solo devolver el item principal
+        if not variants_extracted:
+            yield main_item
