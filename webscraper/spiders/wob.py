@@ -49,20 +49,17 @@ class aa_wob(scrapy.Spider):
         title = ' '.join([i.strip() for i in response.xpath('//h1[@class="title d-none d-md-block"]//text()').getall() if i.strip()])
         image = response.xpath('//div[@class="imageHolder"]//img/@src').get('')
         isbn_13 = response.xpath('//label[@class="attributeTitle" and contains(text(),"ISBN 13")]/following-sibling::div/text()').get('')
-        isbn_10 = response.xpath('//label[@class="attributeTitle" and contains(text(),"ISBN 10")]/following-sibling::div/text()').get('')
 
         variants = response.xpath('//div[@class="variants order-md-2"]/a')
         for variant in variants:
             condition = variant.xpath('.//span[@class="variantName"]/text()').get('')
             price = variant.xpath('.//span[@class="variantPrice"]/text()').get('').strip()
             item = {
-                'Request URL': response.meta['request_url'],
                 'URL': response.url,
                 'Image URL': image,
                 'Product Title': title,
                 'Product Price': price,
                 'Condition': condition,
                 'ISBN 13': isbn_13,
-                'ISBN 10': isbn_10,
             }
             yield item
