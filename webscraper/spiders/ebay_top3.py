@@ -51,12 +51,8 @@ class ebay_top3(scrapy.Spider):
                                  meta={'proxy': self.proxy, 'nkw': nkw})
 
     def parse(self, response):
-        if 'items found from eBay international sellers' in response.text:
-            self.logger.info('Found international sellers message, skipping this URL.')
-            return
-        
         nkw = response.meta['nkw']
-        listings = response.xpath('//ul//div[@class="s-item__wrapper clearfix"]')[:3]  # Ajusta el límite según sea necesario
+        listings = response.xpath('//ul//div[@class="s-item__wrapper clearfix"]')[:2]  # Ajusta el límite según sea necesario
 
         for rank, listing in enumerate(listings):
             link = listing.xpath('.//a/@href').get('')
@@ -72,9 +68,6 @@ class ebay_top3(scrapy.Spider):
                 shipping_cost = listing.xpath('.//span[@class="s-item__dynamic s-item__freeXDays"]//text()').get('')
 
             item_location = listing.xpath('.//span[@class="s-item__location s-item__itemLocation"]/span[@class="ITALIC"]/text()').get('')
-            if item_location and 'United Kingdom' not in item_location:
-                self.logger.info('Item not from UK, skipping.')
-                continue
 
             try:
                 item_number = listing.xpath('.//a/@href').get('').split('/itm/')[1].split('?')[0]
