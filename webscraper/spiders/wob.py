@@ -55,15 +55,16 @@ class aa_wob(scrapy.Spider):
         main_condition = response.xpath('//div[@class="order-md-1 prices mt-md-3"]//div[@class="condition"]/span/text()').get('')
 
         # Crear un item para el precio y estado principal
-        item = {
-            'URL': response.url,
-            'Image URL': image,
-            'Product Title': title,
-            'Product Price': main_price,
-            'Condition': main_condition,
-            'ISBN 13': isbn_13,
-        }
-        yield item
+        if main_price and main_condition:
+            item = {
+                'URL': response.url,
+                'Image URL': image,
+                'Product Title': title,
+                'Product Price': main_price,
+                'Condition': main_condition,
+                'ISBN 13': isbn_13,
+            }
+            yield item
 
         # Extraer variantes si existen
         variants = response.xpath('//div[@class="variants order-md-2"]/a')
