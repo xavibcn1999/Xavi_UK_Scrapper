@@ -17,8 +17,7 @@ class aa_wob(scrapy.Spider):
         'FEED_URI': datetime.now().strftime('%Y_%m_%d__%H_%M') + 'wob.csv',
         'RETRY_TIMES': 15,
         'COOKIES_ENABLED': False,
-        'FEED_EXPORT_ENCODING': "utf-8",
-        'FIELDS_TO_EXPORT': ['Condition', 'ISBN 13', 'Image URL', 'Product Price', 'Product Title', 'URL']  # Definir las columnas a exportar
+        'FEED_EXPORT_ENCODING': "utf-8"
     }
     headers = {
         'authority': 'www.wob.com',
