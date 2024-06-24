@@ -50,31 +50,23 @@ class aa_wob(scrapy.Spider):
         image = response.xpath('//div[@class="imageHolder"]//img/@src').get('')
         isbn_13 = response.xpath('//label[@class="attributeTitle" and contains(text(),"ISBN 13")]/following-sibling::div/text()').get('')
 
+        # Extraer el precio y el estado principal de arriba
+        main_price = response.xpath('//div[@class="order-md-1 prices mt-md-3"]//div[@class="price"]/text()').get('').strip()
+        main_condition = response.xpath('//div[@class="order-md-1 prices mt-md-3"]//div[@class="condition"]/span/text()').get('')
+
+        # Crear un item para el precio y estado principal
+        item = {
+            'URL': response.url,
+            'Image URL': image,
+            'Product Title': title,
+            'Product Price': main_price,
+            'Condition': main_condition,
+            'ISBN 13': isbn_13,
+        }
+        yield item
+
         # Extraer variantes si existen
         variants = response.xpath('//div[@class="variants order-md-2"]/a')
-        if variants:
-            for variant in variants:
-                condition = variant.xpath('.//span[@class="variantName"]/text()').get('')
-                price = variant.xpath('.//span[@class="variantPrice"]/text()').get('').strip()
-                item = {
-                    'URL': response.url,
-                    'Image URL': image,
-                    'Product Title': title,
-                    'Product Price': price,
-                    'Condition': condition,
-                    'ISBN 13': isbn_13,
-                }
-                yield item
-        else:
-            # Extraer el precio y el estado del elemento principal si no hay variantes
-            price = response.xpath('//div[@class="order-md-1 prices mt-md-3"]//div[@class="price"]/text()').get('').strip()
-            condition = response.xpath('//div[@class="order-md-1 prices mt-md-3"]//div[@class="condition"]/span/text()').get('')
-            item = {
-                'URL': response.url,
-                'Image URL': image,
-                'Product Title': title,
-                'Product Price': price,
-                'Condition': condition,
-                'ISBN 13': isbn_13,
-            }
-            yield item
+        for variant in variants:
+            condition = variant.xpath('.//span[@class="variantName"]/text()').get('')
+            price = variant.xpath('.//span[@class="
