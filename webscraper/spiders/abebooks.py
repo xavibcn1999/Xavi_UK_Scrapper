@@ -3,9 +3,10 @@ import scrapy
 from datetime import datetime
 import pandas as pd
 from fake_headers import Headers
+import random
 
 header = Headers(browser="chrome",  # Generate only Chrome UA
-                 os="win",  # Generate ony Windows platform
+                 os="win",  # Generate only Windows platform
                  headers=True)
 
 class abebooks(scrapy.Spider):
@@ -19,8 +20,8 @@ class abebooks(scrapy.Spider):
         'FEED_EXPORT_ENCODING': "utf-8",
         'AUTOTHROTTLE_ENABLED': True,
         'AUTOTHROTTLE_START_DELAY': 5,
-        'AUTOTHROTTLE_MAX_DELAY': 60,
-        'DOWNLOAD_DELAY': 3,
+        'AUTOTHROTTLE_MAX_DELAY': 120,
+        'DOWNLOAD_DELAY': random.uniform(3, 10),  # Delay between 3 to 10 seconds
         'USER_AGENT': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36',
     }
     headers = {
@@ -36,7 +37,7 @@ class abebooks(scrapy.Spider):
         'sec-fetch-site': 'none',
         'sec-fetch-user': '?1',
         'upgrade-insecure-requests': '1',
-        'user-agent': 'Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/109.0.0.0 Safari/537.36',
+        'user-agent': header.generate()['User-Agent'],
     }
     proxy = 'http://xavigv:ee3ee0580b725494_country-UnitedKingdom@proxy.packetstream.io:31112'
 
