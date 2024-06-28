@@ -37,7 +37,7 @@ class abebooks(scrapy.Spider):
         'user-agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36',
     }
     proxy_list = [
-        'http://xavigv:ee3ee0580b725494_country-UnitedKingdom@proxy.packetstream.io:31112',
+        'http://xavigv:ee3ee0580b725494@proxy.packetstream.io:31112',
         # Add more proxies here
     ]
 
