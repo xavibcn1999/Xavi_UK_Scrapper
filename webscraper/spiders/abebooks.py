@@ -10,16 +10,16 @@ from scrapy.spidermiddlewares.httperror import HttpError
 class AbebooksSpider(scrapy.Spider):
     name = 'abebooks'
     custom_settings = {
-        'CONCURRENT_REQUESTS': 10,  # Incrementa el número de requests concurrentes
+        'CONCURRENT_REQUESTS': 16,  # Incrementa el número de requests concurrentes
         'FEED_FORMAT': 'csv',
         'FEED_URI': datetime.now().strftime('%Y_%m_%d__%H_%M') + 'abebooks.csv',
         'RETRY_TIMES': 15,
         'COOKIES_ENABLED': False,
         'FEED_EXPORT_ENCODING': "utf-8",
         'AUTOTHROTTLE_ENABLED': True,
-        'AUTOTHROTTLE_START_DELAY': 1,  # Reduce el delay inicial de Autothrottle
-        'AUTOTHROTTLE_MAX_DELAY': 30,  # Reduce el delay máximo de Autothrottle
-        'DOWNLOAD_DELAY': random.uniform(1, 3),  # Reduce el rango de tiempo de delay
+        'AUTOTHROTTLE_START_DELAY': 0.5,  # Reduce el delay inicial de Autothrottle
+        'AUTOTHROTTLE_MAX_DELAY': 10,  # Reduce el delay máximo de Autothrottle
+        'DOWNLOAD_DELAY': random.uniform(0.5, 2),  # Reduce el rango de tiempo de delay
     }
     headers = {
         'authority': 'www.abebooks.co.uk',
