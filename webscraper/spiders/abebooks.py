@@ -38,7 +38,7 @@ class abebooks(scrapy.Spider):
     }
 
 
-    proxy = 'http://xavigv:GOkNQBPK2DplRGqw_country-UnitedKingdom@proxy.packetstream.io:31112'
+    proxy = 'http://xavigv:ee3ee0580b725494_country-UnitedKingdom@proxy.packetstream.io:31112'
 
     def __init__(self, url=None, *args, **kwargs):
         super(abebooks, self).__init__(*args, **kwargs)
