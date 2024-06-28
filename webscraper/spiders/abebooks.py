@@ -4,22 +4,23 @@ from datetime import datetime
 import pandas as pd
 from fake_headers import Headers
 import random
-import time
 from scrapy.spidermiddlewares.httperror import HttpError
+from twisted.internet import reactor
+from twisted.internet.task import deferLater
 
-class abebooks(scrapy.Spider):
+class AbebooksSpider(scrapy.Spider):
     name = 'abebooks'
     custom_settings = {
-        'CONCURRENT_REQUESTS': 1,
+        'CONCURRENT_REQUESTS': 5,  # Empezar con 5 solicitudes concurrentes
         'FEED_FORMAT': 'csv',
         'FEED_URI': datetime.now().strftime('%Y_%m_%d__%H_%M') + 'abebooks.csv',
         'RETRY_TIMES': 15,
         'COOKIES_ENABLED': False,
         'FEED_EXPORT_ENCODING': "utf-8",
         'AUTOTHROTTLE_ENABLED': True,
-        'AUTOTHROTTLE_START_DELAY': 5,
-        'AUTOTHROTTLE_MAX_DELAY': 120,
-        'DOWNLOAD_DELAY': random.uniform(3, 10),  # Delay between 3 to 10 seconds
+        'AUTOTHROTTLE_START_DELAY': 2,  # Empezar con un retraso de 2 segundos
+        'AUTOTHROTTLE_MAX_DELAY': 60,
+        'DOWNLOAD_DELAY': 1,  # Empezar con un retraso de 1 segundo entre descargas
     }
     headers = {
         'authority': 'www.abebooks.co.uk',
@@ -42,7 +43,7 @@ class abebooks(scrapy.Spider):
     ]
 
     def __init__(self, url=None, *args, **kwargs):
-        super(abebooks, self).__init__(*args, **kwargs)
+        super(AbebooksSpider, self).__init__(*args, **kwargs)
         self.url = url
 
     def start_requests(self):
@@ -90,11 +91,8 @@ class abebooks(scrapy.Spider):
         if failure.check(HttpError):
             response = failure.value.response
             if response.status == 429:
-                # Wait and retry
-                wait_time = random.uniform(60, 180)  # Wait between 60 and 180 seconds
-                self.logger.info(f'Received 429 response. Waiting for {wait_time} seconds before retrying.')
-                time.sleep(wait_time)
+                # Retry after a delay
+                wait_time = random.uniform(60, 120)  # Wait between 60 and 120 seconds
+                self.logger.info(f'Received 429 response. Retrying in {wait_time} seconds...')
+                return deferLater(reactor, wait_time, lambda: response.request).addCallback(self.crawler.engine.crawl)
 
-                new_request = response.request.copy()
-                new_request.dont_filter = True  # Allow request to be retried
-                yield new_request
