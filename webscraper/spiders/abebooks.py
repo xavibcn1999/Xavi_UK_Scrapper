@@ -10,16 +10,16 @@ from scrapy.spidermiddlewares.httperror import HttpError
 class AbebooksSpider(scrapy.Spider):
     name = 'abebooks'
     custom_settings = {
-        'CONCURRENT_REQUESTS': 5,
+        'CONCURRENT_REQUESTS': 10,  # Incrementa el número de requests concurrentes
         'FEED_FORMAT': 'csv',
         'FEED_URI': datetime.now().strftime('%Y_%m_%d__%H_%M') + 'abebooks.csv',
         'RETRY_TIMES': 15,
         'COOKIES_ENABLED': False,
         'FEED_EXPORT_ENCODING': "utf-8",
         'AUTOTHROTTLE_ENABLED': True,
-        'AUTOTHROTTLE_START_DELAY': 2,
-        'AUTOTHROTTLE_MAX_DELAY': 60,
-        'DOWNLOAD_DELAY': random.uniform(1, 5),  # Ajusta el rango de tiempo aquí
+        'AUTOTHROTTLE_START_DELAY': 1,  # Reduce el delay inicial de Autothrottle
+        'AUTOTHROTTLE_MAX_DELAY': 30,  # Reduce el delay máximo de Autothrottle
+        'DOWNLOAD_DELAY': random.uniform(1, 3),  # Reduce el rango de tiempo de delay
     }
     headers = {
         'authority': 'www.abebooks.co.uk',
@@ -91,7 +91,7 @@ class AbebooksSpider(scrapy.Spider):
             response = failure.value.response
             if response.status == 429:
                 # Wait and retry
-                wait_time = random.uniform(60, 180)  # Wait between 60 and 180 seconds
+                wait_time = random.uniform(30, 60)  # Wait between 30 and 60 seconds
                 self.logger.info(f'Received 429 response. Waiting for {wait_time} seconds before retrying.')
                 time.sleep(wait_time)
 
