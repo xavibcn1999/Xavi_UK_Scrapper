@@ -5,6 +5,7 @@ import pandas as pd
 from fake_headers import Headers
 import random
 import time
+from scrapy.spidermiddlewares.httperror import HttpError
 
 class abebooks(scrapy.Spider):
     name = 'abebooks'
@@ -33,6 +34,7 @@ class abebooks(scrapy.Spider):
         'sec-fetch-site': 'none',
         'sec-fetch-user': '?1',
         'upgrade-insecure-requests': '1',
+        'user-agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36',
     }
     proxy_list = [
         'http://xavigv:ee3ee0580b725494_country-UnitedKingdom@proxy.packetstream.io:31112',
@@ -96,4 +98,3 @@ class abebooks(scrapy.Spider):
                 new_request = response.request.copy()
                 new_request.dont_filter = True  # Allow request to be retried
                 yield new_request
-
