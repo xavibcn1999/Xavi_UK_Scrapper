@@ -2,7 +2,6 @@
 import scrapy
 from datetime import datetime
 import pandas as pd
-import requests
 from fake_headers import Headers
 import random
 import time
@@ -20,7 +19,7 @@ class AbebooksSpider(scrapy.Spider):
         'AUTOTHROTTLE_ENABLED': True,
         'AUTOTHROTTLE_START_DELAY': 2,
         'AUTOTHROTTLE_MAX_DELAY': 60,
-        'DOWNLOAD_DELAY': random.uniform(3, 10),
+        'DOWNLOAD_DELAY': random.uniform(1, 5),  # Ajusta el rango de tiempo aquí
     }
     headers = {
         'authority': 'www.abebooks.co.uk',
@@ -39,6 +38,7 @@ class AbebooksSpider(scrapy.Spider):
     }
     proxy_list = [
         'http://xavigv:ee3ee0580b725494@proxy.packetstream.io:31112',
+        # Añadir más proxies aquí si es necesario
     ]
 
     def __init__(self, url=None, *args, **kwargs):
@@ -46,14 +46,7 @@ class AbebooksSpider(scrapy.Spider):
         self.url = url
 
     def start_requests(self):
-        try:
-            response = requests.get(self.url)
-            response.raise_for_status()
-            df = pd.read_csv(pd.compat.StringIO(response.text))
-        except Exception as e:
-            self.logger.error(f"Failed to load CSV: {e}")
-            return
-
+        df = pd.read_csv(self.url)
         url_list = [i for i in df['url'].tolist() if i.strip() and not i.startswith('#VALUE')]
 
         for request_url in url_list:
