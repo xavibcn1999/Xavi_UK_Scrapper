@@ -10,16 +10,16 @@ from scrapy.spidermiddlewares.httperror import HttpError
 class AbebooksSpider(scrapy.Spider):
     name = 'abebooks'
     custom_settings = {
-        'CONCURRENT_REQUESTS': 12,  # Balanced concurrent requests
+        'CONCURRENT_REQUESTS': 10,  # Incrementa el número de requests concurrentes
         'FEED_FORMAT': 'csv',
         'FEED_URI': datetime.now().strftime('%Y_%m_%d__%H_%M') + 'abebooks.csv',
         'RETRY_TIMES': 15,
         'COOKIES_ENABLED': False,
         'FEED_EXPORT_ENCODING': "utf-8",
         'AUTOTHROTTLE_ENABLED': True,
-        'AUTOTHROTTLE_START_DELAY': 1,  # Start delay
-        'AUTOTHROTTLE_MAX_DELAY': 20,  # Max delay
-        'DOWNLOAD_DELAY': random.uniform(1, 2.5),  # Random delay between requests
+        'AUTOTHROTTLE_START_DELAY': 1,  # Reduce el delay inicial de Autothrottle
+        'AUTOTHROTTLE_MAX_DELAY': 30,  # Reduce el delay máximo de Autothrottle
+        'DOWNLOAD_DELAY': random.uniform(1, 3),  # Reduce el rango de tiempo de delay
     }
     headers = {
         'authority': 'www.abebooks.co.uk',
@@ -38,7 +38,7 @@ class AbebooksSpider(scrapy.Spider):
     }
     proxy_list = [
         'http://xavigv:ee3ee0580b725494@proxy.packetstream.io:31112',
-        # Add more proxies if needed
+        # Añadir más proxies aquí si es necesario
     ]
 
     def __init__(self, url=None, *args, **kwargs):
@@ -83,12 +83,15 @@ class AbebooksSpider(scrapy.Spider):
             }
 
     def errback_httpbin(self, failure):
+        # Log all failures
         self.logger.error(repr(failure))
 
+        # In case you want to retry a request
         if failure.check(HttpError):
             response = failure.value.response
             if response.status == 429:
-                wait_time = random.uniform(20, 40)  # Shorter wait time
+                # Wait and retry
+                wait_time = random.uniform(30, 60)  # Wait between 30 and 60 seconds
                 self.logger.info(f'Received 429 response. Waiting for {wait_time} seconds before retrying.')
                 time.sleep(wait_time)
 
