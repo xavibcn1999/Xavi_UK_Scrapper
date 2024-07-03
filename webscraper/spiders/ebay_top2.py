@@ -63,7 +63,7 @@ class ebay_top3(scrapy.Spider):
 
             image = listing.xpath('.//div[contains(@class,"s-item__image")]//img/@src').get('')
             image = image.replace('s-l225.webp', 's-l500.jpg')
-            shipping_cost = listing.xpath('.//span[@class="s-item__shipping s-item__logisticsCost"]/text()').get('')
+            shipping_cost = listing.xpath('.//span[@class="s-item__shipping s-item__logisticsCost"]//text()').get('')
             if not shipping_cost:
                 shipping_cost = listing.xpath('.//span[@class="s-item__dynamic s-item__freeXDays"]//text()').get('')
 
