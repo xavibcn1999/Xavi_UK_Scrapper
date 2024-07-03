@@ -54,7 +54,7 @@ class ebay_top3(scrapy.Spider):
         nkw = response.meta['nkw']
         listings = response.xpath('//ul//div[@class="s-item__wrapper clearfix"]')[:2]  # Ajusta el límite según sea necesario
 
-        for rank, listing in enumerate(listings):
+        for listing in listings:
             link = listing.xpath('.//a/@href').get('')
             title = listing.xpath('.//span[@role="heading"]/text()').get('')
             price = listing.xpath('.//span[@class="s-item__price"]/text()').get('')
@@ -66,8 +66,6 @@ class ebay_top3(scrapy.Spider):
             shipping_cost = listing.xpath('.//span[@class="s-item__shipping s-item__logisticsCost"]//text()').get('')
             if not shipping_cost:
                 shipping_cost = listing.xpath('.//span[@class="s-item__dynamic s-item__freeXDays"]//text()').get('')
-
-            item_location = listing.xpath('.//span[@class="s-item__location s-item__itemLocation"]/span[@class="ITALIC"]/text()').get('')
 
             try:
                 item_number = listing.xpath('.//a/@href').get('').split('/itm/')[1].split('?')[0]
@@ -83,8 +81,6 @@ class ebay_top3(scrapy.Spider):
                 'Product Title': title,
                 'Product Price': price,
                 'Shipping Fee': shipping_cost,
-                'Item Location': item_location,
-                'Position': rank + 1,
                 'Item Number': item_number,
                 'Seller Name': seller_name,
             }
