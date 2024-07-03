@@ -71,9 +71,9 @@ class ebay_top3(scrapy.Spider):
                 item_number = listing.xpath('.//a/@href').get('').split('/itm/')[1].split('?')[0]
             except:
                 item_number = ''
-            seller_name = listing.xpath('.//*[@class="s-item__seller-info-text"]//text()').get('').split('(')[0]
+            seller_name = listing.xpath('.//span[@class="s-item__seller-info-text"]//text()').get('')
             if seller_name:
-                seller_name = seller_name.strip()
+                seller_name = seller_name.split('(')[0].strip()
             item = {
                 'URL': response.url,
                 'NKW': "'" + nkw,
