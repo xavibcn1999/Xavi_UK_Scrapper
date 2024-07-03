@@ -92,7 +92,7 @@ class ebay_top3(scrapy.Spider):
                 'Product Title': title,
                 'Product Price': price,
                 'Shipping Fee': shipping_cost,
-                'Item Number': item_number,
+                'Item Number': "'" + item_number,
                 'Seller Name': seller_name,
             }
             yield item
