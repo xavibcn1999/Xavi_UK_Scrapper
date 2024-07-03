@@ -74,11 +74,16 @@ class ebay_top3(scrapy.Spider):
 
             # Extract seller name
             seller_name = listing.xpath('.//span[@class="s-item__seller-info-text"]//text()').get('')
+            if not seller_name:
+                seller_name = listing.xpath('.//span[@class="s-item__seller-info"]//text()').get('')
+
             if seller_name:
                 seller_name = seller_name.split('(')[0].strip()
                 self.logger.info(f"Extracted seller name: {seller_name}")
             else:
                 self.logger.warning(f"Could not extract seller name for listing: {link}")
+                with open(f"listing_{item_number}.html", "w") as f:
+                    f.write(listing.get())
 
             item = {
                 'URL': response.url,
