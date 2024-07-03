@@ -72,10 +72,10 @@ class ebay_top3(scrapy.Spider):
             except:
                 item_number = ''
 
-            # Extract seller name
-            seller_name = listing.xpath('.//span[@class="s-item__seller-info-text"]//text()').get('')
+            # Extract seller name with different approaches
+            seller_name = listing.xpath('.//span[@class="s-item__seller-info-text"]/text()').get()
             if not seller_name:
-                seller_name = listing.xpath('.//span[@class="s-item__seller-info"]//text()').get('')
+                seller_name = listing.xpath('.//span[@class="s-item__seller-info"]//text()').get()
 
             if seller_name:
                 seller_name = seller_name.split('(')[0].strip()
