@@ -26,18 +26,6 @@ class AbebooksSpider(scrapy.Spider):
         'LOG_ENABLED': True,
         'LOG_LEVEL': 'INFO',
     }
-    proxy_list = [
-        'http://xavi1:rgepgxabdfgpc5o@proxy.packetstream.io:31112',
-        'http://xavi2:ovbm8bohzqwpunj@proxy.packetstream.io:31112',
-        'http://xavi3:voxmqnnv0ayb51y@proxy.packetstream.io:31112',
-        'http://xavi4:1bmki2npyy78rkl@proxy.packetstream.io:31112',
-        'http://xavi5:4zei4funnojg066@proxy.packetstream.io:31112',
-        'http://xavi6:azwkgkph6hnk2v8@proxy.packetstream.io:31112',
-        'http://xavi7:hsgn0smxdvgtrwi@proxy.packetstream.io:31112',
-        'http://xavi8:ddobymivd20g3ai@proxy.packetstream.io:31112',
-        'http://xavi9:xn19g5qhimplnxf@proxy.packetstream.io:31112',
-        'http://xavi10:8wbdburqlbadn1u@proxy.packetstream.io:31112'
-    ]
 
     def __init__(self, url=None, *args, **kwargs):
         super(AbebooksSpider, self).__init__(*args, **kwargs)
@@ -49,13 +37,11 @@ class AbebooksSpider(scrapy.Spider):
 
         for request_url in url_list:
             headers = Headers(browser="chrome", os="win", headers=True).generate()
-            proxy = random.choice(self.proxy_list)
-            self.logger.info(f'Requesting URL: {request_url} with proxy: {proxy}')
+            self.logger.info(f'Requesting URL: {request_url}')
             yield scrapy.Request(
                 url=request_url,
                 callback=self.parse,
                 headers=headers,
-                meta={'proxy': proxy},
                 errback=self.errback_httpbin,
                 dont_filter=True  # Permitir repetición de solicitudes
             )
