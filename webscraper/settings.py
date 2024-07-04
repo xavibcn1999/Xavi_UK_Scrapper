@@ -50,9 +50,11 @@ SPIDER_MIDDLEWARES = {
 # Enable or disable downloader middlewares
 # See https://docs.scrapy.org/en/latest/topics/downloader-middleware.html
 DOWNLOADER_MIDDLEWARES = {
-    'scrapy.downloadermiddlewares.httpproxy.HttpProxyMiddleware': 750,
     'webscraper.middlewares.WebscraperDownloaderMiddleware': 543,
+    'scrapy.downloadermiddlewares.retry.RetryMiddleware': 550,
+    'scrapy.downloadermiddlewares.httpproxy.HttpProxyMiddleware': 750,
 }
+
 
 # Enable or disable extensions
 # See https://docs.scrapy.org/en/latest/topics/extensions.html
