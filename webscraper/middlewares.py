@@ -35,17 +35,17 @@ class WebscraperDownloaderMiddleware:
 
     def __init__(self):
         self.proxies = [
-            'http://xavi1:RgEPGXAbDFgPC5o@proxy.packetstream.io:31112',
-            'http://xavi2:oVBm8bOHzQWpunj@proxy.packetstream.io:31112',
-            'http://xavi3:voxmQNnV0AyB51y@proxy.packetstream.io:31112',
-            'http://xavi4:1Bmki2NpYY78rKl@proxy.packetstream.io:31112',
-            'http://xavi5:4zeI4FunnoJg066@proxy.packetstream.io:31112',
-            'http://xavi6:azwKgkph6HNK2V8@proxy.packetstream.io:31112',
-            'http://xavi7:hSGN0SMxdVgtrwI@proxy.packetstream.io:31112',
-            'http://xavi8:DDObyMivD20g3Ai@proxy.packetstream.io:31112',
-            'http://xavi9:XN19G5qHiMPlNXf@proxy.packetstream.io:31112',
-            'http://xavi10:8WBDburqlbadn1U@proxy.packetstream.io:31112'
-        ]
+            'http://xavi1:rgepgxabdfgpc5o@proxy.packetstream.io:31112',
+        'http://xavi2:ovbm8bohzqwpunj@proxy.packetstream.io:31112',
+        'http://xavi3:voxmqnnv0ayb51y@proxy.packetstream.io:31112',
+        'http://xavi4:1bmki2npyy78rkl@proxy.packetstream.io:31112',
+        'http://xavi5:4zei4funnojg066@proxy.packetstream.io:31112',
+        'http://xavi6:azwkgkph6hnk2v8@proxy.packetstream.io:31112',
+        'http://xavi7:hsgn0smxdvgtrwi@proxy.packetstream.io:31112',
+        'http://xavi8:ddobymivd20g3ai@proxy.packetstream.io:31112',
+        'http://xavi9:xn19g5qhimplnxf@proxy.packetstream.io:31112',
+        'http://xavi10:8wbdburqlbadn1u@proxy.packetstream.io:31112',
+    ]
 
     def process_request(self, request, spider):
         proxy = random.choice(self.proxies)
