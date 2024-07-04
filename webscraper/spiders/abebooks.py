@@ -13,7 +13,7 @@ from scrapy.core.downloader.handlers.http11 import TunnelError
 class AbebooksSpider(scrapy.Spider):
     name = 'abebooks'
     custom_settings = {
-        'CONCURRENT_REQUESTS': 10,  # Incrementa  el número de requests concurrentes
+        'CONCURRENT_REQUESTS': 10,  # Incrementa el número de requests concurrentes
         'FEED_FORMAT': 'csv',
         'FEED_URI': datetime.now().strftime('%Y_%m_%d__%H_%M') + 'abebooks.csv',
         'RETRY_TIMES': 15,
