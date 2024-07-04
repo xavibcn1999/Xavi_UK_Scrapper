@@ -27,16 +27,16 @@ class AbebooksSpider(scrapy.Spider):
         'LOG_LEVEL': 'INFO',
     }
     proxy_list = [
-        'http://xavi1:rgepgxabdfgpc5o@proxy.packetstream.io:31112',
-        'http://xavi2:ovbm8bohzqwpunj@proxy.packetstream.io:31112',
-        'http://xavi3:voxmqnnv0ayb51y@proxy.packetstream.io:31112',
-        'http://xavi4:1bmki2npyy78rkl@proxy.packetstream.io:31112',
-        'http://xavi5:4zei4funnojg066@proxy.packetstream.io:31112',
-        'http://xavi6:azwkgkph6hnk2v8@proxy.packetstream.io:31112',
-        'http://xavi7:hsgn0smxdvgtrwi@proxy.packetstream.io:31112',
-        'http://xavi8:ddobymivd20g3ai@proxy.packetstream.io:31112',
-        'http://xavi9:xn19g5qhimplnxf@proxy.packetstream.io:31112',
-        'http://xavi10:8wbdburqlbadn1u@proxy.packetstream.io:31112'
+        'http://xavi1:hornh984y4pgvuu@proxy.packetstream.io:31112',
+        'http://xavi2:r1w5fpk47hgqfgj@proxy.packetstream.io:31112',
+        'http://xavi3:lo6vcj5ndrt7z2x@proxy.packetstream.io:31112',
+        'http://xavi4:unw476v6wtysh96@proxy.packetstream.io:31112',
+        'http://xavi5:d04lhxxisu82bzw@proxy.packetstream.io:31112',
+        'http://xavi6:3wv0ha19gq7zdsd@proxy.packetstream.io:31112',
+        'http://xavi7:iorvw43c052881o@proxy.packetstream.io:31112',
+        'http://xavi8:9niv2y9y9ckiy7m@proxy.packetstream.io:31112',
+        'http://xavi9:67x6so2sc8mzgv8@proxy.packetstream.io:31112',
+        'http://xavi10:pbs51r030k4haoq@proxy.packetstream.io:31112'
     ]
 
     def __init__(self, url=None, *args, **kwargs):
