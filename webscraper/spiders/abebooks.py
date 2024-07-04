@@ -6,6 +6,7 @@ from fake_headers import Headers
 import random
 import time
 from scrapy.spidermiddlewares.httperror import HttpError
+from scrapy.http import HtmlResponse
 
 class AbebooksSpider(scrapy.Spider):
     name = 'abebooks'
@@ -20,6 +21,8 @@ class AbebooksSpider(scrapy.Spider):
         'AUTOTHROTTLE_START_DELAY': 1,  # Reduce el delay inicial de Autothrottle
         'AUTOTHROTTLE_MAX_DELAY': 30,  # Reduce el delay máximo de Autothrottle
         'DOWNLOAD_DELAY': random.uniform(1, 3),  # Reduce el rango de tiempo de delay
+        'LOG_ENABLED': True,
+        'LOG_LEVEL': 'INFO',
     }
     headers = {
         'authority': 'www.abebooks.co.uk',
@@ -60,6 +63,7 @@ class AbebooksSpider(scrapy.Spider):
         for request_url in url_list:
             headers = Headers(browser="chrome", os="win", headers=True).generate()
             proxy = random.choice(self.proxy_list)
+            self.logger.info(f"Using proxy: {proxy} for URL: {request_url}")
             yield scrapy.Request(
                 url=request_url,
                 callback=self.parse,
@@ -69,26 +73,29 @@ class AbebooksSpider(scrapy.Spider):
             )
 
     def parse(self, response):
-        listings = response.xpath('//li[@data-cy="listing-item"]')[:3]
+        if isinstance(response, HtmlResponse):
+            listings = response.xpath('//li[@data-cy="listing-item"]')[:3]
 
-        for rank, listing in enumerate(listings):
-            title = listing.xpath('.//span[@data-cy="listing-title"]/text()').get('')
-            price = listing.xpath('.//meta[@itemprop="price"]/@content').get('')
-            isbn = listing.xpath('.//meta[@itemprop="isbn"]/@content').get('')
-            seller_name = listing.xpath('.//a[@data-cy="listing-seller-link"]/text()').get('')
-            shipping_cost = listing.xpath('.//span[contains(@id,"item-shipping-price-")]/text()').get('')
-            image = listing.xpath('.//div[@data-cy="listing-image"]/img/@src').get('')
+            for rank, listing in enumerate(listings):
+                title = listing.xpath('.//span[@data-cy="listing-title"]/text()').get('')
+                price = listing.xpath('.//meta[@itemprop="price"]/@content').get('')
+                isbn = listing.xpath('.//meta[@itemprop="isbn"]/@content').get('')
+                seller_name = listing.xpath('.//a[@data-cy="listing-seller-link"]/text()').get('')
+                shipping_cost = listing.xpath('.//span[contains(@id,"item-shipping-price-")]/text()').get('')
+                image = listing.xpath('.//div[@data-cy="listing-image"]/img/@src').get('')
 
-            yield {
-                'URL': response.meta['request_url'],
-                'Image URL': image,
-                'Product Title': title,
-                'Product Price': price,
-                'Shipping Fee': shipping_cost,
-                'Position': rank + 1,
-                'ISBN': isbn,
-                'Seller Name': seller_name,
-            }
+                yield {
+                    'URL': response.meta['request_url'],
+                    'Image URL': image,
+                    'Product Title': title,
+                    'Product Price': price,
+                    'Shipping Fee': shipping_cost,
+                    'Position': rank + 1,
+                    'ISBN': isbn,
+                    'Seller Name': seller_name,
+                }
+        else:
+            self.logger.info(f"Non-HTML response received from {response.url}")
 
     def errback_httpbin(self, failure):
         # Log all failures
@@ -106,3 +113,7 @@ class AbebooksSpider(scrapy.Spider):
                 new_request = response.request.copy()
                 new_request.dont_filter = True  # Allow request to be retried
                 yield new_request
+            else:
+                self.logger.info(f"HTTP Error {response.status} on {response.url}")
+        else:
+            self.logger.error(f"Other error occurred: {failure}")
