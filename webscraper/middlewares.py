@@ -36,16 +36,16 @@ class WebscraperDownloaderMiddleware:
     def __init__(self):
         self.proxies = [
             'http://xavi1:rgepgxabdfgpc5o@proxy.packetstream.io:31112',
-        'http://xavi2:ovbm8bohzqwpunj@proxy.packetstream.io:31112',
-        'http://xavi3:voxmqnnv0ayb51y@proxy.packetstream.io:31112',
-        'http://xavi4:1bmki2npyy78rkl@proxy.packetstream.io:31112',
-        'http://xavi5:4zei4funnojg066@proxy.packetstream.io:31112',
-        'http://xavi6:azwkgkph6hnk2v8@proxy.packetstream.io:31112',
-        'http://xavi7:hsgn0smxdvgtrwi@proxy.packetstream.io:31112',
-        'http://xavi8:ddobymivd20g3ai@proxy.packetstream.io:31112',
-        'http://xavi9:xn19g5qhimplnxf@proxy.packetstream.io:31112',
-        'http://xavi10:8wbdburqlbadn1u@proxy.packetstream.io:31112',
-    ]
+            'http://xavi2:ovbm8bohzqwpunj@proxy.packetstream.io:31112',
+            'http://xavi3:voxmqnnv0ayb51y@proxy.packetstream.io:31112',
+            'http://xavi4:1bmki2npyy78rkl@proxy.packetstream.io:31112',
+            'http://xavi5:4zei4funnojg066@proxy.packetstream.io:31112',
+            'http://xavi6:azwkgkph6hnk2v8@proxy.packetstream.io:31112',
+            'http://xavi7:hsgn0smxdvgtrwi@proxy.packetstream.io:31112',
+            'http://xavi8:ddobymivd20g3ai@proxy.packetstream.io:31112',
+            'http://xavi9:xn19g5qhimplnxf@proxy.packetstream.io:31112',
+            'http://xavi10:8wbdburqlbadn1u@proxy.packetstream.io:31112',
+        ]
 
     def process_request(self, request, spider):
         proxy = random.choice(self.proxies)
@@ -57,7 +57,14 @@ class WebscraperDownloaderMiddleware:
         return response
 
     def process_exception(self, request, exception, spider):
-        pass
+        # Retry the same request with a different proxy
+        spider.logger.error(f'Error with proxy: {request.meta.get("proxy")}, error: {exception}')
+        proxy = random.choice(self.proxies)
+        new_request = request.copy()
+        new_request.meta['proxy'] = proxy
+        new_request.dont_filter = True
+        spider.logger.info(f'Retrying {request.url} with proxy: {proxy}')
+        return new_request
 
     def spider_opened(self, spider):
         spider.logger.info('Spider opened: %s' % spider.name)
