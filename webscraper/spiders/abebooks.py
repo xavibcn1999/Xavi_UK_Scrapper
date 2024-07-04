@@ -37,8 +37,16 @@ class AbebooksSpider(scrapy.Spider):
         'user-agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36',
     }
     proxy_list = [
-        'http://xavigv:ee3ee0580b725494@proxy.packetstream.io:31112',
-        # Añadir más proxies aquí si es necesario
+        'http://xavi1:RgEPGXAbDFgPC5o@proxy.packetstream.io:31112',
+        'http://xavi2:oVBm8bOHzQWpunj@proxy.packetstream.io:31112',
+        'http://xavi3:voxmQNnV0AyB51y@proxy.packetstream.io:31112',
+        'http://xavi4:1Bmki2NpYY78rKl@proxy.packetstream.io:31112',
+        'http://xavi5:4zeI4FunnoJg066@proxy.packetstream.io:31112',
+        'http://xavi6:azwKgkph6HNK2V8@proxy.packetstream.io:31112',
+        'http://xavi7:hSGN0SMxdVgtrwI@proxy.packetstream.io:31112',
+        'http://xavi8:DDObyMivD20g3Ai@proxy.packetstream.io:31112',
+        'http://xavi9:XN19G5qHiMPlNXf@proxy.packetstream.io:31112',
+        'http://xavi10:8WBDburqlbadn1U@proxy.packetstream.io:31112'
     ]
 
     def __init__(self, url=None, *args, **kwargs):
