@@ -30,6 +30,18 @@ class AbebooksSpider(scrapy.Spider):
     def __init__(self, url=None, *args, **kwargs):
         super(AbebooksSpider, self).__init__(*args, **kwargs)
         self.url = url
+        self.proxy_list = [
+            'http://xavi1:RgEPGXAbDFgPC5o@proxy.packetstream.io:31112',
+            'http://xavi2:oVBm8bOHzQWpunj@proxy.packetstream.io:31112',
+            'http://xavi3:voxmQNnV0AyB51y@proxy.packetstream.io:31112',
+            'http://xavi4:1Bmki2NpYY78rKl@proxy.packetstream.io:31112',
+            'http://xavi5:4zeI4FunnoJg066@proxy.packetstream.io:31112',
+            'http://xavi6:azwKgkph6HNK2V8@proxy.packetstream.io:31112',
+            'http://xavi7:hSGN0SMxdVgtrwI@proxy.packetstream.io:31112',
+            'http://xavi8:DDObyMivD20g3Ai@proxy.packetstream.io:31112',
+            'http://xavi9:XN19G5qHiMPlNXf@proxy.packetstream.io:31112',
+            'http://xavi10:8WBDburqlbadn1U@proxy.packetstream.io:31112'
+        ]
 
     def start_requests(self):
         df = pd.read_csv(self.url)
@@ -37,11 +49,13 @@ class AbebooksSpider(scrapy.Spider):
 
         for request_url in url_list:
             headers = Headers(browser="chrome", os="win", headers=True).generate()
-            self.logger.info(f'Requesting URL: {request_url}')
+            proxy = random.choice(self.proxy_list)
+            self.logger.info(f'Requesting URL: {request_url} with proxy: {proxy}')
             yield scrapy.Request(
                 url=request_url,
                 callback=self.parse,
                 headers=headers,
+                meta={'proxy': proxy},
                 errback=self.errback_httpbin,
                 dont_filter=True  # Permitir repetición de solicitudes
             )
