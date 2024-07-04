@@ -40,7 +40,7 @@ class AbebooksSpider(scrapy.Spider):
     'http://xavi7:hsgn0smxdvgtrwi@proxy.packetstream.io:31112',
     'http://xavi8:ddobymivd20g3ai@proxy.packetstream.io:31112',
     'http://xavi9:xn19g5qhimplnxf@proxy.packetstream.io:31112',
-    'http://xavi10:8wbdburqlbadn1u@proxy.packetstream.io:31112',
+    'http://xavi10:8wbdburqlbadn1u@proxy.packetstream.io:31112'
 ]
 
     def start_requests(self):
