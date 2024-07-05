@@ -18,6 +18,8 @@ NEWSPIDER_MODULE = 'webscraper.spiders'
 
 # Obey robots.txt rules
 ROBOTSTXT_OBEY = False
+COOKIES_ENABLED = False
+TELNETCONSOLE_ENABLED = False
 
 
 # Configure maximum concurrent requests performed by Scrapy (default: 16)
@@ -53,6 +55,8 @@ ROBOTSTXT_OBEY = False
 # See https://docs.scrapy.org/en/latest/topics/downloader-middleware.html
 #DOWNLOADER_MIDDLEWARES = {
 #    'webscraper.middlewares.WebscraperDownloaderMiddleware': 543,
+    'scrapy.downloadermiddlewares.retry.RetryMiddleware': 550,
+    'scrapy.downloadermiddlewares.httpproxy.HttpProxyMiddleware': 750,
 #}
 
 # Enable or disable extensions
@@ -71,9 +75,9 @@ ROBOTSTXT_OBEY = False
 # See https://docs.scrapy.org/en/latest/topics/autothrottle.html
 #AUTOTHROTTLE_ENABLED = True
 # The initial download delay
-#AUTOTHROTTLE_START_DELAY = 5
+#AUTOTHROTTLE_START_DELAY = 1
 # The maximum download delay to be set in case of high latencies
-#AUTOTHROTTLE_MAX_DELAY = 60
+#AUTOTHROTTLE_MAX_DELAY = 30
 # The average number of requests Scrapy should be sending in parallel to
 # each remote server
 #AUTOTHROTTLE_TARGET_CONCURRENCY = 1.0
