@@ -1,4 +1,3 @@
-# -*- coding: utf-8 -*-
 import scrapy
 from datetime import datetime
 import pandas as pd
@@ -9,20 +8,21 @@ from scrapy.spidermiddlewares.httperror import HttpError
 from scrapy.http import HtmlResponse
 from twisted.internet.error import TimeoutError, DNSLookupError
 from scrapy.core.downloader.handlers.http11 import TunnelError
+from scrapy.utils.response import open_in_browser
 
 class AbebooksSpider(scrapy.Spider):
     name = 'abebooks'
     custom_settings = {
-        'CONCURRENT_REQUESTS': 10,  # Incrementa el número de requests concurrentes
+        'CONCURRENT_REQUESTS': 10,
         'FEED_FORMAT': 'csv',
         'FEED_URI': datetime.now().strftime('%Y_%m_%d__%H_%M') + 'abebooks.csv',
         'RETRY_TIMES': 15,
         'COOKIES_ENABLED': False,
         'FEED_EXPORT_ENCODING': "utf-8",
         'AUTOTHROTTLE_ENABLED': True,
-        'AUTOTHROTTLE_START_DELAY': 1,  # Reduce el delay inicial de Autothrottle
-        'AUTOTHROTTLE_MAX_DELAY': 30,  # Reduce el delay máximo de Autothrottle
-        'DOWNLOAD_DELAY': random.uniform(1, 3),  # Reduce el rango de tiempo de delay
+        'AUTOTHROTTLE_START_DELAY': 1,
+        'AUTOTHROTTLE_MAX_DELAY': 30,
+        'DOWNLOAD_DELAY': random.uniform(1, 3),
         'LOG_ENABLED': True,
         'LOG_LEVEL': 'INFO',
     }
@@ -43,7 +43,7 @@ class AbebooksSpider(scrapy.Spider):
                 callback=self.parse,
                 headers=headers,
                 errback=self.errback_httpbin,
-                dont_filter=True  # Permitir repetición de solicitudes
+                dont_filter=True
             )
 
     def parse(self, response):
@@ -90,3 +90,66 @@ class AbebooksSpider(scrapy.Spider):
             self.logger.error(f'Tunnel Error occurred: {request.url}')
         else:
             self.logger.error(f'Other Error occurred: {failure}')
+
+### Middleware Script (middlewares.py):
+```python
+import random
+from scrapy import signals
+
+class WebscraperSpiderMiddleware:
+    @classmethod
+    def from_crawler(cls, crawler):
+        s = cls()
+        crawler.signals.connect(s.spider_opened, signal=signals.spider_opened)
+        return s
+
+    def process_spider_input(self, response, spider):
+        return None
+
+    def process_spider_output(self, response, result, spider):
+        for i in result:
+            yield i
+
+    def process_spider_exception(self, response, exception, spider):
+        pass
+
+    def process_start_requests(self, start_requests, spider):
+        for r in start_requests:
+            yield r
+
+    def spider_opened(self, spider):
+        spider.logger.info('Spider opened: %s' % spider.name)
+
+
+class WebscraperDownloaderMiddleware:
+    @classmethod
+    def from_crawler(cls, crawler):
+        s = cls()
+        crawler.signals.connect(s.spider_opened, signal=signals.spider_opened)
+        return s
+
+    def __init__(self):
+        self.proxies = [
+            'http://xavigv:ee3ee0580b725494@proxy.packetstream.io:31112'
+        ]
+
+    def process_request(self, request, spider):
+        proxy = random.choice(self.proxies)
+        request.meta['proxy'] = proxy
+        spider.logger.info(f'Using proxy: {proxy}')
+        return None
+
+    def process_response(self, request, response, spider):
+        return response
+
+    def process_exception(self, request, exception, spider):
+        spider.logger.error(f'Error with proxy: {request.meta.get("proxy")}, error: {exception}')
+        proxy = random.choice(self.proxies)
+        new_request = request.copy()
+        new_request.meta['proxy'] = proxy
+        new_request.dont_filter = True
+        spider.logger.info(f'Retrying {request.url} with proxy: {proxy}')
+        return new_request
+
+    def spider_opened(self, spider):
+        spider.logger.info('Spider opened: %s' % spider.name)
