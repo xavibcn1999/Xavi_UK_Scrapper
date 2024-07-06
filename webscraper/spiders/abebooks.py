@@ -7,19 +7,19 @@ import random
 import time
 from scrapy.spidermiddlewares.httperror import HttpError
 
-class AbebooksSpider(scrapy.Spider):
+class abebooks(scrapy.Spider):
     name = 'abebooks'
     custom_settings = {
-        'CONCURRENT_REQUESTS': 10,  # Incrementa el número de requests concurrentes
+        'CONCURRENT_REQUESTS': 1,
         'FEED_FORMAT': 'csv',
         'FEED_URI': datetime.now().strftime('%Y_%m_%d__%H_%M') + 'abebooks.csv',
         'RETRY_TIMES': 15,
         'COOKIES_ENABLED': False,
         'FEED_EXPORT_ENCODING': "utf-8",
         'AUTOTHROTTLE_ENABLED': True,
-        'AUTOTHROTTLE_START_DELAY': 1,  # Reduce el delay inicial de Autothrottle
-        'AUTOTHROTTLE_MAX_DELAY': 30,  # Reduce el delay máximo de Autothrottle
-        'DOWNLOAD_DELAY': random.uniform(1, 3),  # Reduce el rango de tiempo de delay
+        'AUTOTHROTTLE_START_DELAY': 5,
+        'AUTOTHROTTLE_MAX_DELAY': 120,
+        'DOWNLOAD_DELAY': random.uniform(3, 10),  # Delay between 3 to 10 seconds
     }
     headers = {
         'authority': 'www.abebooks.co.uk',
@@ -37,12 +37,12 @@ class AbebooksSpider(scrapy.Spider):
         'user-agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36',
     }
     proxy_list = [
-        'http://xavigv:ee3ee0580b725494@proxy.packetstream.io:31112',
-        # Añadir más proxies aquí si es necesario
+        'http://xavigv:ee3ee0580b725494_country-UnitedKingdom@proxy.packetstream.io:31112',
+        # Add more proxies here
     ]
 
     def __init__(self, url=None, *args, **kwargs):
-        super(AbebooksSpider, self).__init__(*args, **kwargs)
+        super(abebooks, self).__init__(*args, **kwargs)
         self.url = url
 
     def start_requests(self):
@@ -91,7 +91,7 @@ class AbebooksSpider(scrapy.Spider):
             response = failure.value.response
             if response.status == 429:
                 # Wait and retry
-                wait_time = random.uniform(30, 60)  # Wait between 30 and 60 seconds
+                wait_time = random.uniform(60, 180)  # Wait between 60 and 180 seconds
                 self.logger.info(f'Received 429 response. Waiting for {wait_time} seconds before retrying.')
                 time.sleep(wait_time)
 
