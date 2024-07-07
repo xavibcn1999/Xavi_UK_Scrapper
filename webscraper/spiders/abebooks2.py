@@ -21,28 +21,13 @@ class Abebooks2Spider(scrapy.Spider):
         'AUTOTHROTTLE_MAX_DELAY': 120,
         'DOWNLOAD_DELAY': random.uniform(2, 9),  # Reduce ligeramente el delay de 2.5-9.5 a 2-9
     }
-    headers = {
-        'authority': 'www.abebooks.co.uk',
-        'accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,image/apng,*/*;q=0.8,application/signed-exchange;v=b3;q=0.9',
-        'accept-language': 'en-US,en;q=0.9',
-        'cache-control': 'max-age=0',
-        'sec-ch-ua': '"Not_A Brand";v="99", "Google Chrome";v="109", "Chromium";v="109"',
-        'sec-ch-ua-mobile': '?0',
-        'sec-ch-ua-platform': '"Linux"',
-        'sec-fetch-dest': 'document',
-        'sec-fetch-mode': 'navigate',
-        'sec-fetch-site': 'none',
-        'sec-fetch-user': '?1',
-        'upgrade-insecure-requests': '1',
-        'user-agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36',
-    }
     proxy_list = [
         'http://xavigv:ee3ee0580b725494_country-UnitedKingdom@proxy.packetstream.io:31112',
         # Add more proxies here
     ]
 
     def __init__(self, url=None, *args, **kwargs):
-        super(abebooks, self).__init__(*args, **kwargs)
+        super(Abebooks2Spider, self).__init__(*args, **kwargs)
         self.url = url
 
     def start_requests(self):
@@ -63,6 +48,9 @@ class Abebooks2Spider(scrapy.Spider):
     def parse(self, response):
         listings = response.xpath('//li[@data-cy="listing-item"]')[:3]
 
+        if not listings:
+            self.logger.info(f"No listings found for URL: {response.url}")
+        
         for rank, listing in enumerate(listings):
             title = listing.xpath('.//span[@data-cy="listing-title"]/text()').get('')
             price = listing.xpath('.//meta[@itemprop="price"]/@content').get('')
@@ -70,6 +58,8 @@ class Abebooks2Spider(scrapy.Spider):
             seller_name = listing.xpath('.//a[@data-cy="listing-seller-link"]/text()').get('')
             shipping_cost = listing.xpath('.//span[contains(@id,"item-shipping-price-")]/text()').get('')
             image = listing.xpath('.//div[@data-cy="listing-image"]/img/@src').get('')
+
+            self.logger.info(f"Extracted data: {title}, {price}, {isbn}, {seller_name}, {shipping_cost}, {image}")
 
             yield {
                 'URL': response.meta['request_url'],
