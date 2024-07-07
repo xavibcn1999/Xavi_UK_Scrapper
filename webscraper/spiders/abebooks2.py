@@ -7,8 +7,8 @@ import random
 import time
 from scrapy.spidermiddlewares.httperror import HttpError
 
-class abebooks(scrapy.Spider):
-    name = 'abebooks'
+class Abebooks2Spider(scrapy.Spider):
+    name = 'abebooks2'
     custom_settings = {
         'CONCURRENT_REQUESTS': 3,  # Incrementa ligeramente de 2 a 3
         'FEED_FORMAT': 'csv',
