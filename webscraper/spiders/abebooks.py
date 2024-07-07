@@ -91,7 +91,7 @@ class abebooks(scrapy.Spider):
             response = failure.value.response
             if response.status == 429:
                 # Wait and retry
-                wait time = random.uniform(60, 180)  # Wait between 60 and 180 seconds
+                wait_time = random.uniform(60, 180)  # Wait between 60 and 180 seconds
                 self.logger.info(f'Received 429 response. Waiting for {wait_time} seconds before retrying.')
                 time.sleep(wait_time)
 
