@@ -15,8 +15,15 @@ class ebay_top3(scrapy.Spider):
         'FEED_FORMAT': 'csv',
         'FEED_URI': datetime.now().strftime('%Y_%m_%d__%H_%M') + 'ebay.csv',
         'RETRY_TIMES': 15,
-        'COOKIES_ENABLED': True,  # Enable cookies to see if it helps
-        'FEED_EXPORT_ENCODING': "utf-8"
+        'COOKIES_ENABLED': True,
+        'FEED_EXPORT_ENCODING': "utf-8",
+        'AUTOTHROTTLE_ENABLED': True,
+        'AUTOTHROTTLE_START_DELAY': 5,
+        'AUTOTHROTTLE_MAX_DELAY': 60,
+        'AUTOTHROTTLE_TARGET_CONCURRENCY': 1.0,
+        'AUTOTHROTTLE_DEBUG': False,
+        'HTTPCACHE_ENABLED': False,
+        'DOWNLOAD_DELAY': 0.5,  # Puedes ajustar esto según sea necesario
     }
     headers = {
         'authority': 'www.ebay.com',
