@@ -15,15 +15,8 @@ class ebay_top3(scrapy.Spider):
         'FEED_FORMAT': 'csv',
         'FEED_URI': datetime.now().strftime('%Y_%m_%d__%H_%M') + 'ebay.csv',
         'RETRY_TIMES': 15,
-        'COOKIES_ENABLED': True,
-        'FEED_EXPORT_ENCODING': "utf-8",
-        'AUTOTHROTTLE_ENABLED': True,
-        'AUTOTHROTTLE_START_DELAY': 5,
-        'AUTOTHROTTLE_MAX_DELAY': 60,
-        'AUTOTHROTTLE_TARGET_CONCURRENCY': 1.0,
-        'AUTOTHROTTLE_DEBUG': False,
-        'HTTPCACHE_ENABLED': False,
-        'DOWNLOAD_DELAY': 0.5,  # Puedes ajustar esto según sea necesario
+        'COOKIES_ENABLED': True,  # Enable cookies to see if it helps
+        'FEED_EXPORT_ENCODING': "utf-8"
     }
     headers = {
         'authority': 'www.ebay.com',
@@ -59,6 +52,8 @@ class ebay_top3(scrapy.Spider):
     def parse(self, response):
         nkw = response.meta['nkw']
         listings = response.xpath('//ul//div[@class="s-item__wrapper clearfix"]')
+
+        count = 0  # Initialize a counter for the number of listings processed
 
         for listing in listings:
             if listing.xpath('.//li[contains(@class,"srp-river-answer--REWRITE_START")]').get():
@@ -108,3 +103,9 @@ class ebay_top3(scrapy.Spider):
                 'Seller Name': seller_name,
             }
             yield item
+
+            count += 1  # Increment the counter
+
+            # Stop processing after the first two listings
+            if count >= 2:
+                break
