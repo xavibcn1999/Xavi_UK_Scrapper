@@ -3,10 +3,9 @@ import scrapy
 from datetime import datetime
 import pandas as pd
 from fake_headers import Headers
-from scrapy.utils.response import open_in_browser
 
 header = Headers(browser="chrome",  # Generate only Chrome UA
-                 os="win",  # Generate ony Windows platform
+                 os="win",  # Generate only Windows platform
                  headers=True)
 
 class ebay_top3(scrapy.Spider):
@@ -52,9 +51,13 @@ class ebay_top3(scrapy.Spider):
 
     def parse(self, response):
         nkw = response.meta['nkw']
-        listings = response.xpath('//ul//div[@class="s-item__wrapper clearfix"]')[:2]  # Ajusta el límite según sea necesario
+        listings = response.xpath('//ul//div[@class="s-item__wrapper clearfix"]')
 
         for listing in listings:
+            if listing.xpath('.//li[contains(@class,"srp-river-answer--REWRITE_START")]').get():
+                self.logger.info("Found international sellers separator. Stopping extraction for this URL.")
+                break
+
             link = listing.xpath('.//a/@href').get('')
             title = listing.xpath('.//span[@role="heading"]/text()').get('')
             price = listing.xpath('.//span[@class="s-item__price"]/text()').get('')
@@ -63,9 +66,11 @@ class ebay_top3(scrapy.Spider):
 
             image = listing.xpath('.//div[contains(@class,"s-item__image")]//img/@src').get('')
             image = image.replace('s-l225.webp', 's-l500.jpg')
-            shipping_cost = listing.xpath('.//span[@class="s-item__shipping s-item__logisticsCost"]//text()').get('')
+
+            # Multiple XPath expressions for shipping cost
+            shipping_cost = listing.xpath('.//span[contains(text(),"postage") or contains(text(),"shipping")]/text()').re_first(r'\+\s?[£$€][\d,.]+')
             if not shipping_cost:
-                shipping_cost = listing.xpath('.//span[@class="s-item__dynamic s-item__freeXDays"]//text()').get('')
+                shipping_cost = listing.xpath('.//span[contains(@class,"s-item__shipping") or contains(@class,"s-item__logisticsCost") or contains(@class,"s-item__freeXDays")]/text()').re_first(r'\+\s?[£$€][\d,.]+')
 
             try:
                 item_number = listing.xpath('.//a/@href').get('').split('/itm/')[1].split('?')[0]
