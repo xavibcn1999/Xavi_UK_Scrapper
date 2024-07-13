@@ -60,6 +60,11 @@ class ebay_top3(scrapy.Spider):
                 self.logger.info("Found international sellers separator. Stopping extraction for this URL.")
                 break
 
+            # Skip listings that contain the specified location
+            if listing.xpath('.//span[@class="s-item__location s-item__itemLocation"]').get():
+                self.logger.info("Skipping listing with location info.")
+                continue
+
             link = listing.xpath('.//a/@href').get('')
             title = listing.xpath('.//span[@role="heading"]/text()').get('')
             price = listing.xpath('.//span[@class="s-item__price"]/text()').get('')
@@ -106,6 +111,6 @@ class ebay_top3(scrapy.Spider):
 
             count += 1  # Increment the counter
 
-            # Stop processing after the first two listings
+            # Stop processing after the first two listings without location info
             if count >= 2:
                 break
