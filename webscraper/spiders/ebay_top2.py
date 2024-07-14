@@ -118,7 +118,7 @@ class ebay_top3(scrapy.Spider):
         isbn13 = response.xpath('//div[.//span[text()="ISBN-13"]]/following-sibling::div//span[@class="ux-textspans"]/text()').get()
         isbn = response.xpath('//div[.//span[text()="ISBN"]]/following-sibling::div//span[@class="ux-textspans"]/text()').get()
 
-        # Add apostrophe to avoid number reduction
+        # Add apostrophe to avoid number reduction and ensure empty cells instead of null
         item['EAN'] = "'" + (ean or '')
         item['ISBN-13'] = "'" + (isbn13 or '')
         item['ISBN'] = "'" + (isbn or '')
