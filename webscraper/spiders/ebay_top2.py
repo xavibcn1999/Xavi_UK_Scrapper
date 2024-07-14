@@ -79,16 +79,6 @@ class ebay_top3(scrapy.Spider):
             if not shipping_cost:
                 shipping_cost = listing.xpath('.//span[contains(@class,"s-item__shipping") or contains(@class,"s-item__logisticsCost") or contains(@class,"s-item__freeXDays")]/text()').re_first(r'\+\s?[£$€][\d,.]+')
 
-            # Extract ISBN-13
-            isbn13 = response.xpath('//span[@class="ux-textspans" and text() = "ISBN-13:"]/ancestor::div[@class="ux-labels-values__labels"]/following-sibling::div//span[@class="ux-textspans"]//text()').get('')
-            if not isbn13:
-                isbn13 = response.xpath('//div[@class="s-name" and contains(text(),"ISBN-13")]//following-sibling::div//text()').get('')
-
-            # Extract EAN
-            ean = response.xpath('//span[@class="ux-textspans" and text() = "EAN:"]/ancestor::div[@class="ux-labels-values__labels"]/following-sibling::div//span[@class="ux-textspans"]//text()').get('')
-            if not ean:
-                ean = response.xpath('//div[@class="s-name" and contains(text(),"EAN")]//following-sibling::div//text()').get('')
-
             # Extract seller name
             seller_name = listing.xpath('.//span[@class="s-item__seller-info-text"]//text()').get('')
             if not seller_name:
@@ -109,11 +99,10 @@ class ebay_top3(scrapy.Spider):
                 'Product Title': title,
                 'Product Price': price,
                 'Shipping Fee': shipping_cost,
-                'ISBN-13': isbn13,
-                'EAN': ean,
                 'Seller Name': seller_name,
             }
-            yield item
+
+            yield scrapy.Request(url=link, callback=self.parse_item, headers=self.headers, meta={'item': item})
 
             count += 1  # Increment the counter
 
@@ -121,3 +110,20 @@ class ebay_top3(scrapy.Spider):
             if count >= 2:
                 break
 
+    def parse_item(self, response):
+        item = response.meta['item']
+
+        # Extract ISBN-13
+        isbn13 = response.xpath('//span[@class="ux-textspans" and text() = "ISBN-13:"]/ancestor::div[@class="ux-labels-values__labels"]/following-sibling::div//span[@class="ux-textspans"]//text()').get('')
+        if not isbn13:
+            isbn13 = response.xpath('//div[@class="s-name" and contains(text(),"ISBN-13")]//following-sibling::div//text()').get('')
+
+        # Extract EAN
+        ean = response.xpath('//span[@class="ux-textspans" and text() = "EAN:"]/ancestor::div[@class="ux-labels-values__labels"]/following-sibling::div//span[@class="ux-textspans"]//text()').get('')
+        if not ean:
+            ean = response.xpath('//div[@class="s-name" and contains(text(),"EAN")]//following-sibling::div//text()').get('')
+
+        item['ISBN-13'] = isbn13
+        item['EAN'] = ean
+
+        yield item
