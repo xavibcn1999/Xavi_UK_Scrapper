@@ -79,10 +79,11 @@ class ebay_top3(scrapy.Spider):
             if not shipping_cost:
                 shipping_cost = listing.xpath('.//span[contains(@class,"s-item__shipping") or contains(@class,"s-item__logisticsCost") or contains(@class,"s-item__freeXDays")]/text()').re_first(r'\+\s?[£$€][\d,.]+')
 
-            try:
-                item_number = listing.xpath('.//a/@href').get('').split('/itm/')[1].split('?')[0]
-            except:
-                item_number = ''
+            # Extract ISBN-13
+            isbn_13 = listing.xpath('.//div[@class="ux-labels-values__values col-6"]//span[@class="ux-textspans"]/text()').get()
+
+            # Extract EAN
+            ean = listing.xpath('.//dl[@class="ux-labels-values ux-labels-values--inline col-6 ux-labels-values--ean"]//span[@class="ux-textspans"]/text()').get()
 
             # Extract seller name
             seller_name = listing.xpath('.//span[@class="s-item__seller-info-text"]//text()').get('')
@@ -94,7 +95,7 @@ class ebay_top3(scrapy.Spider):
                 self.logger.info(f"Extracted seller name: {seller_name}")
             else:
                 self.logger.warning(f"Could not extract seller name for listing: {link}")
-                with open(f"listing_{item_number}.html", "w") as f:
+                with open(f"listing.html", "w") as f:
                     f.write(listing.get())
 
             item = {
@@ -104,7 +105,8 @@ class ebay_top3(scrapy.Spider):
                 'Product Title': title,
                 'Product Price': price,
                 'Shipping Fee': shipping_cost,
-                'Item Number': "'" + item_number,
+                'ISBN-13': isbn_13,
+                'EAN': ean,
                 'Seller Name': seller_name,
             }
             yield item
