@@ -115,7 +115,7 @@ class ebay_top3(scrapy.Spider):
 
         # Extract ISBN-13
         isbn13 = response.xpath('//div[./span[text()="ISBN-13"]]/following-sibling::div//span[@class="ux-textspans"]/text()').get()
-        
+
         # Extract EAN
         ean = response.xpath('//div[./span[text()="EAN"]]/following-sibling::div//span[@class="ux-textspans"]/text()').get()
 
@@ -123,4 +123,3 @@ class ebay_top3(scrapy.Spider):
         item['EAN'] = ean
 
         yield item
-
