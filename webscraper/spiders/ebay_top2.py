@@ -113,15 +113,9 @@ class ebay_top3(scrapy.Spider):
     def parse_item(self, response):
         item = response.meta['item']
 
-        # Check if the product details tab is available
-        product_details_tab = response.xpath('//h2[contains(text(), "Product Identifiers")]/..')
-
-        if product_details_tab:
-            ean = product_details_tab.xpath('.//div[./span[text()="EAN"]]/following-sibling::div//span[@class="ux-textspans"]/text()').get()
-            isbn13 = product_details_tab.xpath('.//div[./span[text()="ISBN-13"]]/following-sibling::div//span[@class="ux-textspans"]/text()').get()
-        else:
-            ean = None
-            isbn13 = None
+        # Extract EAN and ISBN-13 from product details page
+        ean = response.xpath('//div[.//span[text()="EAN"]]/following-sibling::div//span[@class="ux-textspans"]/text()').get()
+        isbn13 = response.xpath('//div[.//span[text()="ISBN-13"]]/following-sibling::div//span[@class="ux-textspans"]/text()').get()
 
         item['ISBN-13'] = isbn13
         item['EAN'] = ean
