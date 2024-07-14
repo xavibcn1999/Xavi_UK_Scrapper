@@ -79,11 +79,6 @@ class ebay_top3(scrapy.Spider):
             if not shipping_cost:
                 shipping_cost = listing.xpath('.//span[contains(@class,"s-item__shipping") or contains(@class,"s-item__logisticsCost") or contains(@class,"s-item__freeXDays")]/text()').re_first(r'\+\s?[£$€][\d,.]+')
 
-            try:
-                item_number = listing.xpath('.//a/@href').get('').split('/itm/')[1].split('?')[0]
-            except:
-                item_number = ''
-
             # Extract seller name
             seller_name = listing.xpath('.//span[@class="s-item__seller-info-text"]//text()').get('')
             if not seller_name:
@@ -94,7 +89,7 @@ class ebay_top3(scrapy.Spider):
                 self.logger.info(f"Extracted seller name: {seller_name}")
             else:
                 self.logger.warning(f"Could not extract seller name for listing: {link}")
-                with open(f"listing_{item_number}.html", "w") as f:
+                with open(f"listing_{count}.html", "w") as f:
                     f.write(listing.get())
 
             item = {
@@ -104,13 +99,27 @@ class ebay_top3(scrapy.Spider):
                 'Product Title': title,
                 'Product Price': price,
                 'Shipping Fee': shipping_cost,
-                'Item Number': "'" + item_number,
                 'Seller Name': seller_name,
             }
-            yield item
+
+            yield scrapy.Request(url=link, callback=self.parse_item, headers=self.headers, meta={'item': item})
 
             count += 1  # Increment the counter
 
             # Stop processing after the first two listings without location info
             if count >= 2:
                 break
+
+    def parse_item(self, response):
+        item = response.meta['item']
+
+        # Extract ISBN-13
+        isbn13 = response.xpath('//div[./span[text()="ISBN-13"]]/following-sibling::div//span[@class="ux-textspans"]/text()').get()
+
+        # Extract EAN
+        ean = response.xpath('//div[./span[text()="EAN"]]/following-sibling::div//span[@class="ux-textspans"]/text()').get()
+
+        item['ISBN-13'] = isbn13
+        item['EAN'] = ean
+
+        yield item
