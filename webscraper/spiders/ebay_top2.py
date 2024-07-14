@@ -123,3 +123,4 @@ class ebay_top3(scrapy.Spider):
         item['EAN'] = ean
 
         yield item
+
