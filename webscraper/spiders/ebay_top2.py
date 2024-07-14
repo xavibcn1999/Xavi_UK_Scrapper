@@ -114,9 +114,9 @@ class ebay_top3(scrapy.Spider):
         item = response.meta['item']
 
         # Extract EAN, ISBN-13 and ISBN from product details page
-        ean = response.xpath('//div[.//span[text()="EAN"]]/following-sibling::div//span[@class="ux-textspans"]/text()').get()
-        isbn13 = response.xpath('//div[.//span[text()="ISBN-13"]]/following-sibling::div//span[@class="ux-textspans"]/text()').get()
-        isbn = response.xpath('//div[.//span[text()="ISBN"]]/following-sibling::div//span[@class="ux-textspans"]/text()').get()
+        ean = response.xpath('//dl[dt//span[text()="EAN"]]/dd//span[@class="ux-textspans"]/text()').get()
+        isbn13 = response.xpath('//dl[dt//span[text()="ISBN-13"]]/dd//span[@class="ux-textspans"]/text()').get()
+        isbn = response.xpath('//dl[dt//span[text()="ISBN"]]/dd//span[@class="ux-textspans"]/text()').get()
 
         # Add apostrophe to avoid number reduction and ensure empty cells instead of null
         item['EAN'] = "'" + (ean or '')
