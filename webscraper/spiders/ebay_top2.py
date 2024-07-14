@@ -113,11 +113,14 @@ class ebay_top3(scrapy.Spider):
     def parse_item(self, response):
         item = response.meta['item']
 
-        # Extract EAN and ISBN-13 from product details page
+        # Extract EAN, ISBN-13 and ISBN from product details page
         ean = response.xpath('//div[.//span[text()="EAN"]]/following-sibling::div//span[@class="ux-textspans"]/text()').get()
         isbn13 = response.xpath('//div[.//span[text()="ISBN-13"]]/following-sibling::div//span[@class="ux-textspans"]/text()').get()
+        isbn = response.xpath('//div[.//span[text()="ISBN"]]/following-sibling::div//span[@class="ux-textspans"]/text()').get()
 
-        item['ISBN-13'] = isbn13
-        item['EAN'] = ean
+        # Add apostrophe to avoid number reduction
+        item['EAN'] = "'" + (ean or '')
+        item['ISBN-13'] = "'" + (isbn13 or '')
+        item['ISBN'] = "'" + (isbn or '')
 
         yield item
