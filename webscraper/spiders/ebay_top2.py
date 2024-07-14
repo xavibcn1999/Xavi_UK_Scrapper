@@ -80,10 +80,14 @@ class ebay_top3(scrapy.Spider):
                 shipping_cost = listing.xpath('.//span[contains(@class,"s-item__shipping") or contains(@class,"s-item__logisticsCost") or contains(@class,"s-item__freeXDays")]/text()').re_first(r'\+\s?[£$€][\d,.]+')
 
             # Extract ISBN-13
-            isbn_13 = listing.xpath('.//div[@class="ux-labels-values__values col-6"]//span[@class="ux-textspans"]/text()').get()
+            isbn13 = response.xpath('//span[@class="ux-textspans" and text() = "ISBN-13:"]/ancestor::div[@class="ux-labels-values__labels"]/following-sibling::div//span[@class="ux-textspans"]//text()').get('')
+            if not isbn13:
+                isbn13 = response.xpath('//div[@class="s-name" and contains(text(),"ISBN-13")]//following-sibling::div//text()').get('')
 
             # Extract EAN
-            ean = listing.xpath('.//dl[@class="ux-labels-values ux-labels-values--inline col-6 ux-labels-values--ean"]//span[@class="ux-textspans"]/text()').get()
+            ean = response.xpath('//span[@class="ux-textspans" and text() = "EAN:"]/ancestor::div[@class="ux-labels-values__labels"]/following-sibling::div//span[@class="ux-textspans"]//text()').get('')
+            if not ean:
+                ean = response.xpath('//div[@class="s-name" and contains(text(),"EAN")]//following-sibling::div//text()').get('')
 
             # Extract seller name
             seller_name = listing.xpath('.//span[@class="s-item__seller-info-text"]//text()').get('')
@@ -95,7 +99,7 @@ class ebay_top3(scrapy.Spider):
                 self.logger.info(f"Extracted seller name: {seller_name}")
             else:
                 self.logger.warning(f"Could not extract seller name for listing: {link}")
-                with open(f"listing.html", "w") as f:
+                with open(f"listing_{count}.html", "w") as f:
                     f.write(listing.get())
 
             item = {
@@ -105,7 +109,7 @@ class ebay_top3(scrapy.Spider):
                 'Product Title': title,
                 'Product Price': price,
                 'Shipping Fee': shipping_cost,
-                'ISBN-13': isbn_13,
+                'ISBN-13': isbn13,
                 'EAN': ean,
                 'Seller Name': seller_name,
             }
@@ -116,3 +120,4 @@ class ebay_top3(scrapy.Spider):
             # Stop processing after the first two listings without location info
             if count >= 2:
                 break
+
