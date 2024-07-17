@@ -9,13 +9,13 @@ header = Headers(browser="chrome",  # Generate only Chrome UA
                  os="win",  # Generate only Windows platform
                  headers=True)
 
-class ebay_top3(scrapy.Spider):
+class EbayTop3(scrapy.Spider):
     name = 'ebay_top3'
     custom_settings = {
         'CONCURRENT_REQUESTS': 16,
-        'FEED_EXPORT_ENCODING': "utf-8",
         'RETRY_TIMES': 15,
         'COOKIES_ENABLED': True,  # Enable cookies to see if it helps
+        'FEED_EXPORT_ENCODING': "utf-8"
     }
     headers = {
         'authority': 'www.ebay.com',
@@ -33,15 +33,11 @@ class ebay_top3(scrapy.Spider):
     proxy = 'http://xavigv:ee3ee0580b725494_country-UnitedKingdom@proxy.packetstream.io:31112'
 
     def __init__(self, url=None, *args, **kwargs):
-        super(ebay_top3, self).__init__(*args, **kwargs)
+        super(EbayTop3, self).__init__(*args, **kwargs)
         self.url = url
-        self.connect()
-
-    def connect(self):
-        client = MongoClient('mongodb+srv://xavidb:WrwQeAALK5kTIMCg@serverlessinstance0.lih2lnk.mongodb.net/')
-        self.db = client["Xavi_UK"]
+        self.client = MongoClient('mongodb+srv://xavidb:WrwQeAALK5kTIMCg@serverlessinstance0.lih2lnk.mongodb.net/')
+        self.db = self.client["Xavi_UK"]
         self.collection = self.db['Search_uk_E']
-        self.logger.info("Connected to MongoDB successfully!")
 
     def start_requests(self):
         df = pd.read_csv(self.url)
@@ -105,11 +101,17 @@ class ebay_top3(scrapy.Spider):
                 'Shipping Fee': shipping_cost,
                 'Seller Name': seller_name,
             }
-            self.collection.insert_one(item)  # Insert item into MongoDB
-            self.logger.info(f"Inserted item into MongoDB: {item}")
+            
+            # Insert the item into MongoDB
+            self.collection.insert_one(item)
+
+            yield item
 
             count += 1  # Increment the counter
 
             # Stop processing after the first two listings without location info
             if count >= 2:
                 break
+
+    def close(self, reason):
+        self.client.close()
