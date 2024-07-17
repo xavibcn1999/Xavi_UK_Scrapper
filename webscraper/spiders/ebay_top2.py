@@ -3,6 +3,7 @@ import scrapy
 from datetime import datetime
 import pandas as pd
 from fake_headers import Headers
+from pymongo import MongoClient
 
 header = Headers(browser="chrome",  # Generate only Chrome UA
                  os="win",  # Generate only Windows platform
@@ -12,11 +13,9 @@ class ebay_top3(scrapy.Spider):
     name = 'ebay_top3'
     custom_settings = {
         'CONCURRENT_REQUESTS': 16,
-        'FEED_FORMAT': 'csv',
-        'FEED_URI': datetime.now().strftime('%Y_%m_%d__%H_%M') + 'ebay.csv',
+        'FEED_EXPORT_ENCODING': "utf-8",
         'RETRY_TIMES': 15,
         'COOKIES_ENABLED': True,  # Enable cookies to see if it helps
-        'FEED_EXPORT_ENCODING': "utf-8"
     }
     headers = {
         'authority': 'www.ebay.com',
@@ -36,6 +35,13 @@ class ebay_top3(scrapy.Spider):
     def __init__(self, url=None, *args, **kwargs):
         super(ebay_top3, self).__init__(*args, **kwargs)
         self.url = url
+        self.connect()
+
+    def connect(self):
+        client = MongoClient('mongodb+srv://xavidb:WrwQeAALK5kTIMCg@serverlessinstance0.lih2lnk.mongodb.net/')
+        self.db = client["Xavi_UK"]
+        self.collection = self.db['Search_uk_E']
+        self.logger.info("Connected to MongoDB successfully!")
 
     def start_requests(self):
         df = pd.read_csv(self.url)
@@ -99,25 +105,11 @@ class ebay_top3(scrapy.Spider):
                 'Shipping Fee': shipping_cost,
                 'Seller Name': seller_name,
             }
-            yield item
+            self.collection.insert_one(item)  # Insert item into MongoDB
+            self.logger.info(f"Inserted item into MongoDB: {item}")
 
             count += 1  # Increment the counter
 
             # Stop processing after the first two listings without location info
             if count >= 2:
                 break
-
-    def parse_product_details(self, response):
-        item = response.meta['item']
-
-        ean = response.xpath('//span[@class="ux-textspans" and text()="EAN"]/ancestor::dt/following-sibling::dd//span[@class="ux-textspans"]/text()').get('')
-        isbn13 = response.xpath('//span[@class="ux-textspans" and text()="ISBN-13"]/ancestor::dt/following-sibling::dd//span[@class="ux-textspans"]/text()').get('')
-        isbn = response.xpath('//span[@class="ux-textspans" and text()="ISBN"]/ancestor::dt/following-sibling::dd//span[@class="ux-textspans"]/text()').get('')
-        upc = response.xpath('//span[@class="ux-textspans" and text()="UPC"]/ancestor::dt/following-sibling::dd//span[@class="ux-textspans"]/text()').get('')
-
-        item['EAN'] = "'" + ean if ean else ''
-        item['ISBN-13'] = "'" + isbn13 if isbn13 else ''
-        item['ISBN'] = "'" + isbn if isbn else ''
-        item['UPC'] = "'" + upc if upc else ''
-
-        yield item
