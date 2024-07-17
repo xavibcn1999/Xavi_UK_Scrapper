@@ -1,6 +1,5 @@
 # -*- coding: utf-8 -*-
 import scrapy
-import pandas as pd
 from pymongo import MongoClient
 from datetime import datetime
 from fake_headers import Headers
@@ -48,17 +47,15 @@ class Spider_Search(scrapy.Spider):
         data_urls = list(self.collection_A.find({}))
 
         for data_urls_loop in data_urls:
-            if 'url' in data_urls_loop:
-                url = data_urls_loop['url'].strip()
-                try:
-                    nkw = url.split('_nkw=')[1].split('&')[0]
-                except IndexError:
-                    nkw = ''
-                
-                yield scrapy.Request(url=url, callback=self.parse, headers=self.headers,
-                                     meta={'proxy': self.proxy, 'nkw': nkw})
-            else:
-                self.logger.warning("The 'url' field is missing in the document.")
+            try:
+                url = data_urls_loop['Ebay Search URL'].strip()
+                nkw = data_urls_loop.get('ISBN-10', '')  # Assuming ISBN-10 is used as NKW
+            except KeyError:
+                self.logger.warning("The 'Ebay Search URL' field is missing in the document.")
+                continue
+
+            yield scrapy.Request(url=url, callback=self.parse, headers=self.headers,
+                                 meta={'proxy': self.proxy, 'nkw': nkw})
 
     def parse(self, response):
         nkw = response.meta['nkw']
