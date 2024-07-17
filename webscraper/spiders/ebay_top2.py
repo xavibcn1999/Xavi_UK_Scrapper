@@ -35,6 +35,7 @@ class EbayTop3(scrapy.Spider):
     def __init__(self, url=None, *args, **kwargs):
         super(EbayTop3, self).__init__(*args, **kwargs)
         self.url = url
+        # Conexión a MongoDB con credenciales
         self.client = MongoClient('mongodb+srv://xavidb:WrwQeAALK5kTIMCg@serverlessinstance0.lih2lnk.mongodb.net/')
         self.db = self.client["Xavi_UK"]
         self.collection = self.db['Search_uk_E']
