@@ -41,7 +41,7 @@ class Spider_Search(scrapy.Spider):
     def connect(self):
         client = MongoClient('mongodb+srv://xavidb:WrwQeAALK5kTIMCg@serverlessinstance0.lih2lnk.mongodb.net/')
         self.db = client["Xavi_UK"]
-        self.collection_A = self.db['Search_uk_A']
+        self.collection_E = self.db['Search_uk_E']
 
     def start_requests(self):
         data_urls = list(self.collection_A.find({}))
@@ -95,14 +95,17 @@ class Spider_Search(scrapy.Spider):
                 self.logger.warning(f"Could not extract seller name for listing: {link}")
 
             item = {
-                'URL': response.url,
+                'Ebay Search URL': response.url,
                 'NKW': "'" + nkw,
-                'Image URL': image,
-                'Product Title': title,
-                'Product Price': price,
-                'Shipping Fee': shipping_cost,
+                'Ebay Image URL': image,
+                'Ebay Product Title': title,
+                'Ebay Price': price,
+                'Ebay Shipping Fee': shipping_cost,
                 'Seller Name': seller_name,
             }
+
+            # Insert item into MongoDB
+            self.collection_E.insert_one(item)
 
             yield item
 
