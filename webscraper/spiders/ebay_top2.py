@@ -1,5 +1,6 @@
 # -*- coding: utf-8 -*-
 import scrapy
+import pandas as pd
 from pymongo import MongoClient
 from datetime import datetime
 from fake_headers import Headers
@@ -47,14 +48,17 @@ class Spider_Search(scrapy.Spider):
         data_urls = list(self.collection_A.find({}))
 
         for data_urls_loop in data_urls:
-            url = data_urls_loop['url'].strip()
-            try:
-                nkw = url.split('_nkw=')[1].split('&')[0]
-            except IndexError:
-                nkw = ''
-
-            yield scrapy.Request(url=url, callback=self.parse, headers=self.headers,
-                                 meta={'proxy': self.proxy, 'nkw': nkw})
+            if 'url' in data_urls_loop:
+                url = data_urls_loop['url'].strip()
+                try:
+                    nkw = url.split('_nkw=')[1].split('&')[0]
+                except IndexError:
+                    nkw = ''
+                
+                yield scrapy.Request(url=url, callback=self.parse, headers=self.headers,
+                                     meta={'proxy': self.proxy, 'nkw': nkw})
+            else:
+                self.logger.warning("The 'url' field is missing in the document.")
 
     def parse(self, response):
         nkw = response.meta['nkw']
@@ -94,16 +98,16 @@ class Spider_Search(scrapy.Spider):
                 self.logger.warning(f"Could not extract seller name for listing: {link}")
 
             item = {
-                'Ebay Search URL': response.url,
+                'URL': response.url,
                 'NKW': "'" + nkw,
-                'Ebay Image URL': image,
-                'Ebay Product Title': title,
-                'Ebay Price': price,
-                'Ebay Shipping Fee': shipping_cost,
+                'Image URL': image,
+                'Product Title': title,
+                'Product Price': price,
+                'Shipping Fee': shipping_cost,
                 'Seller Name': seller_name,
             }
 
-            self.db['Search_uk_E'].insert_one(item)
+            yield item
 
             count += 1
 
