@@ -4,6 +4,8 @@ from datetime import datetime
 import pandas as pd
 from fake_headers import Headers
 from pymongo import MongoClient
+import requests
+import io
 
 header = Headers(browser="chrome",  # Generate only Chrome UA
                  os="win",  # Generate only Windows platform
@@ -41,16 +43,24 @@ class EbayTop3(scrapy.Spider):
         self.collection = self.db['Search_uk_E']
 
     def start_requests(self):
-        df = pd.read_csv(self.url)
-        url_list = [i for i in df['url'].tolist() if i.strip()]
+        if self.url:
+            # Descargar el archivo CSV desde Google Sheets
+            response = requests.get(self.url)
+            if response.status_code == 200:
+                df = pd.read_csv(io.StringIO(response.text))
+                url_list = [i for i in df['url'].tolist() if i.strip()]
 
-        for request_url in url_list:
-            try:
-                nkw = request_url.split('_nkw=')[1].split('&')[0]
-            except:
-                nkw = ''
-            yield scrapy.Request(url=request_url, callback=self.parse, headers=self.headers, 
-                                 meta={'proxy': self.proxy, 'nkw': nkw})
+                for request_url in url_list:
+                    try:
+                        nkw = request_url.split('_nkw=')[1].split('&')[0]
+                    except:
+                        nkw = ''
+                    yield scrapy.Request(url=request_url, callback=self.parse, headers=self.headers, 
+                                         meta={'proxy': self.proxy, 'nkw': nkw})
+            else:
+                self.logger.error(f"Failed to download CSV from {self.url}")
+        else:
+            self.logger.error("No URL provided for CSV file.")
 
     def parse(self, response):
         nkw = response.meta['nkw']
