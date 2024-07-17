@@ -1,6 +1,5 @@
 # -*- coding: utf-8 -*-
 import scrapy
-import pandas as pd
 from pymongo import MongoClient
 from datetime import datetime
 from fake_headers import Headers
