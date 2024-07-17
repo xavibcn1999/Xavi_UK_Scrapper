@@ -1,4 +1,3 @@
-# -*- coding: utf-8 -*-
 import scrapy
 from pymongo import MongoClient
 from datetime import datetime
@@ -41,18 +40,18 @@ class Spider_Search(scrapy.Spider):
     def connect(self):
         client = MongoClient('mongodb+srv://xavidb:WrwQeAALK5kTIMCg@serverlessinstance0.lih2lnk.mongodb.net/')
         self.db = client["Xavi_UK"]
+        self.collection_A = self.db['Search_uk_A']
         self.collection_E = self.db['Search_uk_E']
 
     def start_requests(self):
         data_urls = list(self.collection_A.find({}))
 
         for data_urls_loop in data_urls:
+            url = data_urls_loop['Ebay Search URL'].strip()
             try:
-                url = data_urls_loop['Ebay Search URL'].strip()
-                nkw = data_urls_loop.get('ISBN-10', '')  # Assuming ISBN-10 is used as NKW
-            except KeyError:
-                self.logger.warning("The 'Ebay Search URL' field is missing in the document.")
-                continue
+                nkw = url.split('_nkw=')[1].split('&')[0]
+            except IndexError:
+                nkw = ''
 
             yield scrapy.Request(url=url, callback=self.parse, headers=self.headers,
                                  meta={'proxy': self.proxy, 'nkw': nkw})
@@ -95,19 +94,16 @@ class Spider_Search(scrapy.Spider):
                 self.logger.warning(f"Could not extract seller name for listing: {link}")
 
             item = {
-                'Ebay Search URL': response.url,
+                'URL': response.url,
                 'NKW': "'" + nkw,
-                'Ebay Image URL': image,
-                'Ebay Product Title': title,
-                'Ebay Price': price,
-                'Ebay Shipping Fee': shipping_cost,
+                'Image URL': image,
+                'Product Title': title,
+                'Product Price': price,
+                'Shipping Fee': shipping_cost,
                 'Seller Name': seller_name,
             }
 
-            # Insert item into MongoDB
             self.collection_E.insert_one(item)
-
-            yield item
 
             count += 1
 
