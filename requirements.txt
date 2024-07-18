@@ -3,4 +3,4 @@ nested-lookup
 pandas
 fake-headers
 pymongo
-
+Django>=3.0,<4.0
