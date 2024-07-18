@@ -20,9 +20,8 @@ services:
 
   scrappy:
     build: .
-    command: scrapy list
+    command: scrapy crawl Spider_Search
     volumes:
       - .:/app
     depends_on:
       - db
-"Agregar archivo docker-compose.yml"
