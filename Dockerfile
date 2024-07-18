@@ -12,4 +12,4 @@ RUN pip install -r requirements.txt
 COPY . .
 
 # Comando para ejecutar Scrapy
-CMD ["scrapy", "crawl", "Spider_Search"]
+CMD ["scrapy", "crawl", "ebay_top2"]
