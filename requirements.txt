@@ -1,8 +1,13 @@
-﻿Scrapy
-nested-lookup
+django>=3.2,<4.0
+psycopg2-binary>=2.8,<3.0
+scrapy>=2.5.0,<3.0
+scrapy
 pandas
-fake-headers
 pymongo
+Updated upstream
 Django>=3.0,<4.0
 Scrapy
 pandas
+=======
+fake_headers
+Stashed changes

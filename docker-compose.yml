@@ -20,7 +20,7 @@ services:
 
   scrappy:
     build: .
-    command: scrapy crawl Spider_Search
+    command: scrapy crawl ebay_top2
     volumes:
       - .:/app
     depends_on:
