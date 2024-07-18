@@ -1,0 +1,28 @@
+version: '3.8'
+
+services:
+  web:
+    build: .
+    command: python manage.py runserver 0.0.0.0:8000
+    volumes:
+      - .:/app
+    ports:
+      - "8000:8000"
+    depends_on:
+      - db
+
+  db:
+    image: postgres:13
+    environment:
+      POSTGRES_DB: Xavidatabase
+      POSTGRES_USER: xaviopen
+      POSTGRES_PASSWORD: 8ww5b2v1r8yomya
+
+  scrappy:
+    build: .
+    command: scrapy list
+    volumes:
+      - .:/app
+    depends_on:
+      - db
+"Agregar archivo docker-compose.yml"
