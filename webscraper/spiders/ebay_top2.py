@@ -51,13 +51,18 @@ class EbayTop2Spider(scrapy.Spider):
             url = data_urls_loop.get('URL', '').strip()
             nkw = data_urls_loop.get('NKW', '').strip("'")
 
-            # Verifica y agrega el esquema si falta
-            parsed_url = urlparse(url)
-            if not parsed_url.scheme:
-                url = urlunparse(parsed_url._replace(scheme='https'))
+            if url:  # Verifica si la URL no está vacía
+                parsed_url = urlparse(url)
+                if not parsed_url.scheme:
+                    url = urlunparse(parsed_url._replace(scheme='https'))
 
-            yield scrapy.Request(url=url, callback=self.parse, headers=self.headers,
-                                 meta={'proxy': self.proxy, 'nkw': nkw})
+                if urlparse(url).hostname:  # Verifica si la URL tiene un hostname
+                    yield scrapy.Request(url=url, callback=self.parse, headers=self.headers,
+                                         meta={'proxy': self.proxy, 'nkw': nkw})
+                else:
+                    self.logger.warning(f"Invalid URL with no hostname: {url}")
+            else:
+                self.logger.warning("Found an empty URL in the database.")
 
     def parse(self, response):
         nkw = response.meta['nkw']
