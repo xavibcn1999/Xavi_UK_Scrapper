@@ -47,7 +47,7 @@ class EbayTop2Spider(scrapy.Spider):
         data_urls = list(self.collection_A.find({}))
 
         for data_urls_loop in data_urls:
-            url = data_urls_loop['URL'].strip()
+            url = data_urls_loop.get('URL', '').strip()
             nkw = data_urls_loop.get('NKW', '').strip("'")
 
             yield scrapy.Request(url=url, callback=self.parse, headers=self.headers,
