@@ -46,23 +46,30 @@ class EbayTop2Spider(scrapy.Spider):
 
     def start_requests(self):
         data_urls = list(self.collection_A.find({}))
+        empty_url_count = 0
 
         for data_urls_loop in data_urls:
             url = data_urls_loop.get('URL', '').strip()
             nkw = data_urls_loop.get('NKW', '').strip("'")
 
-            if url:  # Verifica si la URL no está vacía
-                parsed_url = urlparse(url)
-                if not parsed_url.scheme:
-                    url = urlunparse(parsed_url._replace(scheme='https'))
-
-                if urlparse(url).hostname:  # Verifica si la URL tiene un hostname
-                    yield scrapy.Request(url=url, callback=self.parse, headers=self.headers,
-                                         meta={'proxy': self.proxy, 'nkw': nkw})
-                else:
-                    self.logger.warning(f"Invalid URL with no hostname: {url}")
-            else:
+            if not url:
+                empty_url_count += 1
                 self.logger.warning("Found an empty URL in the database.")
+                continue
+
+            parsed_url = urlparse(url)
+            if not parsed_url.scheme:
+                url = urlunparse(parsed_url._replace(scheme='https'))
+
+            if urlparse(url).hostname:
+                yield scrapy.Request(url=url, callback=self.parse, headers=self.headers,
+                                     meta={'proxy': self.proxy, 'nkw': nkw})
+            else:
+                empty_url_count += 1
+                self.logger.warning(f"Invalid URL with no hostname: {url}")
+
+        if empty_url_count > 0:
+            self.logger.warning(f"Found {empty_url_count} empty or invalid URLs in the database.")
 
     def parse(self, response):
         nkw = response.meta['nkw']
