@@ -1,4 +1,4 @@
-Django>=5.0.7,<6.0
+Django>=4.2.14,<5.0
 psycopg2-binary>=2.9.9,<3.0
 scrapy>=2.9.0,<3.0
 pandas>=2.2.2,<3.0
@@ -7,6 +7,7 @@ fake-headers>=1.0.2,<2.0
 beautifulsoup4>=4.12.2,<5.0
 lxml>=4.9.3,<5.0
 jmespath>=1.0.1,<2.0
+
 
 
 
