@@ -12,5 +12,8 @@ RUN pip install --no-cache-dir -r requirements.txt
 # Copia el resto de la aplicación
 COPY . .
 
+# Añade el directorio de Python bin al PATH
+ENV PATH="/app/python/bin:$PATH"
+
 # Comando para ejecutar Scrapy
 CMD ["scrapy", "crawl", "ebay_top2"]
