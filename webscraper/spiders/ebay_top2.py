@@ -2,7 +2,6 @@ import scrapy
 from pymongo import MongoClient
 from datetime import datetime
 from fake_headers import Headers
-from urllib.parse import urlparse, urlunparse
 
 header = Headers(browser="chrome",  # Generate only Chrome UA
                  os="win",  # Generate only Windows platform
@@ -41,30 +40,14 @@ class EbayTop2Spider(scrapy.Spider):
     def connect(self):
         client = MongoClient('mongodb+srv://xavidb:WrwQeAALK5kTIMCg@serverlessinstance0.lih2lnk.mongodb.net/')
         self.db = client["Xavi_UK"]
-        self.collection_A = self.db['Search_uk_A']
         self.collection_E = self.db['Search_uk_E']
 
     def start_requests(self):
-        base_url = "https://www.ebay.co.uk/sch/i.html?_from=R40&_trksid=p2334524.m570.l1313&_nkw={}&_sacat=267&LH_TitleDesc=0&_odkw=1492086894&_osacat=267&LH_BIN=1&_sop=15&LH_PrefLoc=1"
-        data_urls = list(self.collection_A.find({}))
-        empty_url_count = 0
+        data_urls = list(self.collection_E.find({'url': {'$ne': ''}}))
 
         for data_urls_loop in data_urls:
-            self.logger.info(f"Processing data: {data_urls_loop}")
-            isbn = data_urls_loop.get('ASIN', '').strip()
-
-            if not isbn:
-                empty_url_count += 1
-                self.logger.warning("Found an empty ISBN in the database entry: {}".format(data_urls_loop))
-                continue
-
-            url = base_url.format(isbn)
-            nkw = data_urls_loop.get('NKW', '').strip("'")
-
-            if not url:
-                empty_url_count += 1
-                self.logger.warning("Constructed an empty URL for ISBN: {}".format(isbn))
-                continue
+            url = data_urls_loop.get('url', '').strip()
+            nkw = data_urls_loop.get('ASIN', '').strip("'")
 
             yield scrapy.Request(url=url, callback=self.parse, headers=self.headers,
                                  meta={'proxy': self.proxy, 'nkw': nkw})
