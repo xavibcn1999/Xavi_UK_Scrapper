@@ -1,3 +1,5 @@
+--index-url https://pypi.org/simple
+
 Django<4.0,>=3.2
 psycopg2-binary<3.0,>=2.9.9
 scrapy<3.0,>=2.9.0
@@ -8,5 +10,3 @@ beautifulsoup4<5.0,>=4.12.2
 lxml<5.0,>=4.9.3
 jmespath<1.0.0,>=0.7.1
 botocore==1.34.145
-
-
