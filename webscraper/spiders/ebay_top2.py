@@ -3,9 +3,7 @@ from pymongo import MongoClient
 from datetime import datetime
 from fake_headers import Headers
 
-header = Headers(browser="chrome",  # Generate only Chrome UA
-                 os="win",  # Generate only Windows platform
-                 headers=True)
+header = Headers(browser="chrome", os="win", headers=True)
 
 class EbayTop2Spider(scrapy.Spider):
     name = 'ebay_top2'
