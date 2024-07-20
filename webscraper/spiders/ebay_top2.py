@@ -47,18 +47,17 @@ class EbayTop2Spider(scrapy.Spider):
         data_urls = list(self.collection_A.find({}))
 
         for data_urls_loop in data_urls:
-            try:
+            if 'Ebay Search URL' in data_urls_loop:
                 url = data_urls_loop['Ebay Search URL'].strip()
                 try:
                     nkw = url.split('_nkw=')[1].split('&')[0]
                 except IndexError:
                     nkw = ''
+
                 yield scrapy.Request(url=url, callback=self.parse, headers=self.headers,
                                      meta={'proxy': self.proxy, 'nkw': nkw})
-            except KeyError:
+            else:
                 self.logger.error(f"Clave 'Ebay Search URL' faltante en: {data_urls_loop}")
-            except Exception as e:
-                self.logger.error(f"Error inesperado en: {data_urls_loop}, Error: {e}")
 
     def parse(self, response):
         nkw = response.meta['nkw']
