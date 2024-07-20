@@ -19,3 +19,4 @@ ENV PATH="/app/python/bin:$PATH"
 CMD ["scrapy", "crawl", "ebay_top2"]
 
 
+
