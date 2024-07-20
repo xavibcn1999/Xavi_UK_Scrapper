@@ -17,3 +17,5 @@ ENV PATH="/app/python/bin:$PATH"
 
 # Comando para ejecutar Scrapy
 CMD ["scrapy", "crawl", "ebay_top2"]
+
+
