@@ -7,11 +7,7 @@ header = Headers(browser="chrome",  # Generate only Chrome UA
                  os="win",  # Generate only Windows platform
                  headers=True)
 
-<<<<<<< HEAD
 class EbayTop2Spider(scrapy.Spider):
-=======
-class EbayTopSpider(scrapy.Spider):
->>>>>>> 39412e3 (Fixed spider class name)
     name = 'ebay_top2'
     custom_settings = {
         'CONCURRENT_REQUESTS': 16,
@@ -51,14 +47,18 @@ class EbayTopSpider(scrapy.Spider):
         data_urls = list(self.collection_A.find({}))
 
         for data_urls_loop in data_urls:
-            url = data_urls_loop['Ebay Search URL'].strip()
             try:
-                nkw = url.split('_nkw=')[1].split('&')[0]
-            except IndexError:
-                nkw = ''
-
-            yield scrapy.Request(url=url, callback=self.parse, headers=self.headers,
-                                 meta={'proxy': self.proxy, 'nkw': nkw})
+                url = data_urls_loop['Ebay Search URL'].strip()
+                try:
+                    nkw = url.split('_nkw=')[1].split('&')[0]
+                except IndexError:
+                    nkw = ''
+                yield scrapy.Request(url=url, callback=self.parse, headers=self.headers,
+                                     meta={'proxy': self.proxy, 'nkw': nkw})
+            except KeyError:
+                self.logger.error(f"Clave 'Ebay Search URL' faltante en: {data_urls_loop}")
+            except Exception as e:
+                self.logger.error(f"Error inesperado en: {data_urls_loop}, Error: {e}")
 
     def parse(self, response):
         nkw = response.meta['nkw']
