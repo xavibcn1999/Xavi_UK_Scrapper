@@ -6,5 +6,6 @@ pymongo
 fake_headers>=1.0.2
 bs4
 lxml
+jmespath<1.0.0,>=0.7.1
 
 
