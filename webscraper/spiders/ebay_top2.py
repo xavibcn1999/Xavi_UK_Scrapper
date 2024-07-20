@@ -2,6 +2,7 @@ import scrapy
 from pymongo import MongoClient
 from datetime import datetime
 from fake_headers import Headers
+from urllib.parse import urlparse, urlunparse
 
 header = Headers(browser="chrome",  # Generate only Chrome UA
                  os="win",  # Generate only Windows platform
@@ -49,6 +50,11 @@ class EbayTop2Spider(scrapy.Spider):
         for data_urls_loop in data_urls:
             url = data_urls_loop.get('URL', '').strip()
             nkw = data_urls_loop.get('NKW', '').strip("'")
+
+            # Verifica y agrega el esquema si falta
+            parsed_url = urlparse(url)
+            if not parsed_url.scheme:
+                url = urlunparse(parsed_url._replace(scheme='https'))
 
             yield scrapy.Request(url=url, callback=self.parse, headers=self.headers,
                                  meta={'proxy': self.proxy, 'nkw': nkw})
