@@ -45,31 +45,29 @@ class EbayTop2Spider(scrapy.Spider):
         self.collection_E = self.db['Search_uk_E']
 
     def start_requests(self):
+        base_url = "https://www.ebay.co.uk/sch/i.html?_from=R40&_trksid=p2334524.m570.l1313&_nkw={}&_sacat=267&LH_TitleDesc=0&_odkw=1492086894&_osacat=267&LH_BIN=1&_sop=15&LH_PrefLoc=1"
         data_urls = list(self.collection_A.find({}))
         empty_url_count = 0
 
         for data_urls_loop in data_urls:
-            url = data_urls_loop.get('URL', '').strip()
+            self.logger.info(f"Processing data: {data_urls_loop}")
+            isbn = data_urls_loop.get('ASIN', '').strip()
+
+            if not isbn:
+                empty_url_count += 1
+                self.logger.warning("Found an empty ISBN in the database entry: {}".format(data_urls_loop))
+                continue
+
+            url = base_url.format(isbn)
             nkw = data_urls_loop.get('NKW', '').strip("'")
 
             if not url:
                 empty_url_count += 1
-                self.logger.warning("Found an empty URL in the database.")
+                self.logger.warning("Constructed an empty URL for ISBN: {}".format(isbn))
                 continue
 
-            parsed_url = urlparse(url)
-            if not parsed_url.scheme:
-                url = urlunparse(parsed_url._replace(scheme='https'))
-
-            if urlparse(url).hostname:
-                yield scrapy.Request(url=url, callback=self.parse, headers=self.headers,
-                                     meta={'proxy': self.proxy, 'nkw': nkw})
-            else:
-                empty_url_count += 1
-                self.logger.warning(f"Invalid URL with no hostname: {url}")
-
-        if empty_url_count > 0:
-            self.logger.warning(f"Found {empty_url_count} empty or invalid URLs in the database.")
+            yield scrapy.Request(url=url, callback=self.parse, headers=self.headers,
+                                 meta={'proxy': self.proxy, 'nkw': nkw})
 
     def parse(self, response):
         nkw = response.meta['nkw']
