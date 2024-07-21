@@ -2,6 +2,9 @@ import scrapy
 from pymongo import MongoClient
 from datetime import datetime
 from fake_headers import Headers
+import smtplib
+from email.mime.multipart import MIMEMultipart
+from email.mime.text import MIMEText
 
 header = Headers(browser="chrome", os="win", headers=True)
 
@@ -39,6 +42,7 @@ class EbayTop2Spider(scrapy.Spider):
         client = MongoClient('mongodb+srv://xavidb:superman123@serverlessinstance0.lih2lnk.mongodb.net/')
         self.db = client["Xavi_UK"]
         self.collection_E = self.db['Search_uk_E']
+        self.collection_A = self.db['Search_uk_A']
 
     def start_requests(self):
         data_urls = list(self.collection_E.find({'url': {'$ne': ''}}))
@@ -49,6 +53,51 @@ class EbayTop2Spider(scrapy.Spider):
 
             yield scrapy.Request(url=url, callback=self.parse, headers=self.headers,
                                  meta={'proxy': self.proxy, 'nkw': nkw})
+
+    def send_email(self, subject, body, to_email):
+        from_email = "your_email@example.com"
+        password = "your_password"
+
+        msg = MIMEMultipart()
+        msg['From'] = from_email
+        msg['To'] = to_email
+        msg['Subject'] = subject
+
+        msg.attach(MIMEText(body, 'plain'))
+
+        server = smtplib.SMTP('smtp.example.com', 587)
+        server.starttls()
+        server.login(from_email, password)
+        text = msg.as_string()
+        server.sendmail(from_email, to_email, text)
+        server.quit()
+
+    def process_and_send(self, ebay_item, amazon_item):
+        try:
+            ebay_price = float(ebay_item['Product Price'].replace('£', '').replace(',', '').strip())
+            amazon_used_price = float(amazon_item['Buy Box Used 180 days avg'])
+            fba_fee = float(amazon_item['FBA Fee'])
+            referral_fee_percentage = 0.153 if amazon_used_price > 5 else 0.051
+            referral_fee = amazon_used_price * referral_fee_percentage
+
+            profit = ebay_price - amazon_used_price - fba_fee - referral_fee
+            roi = profit / ebay_price if ebay_price else 0
+
+            if roi > 0.5:
+                subject = "Nuevo artículo con ROI superior al 50%"
+                body = f"""
+                Detalles del artículo:
+                - Imagen de eBay: {ebay_item['Image URL']}
+                - Título de Amazon: {amazon_item['Title']}
+                - ROI: {roi * 100}%
+                - Precio en Amazon: £{amazon_used_price}
+                - Precio en eBay: £{ebay_price}
+                - Enlace de Amazon: {amazon_item['URL: Amazon']}
+                - Enlace de eBay: {ebay_item['URL']}
+                """
+                self.send_email(subject, body, "recipient@example.com")
+        except KeyError as e:
+            print(f"Clave faltante {e} en artículo de eBay: {ebay_item}")
 
     def parse(self, response):
         nkw = response.meta['nkw']
@@ -87,17 +136,20 @@ class EbayTop2Spider(scrapy.Spider):
             else:
                 self.logger.warning(f"Could not extract seller name for listing: {link}")
 
-            # Actualizar el documento existente en Search_uk_E con los nuevos datos, sin sobrescribir la columna URL
-            self.collection_E.update_one(
-                {'ASIN': nkw},
-                {'$set': {
-                    'Image URL': image,
-                    'Product Title': title,
-                    'Product Price': price,
-                    'Shipping Fee': shipping_cost,
-                    'Seller Name': seller_name,
-                }}
-            )
+            ebay_item = {
+                'URL': response.url,
+                'ASIN': nkw,
+                'Image URL': image,
+                'Product Title': title,
+                'Product Price': price,
+                'Shipping Fee': shipping_cost,
+                'Seller Name': seller_name,
+            }
+
+            amazon_item = self.collection_A.find_one({'ASIN': nkw})
+
+            if amazon_item:
+                self.process_and_send(ebay_item, amazon_item)
 
             count += 1
 
