@@ -162,7 +162,7 @@ class EbayTop2Spider(scrapy.Spider):
 
         msg.attach(MIMEText(body, 'html'))
 
-        server = smtplib.SMTP('smtp.example.com', 587)
+        server = smtplib.SMTP('smtp.gmail.com', 587)
         server.starttls()
         server.login(from_email, password)
         text = msg.as_string()
