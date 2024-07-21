@@ -2,9 +2,6 @@ import scrapy
 from pymongo import MongoClient
 from datetime import datetime
 from fake_headers import Headers
-import smtplib
-from email.mime.multipart import MIMEMultipart
-from email.mime.text import MIMEText
 
 header = Headers(browser="chrome", os="win", headers=True)
 
@@ -42,7 +39,6 @@ class EbayTop2Spider(scrapy.Spider):
         client = MongoClient('mongodb+srv://xavidb:superman123@serverlessinstance0.lih2lnk.mongodb.net/')
         self.db = client["Xavi_UK"]
         self.collection_E = self.db['Search_uk_E']
-        self.collection_A = self.db['Search_uk_A']
 
     def start_requests(self):
         data_urls = list(self.collection_E.find({'url': {'$ne': ''}}))
@@ -91,80 +87,22 @@ class EbayTop2Spider(scrapy.Spider):
             else:
                 self.logger.warning(f"Could not extract seller name for listing: {link}")
 
-            ebay_item = {
-                'URL': response.url,
-                'NKW': nkw,
-                'Image URL': image,
-                'Product Title': title,
-                'Product Price': price,
-                'Shipping Fee': shipping_cost,
-                'Seller Name': seller_name,
-            }
-
-            # Actualizar el documento existente en Search_uk_E con los nuevos datos, sin sobrescribir la columna URL
+            # Guardar el documento en Search_uk_E con los nuevos datos, sin sobrescribir la columna URL
             self.collection_E.update_one(
                 {'ASIN': nkw},
-                {'$set': ebay_item}
+                {'$set': {
+                    'Image URL': image,
+                    'Product Title': title,
+                    'Product Price': price,
+                    'Shipping Fee': shipping_cost,
+                    'Seller Name': seller_name,
+                }}
             )
-
-            # Buscar el artículo correspondiente en la tabla de Amazon
-            amazon_item = self.collection_A.find_one({'ASIN': nkw})
-            if amazon_item:
-                self.process_and_send(ebay_item, amazon_item)
 
             count += 1
 
             if count >= 2:
                 break
 
-    def process_and_send(self, ebay_item, amazon_item):
-        try:
-            ebay_price = float(ebay_item['Product Price'].replace('£', '').replace(',', '').strip())
-            amazon_used_price = float(amazon_item['Buy Box Used 180 days avg'])
-            fba_fee = float(amazon_item['FBA Fee'])
-            referral_fee_percentage = 0.153 if amazon_used_price > 5 else 0.051
-            referral_fee = amazon_used_price * referral_fee_percentage
-
-            profit = ebay_price - amazon_used_price - fba_fee - referral_fee
-            roi = profit / ebay_price if ebay_price else 0
-
-            if roi > 0.5:
-                subject = "Nuevo artículo con ROI superior al 50%"
-                body = f"""
-                <html>
-                <body>
-                    <h2>Detalles del artículo:</h2>
-                    <p><strong>Imagen de eBay:</strong></p>
-                    <img src="{ebay_item['Image URL']}" alt="eBay Image" style="width:100px;"><br>
-                    <p><strong>Imagen de Amazon:</strong></p>
-                    <img src="{amazon_item['Image']}" alt="Amazon Image" style="width:100px;"><br>
-                    <p><strong>Título de Amazon:</strong> {amazon_item['Title']}</p>
-                    <p><strong>ROI:</strong> {roi * 100:.2f}%</p>
-                    <p><strong>Precio en Amazon (180 días promedio usado):</strong> £{amazon_used_price}</p>
-                    <p><strong>Precio en eBay:</strong> £{ebay_price}</p>
-                    <p><strong>Enlace de Amazon:</strong> <a href="{amazon_item['URL']}">Amazon Link</a></p>
-                    <p><strong>Enlace de eBay:</strong> <a href="{ebay_item['URL']}">eBay Link</a></p>
-                </body>
-                </html>
-                """
-                self.send_email(subject, body, "xavialerts@gmail.com")
-        except KeyError as e:
-            print(f"Clave faltante {e} en artículo de eBay: {ebay_item}")
-
-    def send_email(self, subject, body, to_email):
-        from_email = "xavusiness@gmail.com"
-        password = "!O4zv9eJH7xLIzj"
-
-        msg = MIMEMultipart()
-        msg['From'] = from_email
-        msg['To'] = to_email
-        msg['Subject'] = subject
-
-        msg.attach(MIMEText(body, 'html'))
-
-        server = smtplib.SMTP('smtp.gmail.com', 587)
-        server.starttls()
-        server.login(from_email, password)
-        text = msg.as_string()
-        server.sendmail(from_email, to_email, text)
-        server.quit()
+    def parse_product_details(self, response):
+        pass
