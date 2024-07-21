@@ -36,7 +36,7 @@ class EbayTop2Spider(scrapy.Spider):
         self.connect()
 
     def connect(self):
-        client = MongoClient('mongodb+srv://xavidb:WrwQeAALK5kTIMCg@serverlessinstance0.lih2lnk.mongodb.net/')
+        client = MongoClient('mongodb+srv://xavidb:superman123@serverlessinstance0.lih2lnk.mongodb.net/')
         self.db = client["Xavi_UK"]
         self.collection_E = self.db['Search_uk_E']
 
@@ -87,17 +87,17 @@ class EbayTop2Spider(scrapy.Spider):
             else:
                 self.logger.warning(f"Could not extract seller name for listing: {link}")
 
-            item = {
-                'URL': response.url,
-                'NKW': "'" + nkw,
-                'Image URL': image,
-                'Product Title': title,
-                'Product Price': price,
-                'Shipping Fee': shipping_cost,
-                'Seller Name': seller_name,
-            }
-
-            self.collection_E.insert_one(item)
+            # Actualizar el documento existente en Search_uk_E con los nuevos datos, sin sobrescribir la columna URL
+            self.collection_E.update_one(
+                {'ASIN': nkw},
+                {'$set': {
+                    'Image URL': image,
+                    'Product Title': title,
+                    'Product Price': price,
+                    'Shipping Fee': shipping_cost,
+                    'Seller Name': seller_name,
+                }}
+            )
 
             count += 1
 
