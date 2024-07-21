@@ -147,13 +147,13 @@ class EbayTop2Spider(scrapy.Spider):
                 </body>
                 </html>
                 """
-                self.send_email(subject, body, "recipient@example.com")
+                self.send_email(subject, body, "xavialerts@gmail.com")
         except KeyError as e:
             print(f"Clave faltante {e} en artículo de eBay: {ebay_item}")
 
     def send_email(self, subject, body, to_email):
-        from_email = "your_email@example.com"
-        password = "your_password"
+        from_email = "xavusiness@gmail.com"
+        password = "!O4zv9eJH7xLIzj"
 
         msg = MIMEMultipart()
         msg['From'] = from_email
