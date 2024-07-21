@@ -181,4 +181,8 @@ class EbayTop2Spider(scrapy.Spider):
 
             with smtplib.SMTP_SSL("smtp.gmail.com", 465) as server:
                 server.login(sender_email, password)
-                server.sendmail(sender_email, receiver_email, message.as
+                server.sendmail(sender_email, receiver_email, message.as_string())
+                
+            self.logger.info("Email enviado con éxito.")
+        except Exception as e:
+            self.logger.error(f"Error al enviar el email: {e}")
