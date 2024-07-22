@@ -9,7 +9,7 @@ class EbayTop2Spider(scrapy.Spider):
     name = 'ebay_top2'
     custom_settings = {
         'CONCURRENT_REQUESTS': 8,
-        'DOWNLOAD_DELAY': 3,
+        'DOWNLOAD_DELAY': 5,
         'FEED_FORMAT': 'csv',
         'FEED_URI': datetime.now().strftime('%Y_%m_%d__%H_%M') + '_ebay.csv',
         'RETRY_TIMES': 20,
@@ -34,7 +34,7 @@ class EbayTop2Spider(scrapy.Spider):
         'accept-language': 'en-US,en;q=0.9',
     }
 
-    proxy = 'http://xavigv:e8qcHlJ5jdHxl7Xj_country-UnitedKingdom@proxy.packetstream.io:31112'
+    # proxy = 'http://xavigv:e8qcHlJ5jdHxl7Xj_country-UnitedKingdom@proxy.packetstream.io:31112'
 
     def __init__(self, *args, **kwargs):
         super(EbayTop2Spider, self).__init__(*args, **kwargs)
@@ -71,7 +71,7 @@ class EbayTop2Spider(scrapy.Spider):
             if url:
                 self.logger.info(f"Generando solicitud para URL: {url}")
                 yield scrapy.Request(url=url, callback=self.parse, headers=self.headers,
-                                     meta={'proxy': self.proxy, 'nkw': nkw})
+                                     meta={'nkw': nkw})
             else:
                 self.logger.warning("URL vacía encontrada en la colección Search_uk_E.")
 
