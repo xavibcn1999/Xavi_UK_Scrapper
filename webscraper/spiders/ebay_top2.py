@@ -26,7 +26,11 @@ class EbayTop2Spider(scrapy.Spider):
         'AUTOTHROTTLE_START_DELAY': 5,
         'AUTOTHROTTLE_MAX_DELAY': 60,
         'AUTOTHROTTLE_TARGET_CONCURRENCY': 1.0,
-        'RANDOMIZE_DOWNLOAD_DELAY': True
+        'RANDOMIZE_DOWNLOAD_DELAY': True,
+        'ITEM_PIPELINES': {
+            'scrapy.pipelines.files.FilesPipeline': 1,  # Built-in pipeline for saving files
+            'webscraper.pipelines.MongoDBPipeline': 300  # Custom pipeline for MongoDB
+        }
     }
 
     headers = {
@@ -109,25 +113,15 @@ class EbayTop2Spider(scrapy.Spider):
 
             self.logger.info(f"Extracted data - Link: {link}, Title: {title}, Price: {price}, Image: {image}, Shipping Cost: {shipping_cost}")
 
-            try:
-                update_result = self.collection_E.update_one(
-                    {'ASIN': nkw},
-                    {'$set': {
-                        'Image URL': image,
-                        'Product Title': title,
-                        'Product Price': price,
-                        'Shipping Fee': shipping_cost
-                    }},
-                    upsert=True
-                )
-                if update_result.modified_count > 0:
-                    self.logger.info(f"Data updated for ASIN: {nkw}")
-                elif update_result.upserted_id is not None:
-                    self.logger.info(f"New document inserted for ASIN: {nkw}")
-                else:
-                    self.logger.warning(f"No document was updated or inserted for ASIN: {nkw}, the data might be the same.")
-            except Exception as e:
-                self.logger.error(f"Error updating MongoDB for ASIN: {nkw} - {e}")
+            item = {
+                'ASIN': nkw,
+                'Image URL': image,
+                'Product Title': title,
+                'Product Price': price,
+                'Shipping Fee': shipping_cost
+            }
+
+            yield item  # This will send the item to both the MongoDB pipeline and the CSV exporter
 
             count += 1
 
@@ -152,3 +146,41 @@ class EbayTop2Spider(scrapy.Spider):
         elif failure.check(TimeoutError, TCPTimedOutError):
             request = failure.request
             self.logger.error('TimeoutError on %s', request.url)
+
+# Custom MongoDB pipeline
+class MongoDBPipeline:
+
+    def open_spider(self, spider):
+        try:
+            spider.logger.info("Opening MongoDB pipeline...")
+            self.client = MongoClient('mongodb+srv://xavidb:superman123@serverlessinstance0.lih2lnk.mongodb.net/')
+            self.db = self.client["Xavi_UK"]
+            self.collection_E = self.db['Search_uk_E']
+            spider.logger.info("MongoDB pipeline opened.")
+        except Exception as e:
+            spider.logger.error(f"Error connecting to MongoDB in pipeline: {e}")
+
+    def close_spider(self, spider):
+        self.client.close()
+
+    def process_item(self, item, spider):
+        try:
+            update_result = self.collection_E.update_one(
+                {'ASIN': item['ASIN']},
+                {'$set': {
+                    'Image URL': item['Image URL'],
+                    'Product Title': item['Product Title'],
+                    'Product Price': item['Product Price'],
+                    'Shipping Fee': item['Shipping Fee']
+                }},
+                upsert=True
+            )
+            if update_result.modified_count > 0:
+                spider.logger.info(f"Data updated for ASIN: {item['ASIN']}")
+            elif update_result.upserted_id is not None:
+                spider.logger.info(f"New document inserted for ASIN: {item['ASIN']}")
+            else:
+                spider.logger.warning(f"No document was updated or inserted for ASIN: {item['ASIN']}, the data might be the same.")
+        except Exception as e:
+            spider.logger.error(f"Error updating MongoDB for ASIN: {item['ASIN']} - {e}")
+        return item
