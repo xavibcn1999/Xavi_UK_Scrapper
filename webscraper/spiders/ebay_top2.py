@@ -4,6 +4,7 @@ from datetime import datetime
 from fake_headers import Headers
 from scrapy.spidermiddlewares.httperror import HttpError
 from twisted.internet.error import DNSLookupError, TimeoutError, TCPTimedOutError
+from webscraper.items import WebscraperItem  # Ensure this matches the class in items.py
 
 header = Headers(browser="chrome", os="win", headers=True)
 
@@ -87,28 +88,20 @@ class EbayTop2Spider(scrapy.Spider):
         count = 0
 
         for listing in listings:
-            link = listing.xpath('.//a/@href').get('')
-            title = listing.xpath('.//span[@role="heading"]/text()').get('')
-            price = listing.xpath('.//span[@class="s-item__price"]/text()').get('')
-            if not price:
-                price = listing.xpath('.//span[@class="s-item__price"]/span/text()').get('')
+            item = WebscraperItem()  # Create an instance of WebscraperItem
 
-            image = listing.xpath('.//div[contains(@class,"s-item__image")]//img/@src').get('')
-            image = image.replace('s-l225.webp', 's-l500.jpg')
+            item['ASIN'] = nkw
+            item['image_url'] = listing.xpath('.//div[contains(@class,"s-item__image")]//img/@src').get('').replace('s-l225.webp', 's-l500.jpg')
+            item['product_title'] = listing.xpath('.//span[@role="heading"]/text()').get('')
+            item['product_price'] = listing.xpath('.//span[@class="s-item__price"]/text()').get('')
+            if not item['product_price']:
+                item['product_price'] = listing.xpath('.//span[@class="s-item__price"]/span/text()').get('')
 
-            shipping_cost = listing.xpath('.//span[contains(text(),"postage") or contains(text(),"shipping")]/text()').re_first(r'\+\s?[£$€][\d,.]+')
-            if not shipping_cost:
-                shipping_cost = listing.xpath('.//span[contains(@class,"s-item__shipping") or contains(@class,"s-item__logisticsCost") or contains(@class,"s-item__freeXDays")]/text()').re_first(r'\+\s?[£$€][\d,.]+')
+            item['shipping_fee'] = listing.xpath('.//span[contains(text(),"postage") or contains(text(),"shipping")]/text()').re_first(r'\+\s?[£$€][\d,.]+')
+            if not item['shipping_fee']:
+                item['shipping_fee'] = listing.xpath('.//span[contains(@class,"s-item__shipping") or contains(@class,"s-item__logisticsCost") or contains(@class,"s-item__freeXDays")]/text()').re_first(r'\+\s?[£$€][\d,.]+')
 
-            self.logger.info(f"Extracted data - Link: {link}, Title: {title}, Price: {price}, Image: {image}, Shipping Cost: {shipping_cost}")
-
-            item = {
-                'ASIN': nkw,
-                'Image URL': image,
-                'Product Title': title,
-                'Product Price': price,
-                'Shipping Fee': shipping_cost
-            }
+            self.logger.info(f"Extracted data - Link: {listing.xpath('.//a/@href').get('')}, Title: {item['product_title']}, Price: {item['product_price']}, Image: {item['image_url']}, Shipping Cost: {item['shipping_fee']}")
 
             yield item
 
