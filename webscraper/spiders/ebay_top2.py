@@ -2,6 +2,7 @@ import scrapy
 from pymongo import MongoClient
 from datetime import datetime
 from fake_headers import Headers
+import time
 from scrapy.spidermiddlewares.httperror import HttpError
 from twisted.internet.error import DNSLookupError, TimeoutError, TCPTimedOutError
 
@@ -107,48 +108,4 @@ class EbayTop2Spider(scrapy.Spider):
             if not shipping_cost:
                 shipping_cost = listing.xpath('.//span[contains(@class,"s-item__shipping") or contains(@class,"s-item__logisticsCost") or contains(@class,"s-item__freeXDays")]/text()').re_first(r'\+\s?[£$€][\d,.]+')
 
-            self.logger.info(f"Extracted data - Link: {link}, Title: {title}, Price: {price}, Image: {image}, Shipping Cost: {shipping_cost}")
-
-            try:
-                update_result = self.collection_E.update_one(
-                    {'ASIN': nkw},
-                    {'$set': {
-                        'Image URL': image,
-                        'Product Title': title,
-                        'Product Price': price,
-                        'Shipping Fee': shipping_cost
-                    }},
-                    upsert=True
-                )
-                if update_result.modified_count > 0:
-                    self.logger.info(f"Data updated for ASIN: {nkw}")
-                elif update_result.upserted_id is not None:
-                    self.logger.info(f"New document inserted for ASIN: {nkw}")
-                else:
-                    self.logger.warning(f"No document was updated or inserted for ASIN: {nkw}, the data might be the same.")
-            except Exception as e:
-                self.logger.error(f"Error updating MongoDB for ASIN: {nkw} - {e}")
-
-            count += 1
-
-            if count >= 2:
-                break
-
-        if count == 0:
-            self.logger.warning(f"No valid listings found for ASIN: {nkw}")
-
-    def errback_httpbin(self, failure):
-        self.logger.error(repr(failure))
-        if failure.check(HttpError):
-            response = failure.value.response
-            self.logger.error('HttpError on %s', response.url)
-            if response.status == 503:
-                self.logger.warning('503 Service Unavailable on %s', response.url)
-                time.sleep(60)  # Wait for 60 seconds before retrying
-                return scrapy.Request(response.url, callback=self.parse, dont_filter=True, headers=self.headers)
-        elif failure.check(DNSLookupError):
-            request = failure.request
-            self.logger.error('DNSLookupError on %s', request.url)
-        elif failure.check(TimeoutError, TCPTimedOutError):
-            request = failure.request
-            self.logger.error('TimeoutError on %s', request.url)
+            self.logger.info(f"Extracted data - Link: {link}, Title: {title}, Price: {price}, Image
