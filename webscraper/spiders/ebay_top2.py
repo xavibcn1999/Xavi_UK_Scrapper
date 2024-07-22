@@ -73,14 +73,14 @@ class EbayTop2Spider(scrapy.Spider):
             nkw = data_urls_loop.get('ASIN', '').strip("'")
 
             if url:
-                self.logger.info(f"Generando solicitud para URL: {url}")
+                self.logger.info(f"Generando solicitud para URL: {url} y ASIN: {nkw}")
                 yield scrapy.Request(url=url, callback=self.parse, headers=self.headers,
                                      meta={'nkw': nkw}, errback=self.errback_httpbin)
             else:
                 self.logger.warning("URL vacía encontrada en la colección Search_uk_E.")
 
     def parse(self, response):
-        nkw = response.meta['nkw']
+        nkw = response.meta.get('nkw', 'N/A')
         self.logger.info(f"Procesando respuesta para ASIN: {nkw}")
         listings = response.xpath('//ul//div[@class="s-item__wrapper clearfix"]')
 
@@ -111,7 +111,7 @@ class EbayTop2Spider(scrapy.Spider):
             self.logger.info(f"Extracted data - Link: {link}, Title: {title}, Price: {price}, Image: {image}, Shipping Cost: {shipping_cost}")
 
             try:
-                self.collection_E.update_one(
+                result = self.collection_E.update_one(
                     {'ASIN': nkw},
                     {'$set': {
                         'Image URL': image,
@@ -120,7 +120,10 @@ class EbayTop2Spider(scrapy.Spider):
                         'Shipping Fee': shipping_cost
                     }}
                 )
-                self.logger.info(f"Datos actualizados para ASIN: {nkw}")
+                if result.modified_count > 0:
+                    self.logger.info(f"Datos actualizados para ASIN: {nkw}")
+                else:
+                    self.logger.warning(f"No se actualizó ningún dato para ASIN: {nkw}, puede que no existiera o los datos sean iguales.")
             except Exception as e:
                 self.logger.error(f"Error al actualizar MongoDB para ASIN: {nkw} - {e}")
 
