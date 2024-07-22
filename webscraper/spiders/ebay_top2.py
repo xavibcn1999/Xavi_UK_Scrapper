@@ -2,9 +2,7 @@ import scrapy
 from pymongo import MongoClient
 from datetime import datetime
 from fake_headers import Headers
-import smtplib
-from email.mime.multipart import MIMEMultipart
-from email.mime.text import MIMEText
+from twisted.internet.error import ConnectionLost, DNSLookupError, TimeoutError, TCPTimedOutError
 
 header = Headers(browser="chrome", os="win", headers=True)
 
@@ -14,13 +12,13 @@ class EbayTop2Spider(scrapy.Spider):
         'CONCURRENT_REQUESTS': 16,
         'FEED_FORMAT': 'csv',
         'FEED_URI': datetime.now().strftime('%Y_%m_%d__%H_%M') + '_ebay.csv',
-        'RETRY_TIMES': 15,
+        'RETRY_TIMES': 20,
         'COOKIES_ENABLED': True,
         'FEED_EXPORT_ENCODING': "utf-8",
         'AUTOTHROTTLE_ENABLED': True,
-        'AUTOTHROTTLE_START_DELAY': 5,
-        'AUTOTHROTTLE_MAX_DELAY': 60,
-        'DOWNLOAD_DELAY': 2,
+        'AUTOTHROTTLE_START_DELAY': 10,
+        'AUTOTHROTTLE_MAX_DELAY': 120,
+        'DOWNLOAD_DELAY': 5,
         'RANDOMIZE_DOWNLOAD_DELAY': True
     }
 
@@ -121,35 +119,6 @@ class EbayTop2Spider(scrapy.Spider):
                 }}
             )
 
-            # Calcular el ROI y enviar el email si es mayor al 50%
-            try:
-                ebay_price = float(price.replace('£', '').replace(',', ''))
-                amazon_item = self.collection_A.find_one({'ASIN': nkw})
-
-                if amazon_item:
-                    amazon_used_price = float(amazon_item['Buy Box Used: 180 days avg'].replace('£', '').replace(',', ''))
-                    fba_fee = float(amazon_item['FBA Fees:'].replace('£', '').replace(',', ''))
-                    referral_fee_percentage = 0.153 if amazon_used_price > 5 else 0.051
-                    referral_fee = amazon_used_price * referral_fee_percentage
-
-                    profit = ebay_price - amazon_used_price - fba_fee - referral_fee
-                    roi = (profit / ebay_price) * 100 if ebay_price else 0
-
-                    if roi > 50:
-                        self.logger.info(f"Enviando email por ROI > 50%: {roi}%")
-                        self.send_email(
-                            ebay_image=image,
-                            amazon_image=amazon_item['Image'],
-                            amazon_title=amazon_item['Title'],
-                            roi=roi,
-                            amazon_used_price=amazon_used_price,
-                            ebay_price=ebay_price,
-                            amazon_url=amazon_item['URL: Amazon'],
-                            ebay_url=response.url
-                        )
-            except Exception as e:
-                self.logger.error(f"Error al calcular el ROI o enviar el email: {e}")
-
             count += 1
 
             if count >= 2:
@@ -160,40 +129,16 @@ class EbayTop2Spider(scrapy.Spider):
 
         if failure.check(HttpError):
             response = failure.value.response
-            self.logger.error('HttpError on %s', response.url)
+            self.logger.error(f'HttpError en {response.url}: {response.status} {response.text}')
 
         elif failure.check(DNSLookupError):
             request = failure.request
-            self.logger.error('DNSLookupError on %s', request.url)
+            self.logger.error(f'DNSLookupError en {request.url}')
 
         elif failure.check(TimeoutError, TCPTimedOutError):
             request = failure.request
-            self.logger.error('TimeoutError on %s', request.url)
+            self.logger.error(f'TimeoutError en {request.url}')
 
-    def send_email(self, ebay_image, amazon_image, amazon_title, roi, amazon_used_price, ebay_price, amazon_url, ebay_url):
-        try:
-            sender_email = "xavusiness@gmail.com"
-            receiver_email = "xavialerts@gmail.com"
-            password = "tnthxazpsezagjdc"
-
-            message = MIMEMultipart("alternative")
-            message["Subject"] = f"Alerta de ROI > 50%: {amazon_title}"
-            message["From"] = sender_email
-            message["To"] = receiver_email
-
-            html = f"""
-            <html>
-            <body>
-                <h2>Alerta de ROI > 50%</h2>
-                <p><b>Amazon Title:</b> {amazon_title}</p>
-                <p><b>ROI:</b> {roi}%</p>
-                <p><b>Amazon Used Price (180 days avg):</b> £{amazon_used_price}</p>
-                <p><b>eBay Price:</b> £{ebay_price}</p>
-                <p><b>Amazon URL:</b> <a href="{amazon_url}">{amazon_url}</a></p>
-                <p><b>eBay URL:</b> <a href="{ebay_url}">{ebay_url}</a></p>
-                <p><img src="{amazon_image}" alt="Amazon Image" width="150"><img src="{ebay_image}" alt="eBay Image" width="150"></p>
-            </body>
-            </html>
-            """
-
-            part = MIMEText(html,
+        elif failure.check(ConnectionLost):
+            request = failure.request
+            self.logger.error(f'ConnectionLost en {request.url}')
