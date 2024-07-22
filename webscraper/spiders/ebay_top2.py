@@ -5,6 +5,8 @@ from fake_headers import Headers
 import time
 from scrapy.downloadermiddlewares.retry import RetryMiddleware
 from scrapy.utils.response import response_status_message
+from scrapy.spidermiddlewares.httperror import HttpError
+from twisted.internet.error import DNSLookupError, TimeoutError, TCPTimedOutError
 
 header = Headers(browser="chrome", os="win", headers=True)
 
@@ -21,7 +23,7 @@ class EbayTop2Spider(scrapy.Spider):
         'DOWNLOADER_MIDDLEWARES': {
             'scrapy.downloadermiddlewares.httpproxy.HttpProxyMiddleware': 750,
             'scrapy.downloadermiddlewares.defaultheaders.DefaultHeadersMiddleware': None,
-            'your_project.middlewares.CustomRetryMiddleware': 550,
+            'webscraper.middlewares.CustomRetryMiddleware': 550,  # Asegúrate de que este es el camino correcto
         },
         'AUTOTHROTTLE_ENABLED': True,
         'AUTOTHROTTLE_START_DELAY': 5,
