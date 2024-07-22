@@ -1,30 +1,86 @@
-import pymongo
-from scrapy.exceptions import DropItem
+# Scrapy settings for webscraper project
+#
+# For simplicity, this file contains only settings considered important or
+# commonly used. You can find more settings consulting the documentation:
+#
+#     https://docs.scrapy.org/en/latest/topics/settings.html
+#     https://docs.scrapy.org/en/latest/topics/downloader-middleware.html
+#     https://docs.scrapy.org/en/latest/topics/spider-middleware.html
 
-class MongoDBPipeline:
-    def __init__(self, mongo_uri, mongo_db):
-        self.mongo_uri = mongo_uri
-        self.mongo_db = mongo_db
+BOT_NAME = 'webscraper'
 
-    @classmethod
-    def from_crawler(cls, crawler):
-        return cls(
-            mongo_uri=crawler.settings.get('MONGO_URI'),
-            mongo_db=crawler.settings.get('MONGO_DATABASE', 'items')
-        )
+SPIDER_MODULES = ['webscraper.spiders']
+NEWSPIDER_MODULE = 'webscraper.spiders'
 
-    def open_spider(self, spider):
-        self.client = pymongo.MongoClient(self.mongo_uri)
-        self.db = self.client[self.mongo_db]
-        self.collection = self.db['Search_uk_E']
+# Crawl responsibly by identifying yourself (and your website) on the user-agent
+#USER_AGENT = 'webscraper (+http://www.yourdomain.com)'
 
-    def close_spider(self, spider):
-        self.client.close()
+# Obey robots.txt rules
+ROBOTSTXT_OBEY = False
 
-    def process_item(self, item, spider):
-        self.collection.update_one(
-            {'ASIN': item['ASIN']},
-            {'$set': item},
-            upsert=True
-        )
-        return item
+# Configure maximum concurrent requests performed by Scrapy (default: 16)
+CONCURRENT_REQUESTS = 16
+
+# Configure a delay for requests for the same website (default: 0)
+DOWNLOAD_DELAY = 5
+
+# Disable cookies (enabled by default)
+COOKIES_ENABLED = True
+
+# Disable Telnet Console (enabled by default)
+#TELNETCONSOLE_ENABLED = False
+
+# Override the default request headers:
+DEFAULT_REQUEST_HEADERS = {
+   'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,image/webp,*/*;q=0.8',
+   'Accept-Language': 'en',
+}
+
+# Enable or disable spider middlewares
+# See https://docs.scrapy.org/en/latest/topics/spider-middleware.html
+#SPIDER_MIDDLEWARES = {
+#    'webscraper.middlewares.WebscraperSpiderMiddleware': 543,
+#}
+
+# Enable or disable downloader middlewares
+# See https://docs.scrapy.org/en/latest/topics/downloader-middleware.html
+DOWNLOADER_MIDDLEWARES = {
+    'scrapy.downloadermiddlewares.httpproxy.HttpProxyMiddleware': 750,
+    'webscraper.middlewares.WebscraperDownloaderMiddleware': 543,
+}
+
+# Enable or disable extensions
+# See https://docs.scrapy.org/en/latest/topics/extensions.html
+#EXTENSIONS = {
+#    'scrapy.extensions.telnet.TelnetConsole': None,
+#}
+
+# Configure item pipelines
+# See https://docs.scrapy.org/en/latest/topics/item-pipeline.html
+#ITEM_PIPELINES = {
+#    'webscraper.pipelines.WebscraperPipeline': 300,
+#}
+
+# Enable and configure the AutoThrottle extension (disabled by default)
+# See https://docs.scrapy.org/en/latest/topics/autothrottle.html
+AUTOTHROTTLE_ENABLED = True
+# The initial download delay
+AUTOTHROTTLE_START_DELAY = 5
+# The maximum download delay to be set in case of high latencies
+AUTOTHROTTLE_MAX_DELAY = 60
+# The average number of requests Scrapy should be sending in parallel to
+# each remote server
+AUTOTHROTTLE_TARGET_CONCURRENCY = 1.0
+# Enable showing throttling stats for every response received:
+AUTOTHROTTLE_DEBUG = False
+
+# Enable and configure HTTP caching (disabled by default)
+# See https://docs.scrapy.org/en/latest/topics/downloader-middleware.html#httpcache-middleware-settings
+#HTTPCACHE_ENABLED = True
+#HTTPCACHE_EXPIRATION_SECS = 0
+#HTTPCACHE_DIR = 'httpcache'
+#HTTPCACHE_IGNORE_HTTP_CODES = []
+#HTTPCACHE_STORAGE = 'scrapy.extensions.httpcache.FilesystemCacheStorage'
+
+# Proxy settings
+PROXY = "http://xavigv:e8qcHlJ5jdHxl7Xj_country-UnitedKingdom@proxy.packetstream.io:31112"
