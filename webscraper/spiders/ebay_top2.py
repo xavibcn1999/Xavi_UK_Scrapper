@@ -8,21 +8,17 @@ header = Headers(browser="chrome", os="win", headers=True)
 class EbayTop2Spider(scrapy.Spider):
     name = 'ebay_top2'
     custom_settings = {
-        'CONCURRENT_REQUESTS': 16,
+        'CONCURRENT_REQUESTS': 8,
+        'DOWNLOAD_DELAY': 3,
         'FEED_FORMAT': 'csv',
         'FEED_URI': datetime.now().strftime('%Y_%m_%d__%H_%M') + '_ebay.csv',
         'RETRY_TIMES': 20,
         'COOKIES_ENABLED': True,
         'FEED_EXPORT_ENCODING': "utf-8",
-        'DOWNLOAD_TIMEOUT': 30,
-        'AUTOTHROTTLE_ENABLED': True,
-        'DOWNLOAD_DELAY': 5,
         'DOWNLOADER_MIDDLEWARES': {
-            'scrapy.downloadermiddlewares.httpproxy.HttpProxyMiddleware': 1,
-            'scrapy.downloadermiddlewares.defaultheaders.DefaultHeadersMiddleware': 2,
+            'scrapy.downloadermiddlewares.httpproxy.HttpProxyMiddleware': 750,
+            'scrapy.downloadermiddlewares.defaultheaders.DefaultHeadersMiddleware': None,
         },
-        'HTTPPROXY_ENABLED': True,
-        'HTTPPROXY_PROXY': "http://xavigv:e8qcHlJ5jdHxl7Xj_country-UnitedKingdom@proxy.packetstream.io:31112",
     }
 
     headers = {
@@ -38,12 +34,15 @@ class EbayTop2Spider(scrapy.Spider):
         'accept-language': 'en-US,en;q=0.9',
     }
 
+    proxy = 'http://xavigv:e8qcHlJ5jdHxl7Xj_country-UnitedKingdom@proxy.packetstream.io:31112'
+
     def __init__(self, *args, **kwargs):
         super(EbayTop2Spider, self).__init__(*args, **kwargs)
         self.connect()
 
     def connect(self):
         try:
+            self.logger.info("Intentando conectar a MongoDB...")
             client = MongoClient('mongodb+srv://xavidb:superman123@serverlessinstance0.lih2lnk.mongodb.net/')
             self.db = client["Xavi_UK"]
             self.collection_E = self.db['Search_uk_E']
@@ -53,13 +52,17 @@ class EbayTop2Spider(scrapy.Spider):
             self.logger.error(f"Error al conectar a MongoDB: {e}")
 
     def start_requests(self):
-        data_urls = list(self.collection_E.find({'url': {'$ne': ''}}))
+        self.logger.info("Obteniendo URLs de la colección Search_uk_E...")
+        try:
+            data_urls = list(self.collection_E.find({'url': {'$ne': ''}}))
+            self.logger.info(f"Se encontraron {len(data_urls)} URLs para procesar.")
+        except Exception as e:
+            self.logger.error(f"Error al obtener URLs de MongoDB: {e}")
+            data_urls = []
 
         if not data_urls:
             self.logger.warning("No se encontraron URLs en la colección Search_uk_E.")
             return
-
-        self.logger.info(f"Se encontraron {len(data_urls)} URLs para procesar.")
 
         for data_urls_loop in data_urls:
             url = data_urls_loop.get('url', '').strip()
@@ -67,20 +70,14 @@ class EbayTop2Spider(scrapy.Spider):
 
             if url:
                 self.logger.info(f"Generando solicitud para URL: {url}")
-                yield scrapy.Request(
-                    url=url, 
-                    callback=self.parse, 
-                    headers=self.headers,
-                    meta={
-                        'proxy': self.custom_settings['HTTPPROXY_PROXY'],
-                        'nkw': nkw
-                    }
-                )
+                yield scrapy.Request(url=url, callback=self.parse, headers=self.headers,
+                                     meta={'proxy': self.proxy, 'nkw': nkw})
             else:
                 self.logger.warning("URL vacía encontrada en la colección Search_uk_E.")
 
     def parse(self, response):
         nkw = response.meta['nkw']
+        self.logger.info(f"Procesando respuesta para ASIN: {nkw}")
         listings = response.xpath('//ul//div[@class="s-item__wrapper clearfix"]')
 
         count = 0
@@ -107,15 +104,21 @@ class EbayTop2Spider(scrapy.Spider):
             if not shipping_cost:
                 shipping_cost = listing.xpath('.//span[contains(@class,"s-item__shipping") or contains(@class,"s-item__logisticsCost") or contains(@class,"s-item__freeXDays")]/text()').re_first(r'\+\s?[£$€][\d,.]+')
 
-            self.collection_E.update_one(
-                {'ASIN': nkw},
-                {'$set': {
-                    'Image URL': image,
-                    'Product Title': title,
-                    'Product Price': price,
-                    'Shipping Fee': shipping_cost,
-                }}
-            )
+            self.logger.info(f"Extracted data - Link: {link}, Title: {title}, Price: {price}, Image: {image}, Shipping Cost: {shipping_cost}")
+
+            try:
+                self.collection_E.update_one(
+                    {'ASIN': nkw},
+                    {'$set': {
+                        'Image URL': image,
+                        'Product Title': title,
+                        'Product Price': price,
+                        'Shipping Fee': shipping_cost
+                    }}
+                )
+                self.logger.info(f"Datos actualizados para ASIN: {nkw}")
+            except Exception as e:
+                self.logger.error(f"Error al actualizar MongoDB para ASIN: {nkw} - {e}")
 
             count += 1
 
