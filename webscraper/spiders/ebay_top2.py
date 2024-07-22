@@ -21,7 +21,7 @@ class EbayTop2Spider(scrapy.Spider):
         'DOWNLOADER_MIDDLEWARES': {
             'scrapy.downloadermiddlewares.httpproxy.HttpProxyMiddleware': 750,
             'scrapy.downloadermiddlewares.defaultheaders.DefaultHeadersMiddleware': None,
-            'webscraper.middlewares.CustomRetryMiddleware': 550,  # Asegúrate de que este es el camino correcto
+            'webscraper.middlewares.CustomRetryMiddleware': 550,
         },
         'AUTOTHROTTLE_ENABLED': True,
         'AUTOTHROTTLE_START_DELAY': 5,
