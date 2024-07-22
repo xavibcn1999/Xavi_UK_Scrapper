@@ -5,24 +5,25 @@ from fake_headers import Headers
 import smtplib
 from email.mime.multipart import MIMEMultipart
 from email.mime.text import MIMEText
-from scrapy.spidermiddlewares.httperror import HttpError
-from twisted.internet.error import DNSLookupError, TimeoutError, TCPTimedOutError
 
 header = Headers(browser="chrome", os="win", headers=True)
 
 class EbayTop2Spider(scrapy.Spider):
     name = 'ebay_top2'
     custom_settings = {
-        'CONCURRENT_REQUESTS': 2,  # Reduce the number of concurrent requests
-        'DOWNLOAD_DELAY': 5,  # Increase delay between requests
+        'CONCURRENT_REQUESTS': 16,
+        'FEED_FORMAT': 'csv',
+        'FEED_URI': datetime.now().strftime('%Y_%m_%d__%H_%M') + '_ebay.csv',
         'RETRY_TIMES': 15,
         'COOKIES_ENABLED': True,
         'FEED_EXPORT_ENCODING': "utf-8",
         'AUTOTHROTTLE_ENABLED': True,
         'AUTOTHROTTLE_START_DELAY': 5,
         'AUTOTHROTTLE_MAX_DELAY': 60,
+        'DOWNLOAD_DELAY': 2,
         'RANDOMIZE_DOWNLOAD_DELAY': True
     }
+
     headers = {
         'authority': 'www.ebay.com',
         'upgrade-insecure-requests': '1',
@@ -35,6 +36,7 @@ class EbayTop2Spider(scrapy.Spider):
         'sec-fetch-dest': 'document',
         'accept-language': 'en-US,en;q=0.9',
     }
+
     proxy = 'http://xavigv:ee3ee0580b725494_country-UnitedKingdom@proxy.packetstream.io:31112'
 
     def __init__(self, *args, **kwargs):
@@ -53,22 +55,22 @@ class EbayTop2Spider(scrapy.Spider):
 
     def start_requests(self):
         data_urls = list(self.collection_E.find({'url': {'$ne': ''}}))
+
         if not data_urls:
             self.logger.warning("No se encontraron URLs en la colección Search_uk_E.")
             return
+
         self.logger.info(f"Se encontraron {len(data_urls)} URLs para procesar.")
+
         for data_urls_loop in data_urls:
             url = data_urls_loop.get('url', '').strip()
             nkw = data_urls_loop.get('ASIN', '').strip("'")
+
             if url:
                 self.logger.info(f"Generando solicitud para URL: {url}")
-                yield scrapy.Request(
-                    url=url,
-                    callback=self.parse,
-                    headers=self.headers,
-                    meta={'proxy': self.proxy, 'nkw': nkw},
-                    errback=self.errback_httpbin
-                )
+                yield scrapy.Request(url=url, callback=self.parse, headers=self.headers,
+                                     meta={'proxy': self.proxy, 'nkw': nkw},
+                                     errback=self.errback_httpbin)
             else:
                 self.logger.warning("URL vacía encontrada en la colección Search_uk_E.")
 
@@ -76,28 +78,38 @@ class EbayTop2Spider(scrapy.Spider):
         self.logger.info(f"Procesando respuesta para URL: {response.url}")
         nkw = response.meta['nkw']
         listings = response.xpath('//ul//div[@class="s-item__wrapper clearfix"]')
+
         if not listings:
             self.logger.warning(f"No se encontraron listados en la página: {response.url}")
+
         count = 0
+
         for listing in listings:
             self.logger.info(f"Procesando listado {count + 1} para URL: {response.url}")
+
             if listing.xpath('.//li[contains(@class,"srp-river-answer--REWRITE_START")]').get():
                 self.logger.info("Found international sellers separator. Stopping extraction for this URL.")
                 break
+
             if listing.xpath('.//span[@class="s-item__location s-item__itemLocation"]').get():
                 self.logger.info("Skipping listing with location info.")
                 continue
+
             link = listing.xpath('.//a/@href').get('')
             title = listing.xpath('.//span[@role="heading"]/text()').get('')
             price = listing.xpath('.//span[@class="s-item__price"]/text()').get('')
             if not price:
                 price = listing.xpath('.//span[@class="s-item__price"]/span/text()').get('')
+
             image = listing.xpath('.//div[contains(@class,"s-item__image")]//img/@src').get('')
             image = image.replace('s-l225.webp', 's-l500.jpg')
+
             shipping_cost = listing.xpath('.//span[contains(text(),"postage") or contains(text(),"shipping")]/text()').re_first(r'\+\s?[£$€][\d,.]+')
             if not shipping_cost:
                 shipping_cost = listing.xpath('.//span[contains(@class,"s-item__shipping") or contains(@class,"s-item__logisticsCost") or contains(@class,"s-item__freeXDays")]/text()').re_first(r'\+\s?[£$€][\d,.]+')
+
             self.logger.info(f"Datos extraídos: título={title}, precio={price}, URL de imagen={image}, coste de envío={shipping_cost}")
+
             # Actualizar el documento existente en Search_uk_E con los nuevos datos, sin sobrescribir la columna URL
             self.collection_E.update_one(
                 {'ASIN': nkw},
@@ -108,17 +120,21 @@ class EbayTop2Spider(scrapy.Spider):
                     'Shipping Fee': shipping_cost,
                 }}
             )
+
             # Calcular el ROI y enviar el email si es mayor al 50%
             try:
                 ebay_price = float(price.replace('£', '').replace(',', ''))
                 amazon_item = self.collection_A.find_one({'ASIN': nkw})
+
                 if amazon_item:
                     amazon_used_price = float(amazon_item['Buy Box Used: 180 days avg'].replace('£', '').replace(',', ''))
                     fba_fee = float(amazon_item['FBA Fees:'].replace('£', '').replace(',', ''))
                     referral_fee_percentage = 0.153 if amazon_used_price > 5 else 0.051
                     referral_fee = amazon_used_price * referral_fee_percentage
+
                     profit = ebay_price - amazon_used_price - fba_fee - referral_fee
                     roi = (profit / ebay_price) * 100 if ebay_price else 0
+
                     if roi > 50:
                         self.logger.info(f"Enviando email por ROI > 50%: {roi}%")
                         self.send_email(
@@ -133,22 +149,23 @@ class EbayTop2Spider(scrapy.Spider):
                         )
             except Exception as e:
                 self.logger.error(f"Error al calcular el ROI o enviar el email: {e}")
+
             count += 1
+
             if count >= 2:
                 break
 
     def errback_httpbin(self, failure):
         self.logger.error(repr(failure))
+
         if failure.check(HttpError):
             response = failure.value.response
             self.logger.error('HttpError on %s', response.url)
-            if response.status == 503:
-                # Handle the 503 error specifically
-                self.logger.warning('503 Service Unavailable on %s', response.url)
-                # Retry the request or handle it accordingly
+
         elif failure.check(DNSLookupError):
             request = failure.request
             self.logger.error('DNSLookupError on %s', request.url)
+
         elif failure.check(TimeoutError, TCPTimedOutError):
             request = failure.request
             self.logger.error('TimeoutError on %s', request.url)
@@ -158,29 +175,25 @@ class EbayTop2Spider(scrapy.Spider):
             sender_email = "xavusiness@gmail.com"
             receiver_email = "xavialerts@gmail.com"
             password = "tnthxazpsezagjdc"
+
             message = MIMEMultipart("alternative")
             message["Subject"] = f"Alerta de ROI > 50%: {amazon_title}"
             message["From"] = sender_email
             message["To"] = receiver_email
+
             html = f"""
             <html>
             <body>
+                <h2>Alerta de ROI > 50%</h2>
                 <p><b>Amazon Title:</b> {amazon_title}</p>
                 <p><b>ROI:</b> {roi}%</p>
                 <p><b>Amazon Used Price (180 days avg):</b> £{amazon_used_price}</p>
                 <p><b>eBay Price:</b> £{ebay_price}</p>
                 <p><b>Amazon URL:</b> <a href="{amazon_url}">{amazon_url}</a></p>
                 <p><b>eBay URL:</b> <a href="{ebay_url}">{ebay_url}</a></p>
-                <img src="{ebay_image}" alt="eBay Image">
-                <img src="{amazon_image}" alt="Amazon Image">
+                <p><img src="{amazon_image}" alt="Amazon Image" width="150"><img src="{ebay_image}" alt="eBay Image" width="150"></p>
             </body>
             </html>
             """
-            part = MIMEText(html, "html")
-            message.attach(part)
-            with smtplib.SMTP_SSL("smtp.gmail.com", 465) as server:
-                server.login(sender_email, password)
-                server.sendmail(sender_email, receiver_email, message.as_string())
-            self.logger.info("Email enviado con éxito.")
-        except Exception as e:
-            self.logger.error(f"Error al enviar el email: {e}")
+
+            part = MIMEText(html,
