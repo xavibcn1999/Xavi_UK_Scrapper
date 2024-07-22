@@ -20,7 +20,9 @@ class EbayTop2Spider(scrapy.Spider):
         'DOWNLOADER_MIDDLEWARES': {
             'scrapy.downloadermiddlewares.httpproxy.HttpProxyMiddleware': 1,
             'scrapy.downloadermiddlewares.defaultheaders.DefaultHeadersMiddleware': 2,
-        }
+        },
+        'HTTPPROXY_ENABLED': True,
+        'HTTPPROXY_PROXY': "http://xavigv:e8qcHlJ5jdHxl7Xj_country-UnitedKingdom@proxy.packetstream.io:31112",
     }
 
     headers = {
@@ -70,7 +72,7 @@ class EbayTop2Spider(scrapy.Spider):
                     callback=self.parse, 
                     headers=self.headers,
                     meta={
-                        'proxy': "http://xavigv:e8qcHlJ5jdHxl7Xj_country-UnitedKingdom@proxy.packetstream.io:31112",
+                        'proxy': self.custom_settings['HTTPPROXY_PROXY'],
                         'nkw': nkw
                     }
                 )
