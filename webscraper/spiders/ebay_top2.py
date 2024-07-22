@@ -2,39 +2,43 @@ import scrapy
 from pymongo import MongoClient
 from datetime import datetime
 from fake_headers import Headers
+import time
+from scrapy.downloadermiddlewares.retry import RetryMiddleware
+from scrapy.utils.response import response_status_message
 
 header = Headers(browser="chrome", os="win", headers=True)
 
 class EbayTop2Spider(scrapy.Spider):
     name = 'ebay_top2'
     custom_settings = {
-        'CONCURRENT_REQUESTS': 8,
-        'DOWNLOAD_DELAY': 5,
+        'CONCURRENT_REQUESTS': 2,  # Reduce concurrent requests
+        'DOWNLOAD_DELAY': 5,  # Increase delay between requests
         'FEED_FORMAT': 'csv',
         'FEED_URI': datetime.now().strftime('%Y_%m_%d__%H_%M') + '_ebay.csv',
-        'RETRY_TIMES': 20,
+        'RETRY_TIMES': 5,  # Reduce retry times
         'COOKIES_ENABLED': True,
         'FEED_EXPORT_ENCODING': "utf-8",
         'DOWNLOADER_MIDDLEWARES': {
             'scrapy.downloadermiddlewares.httpproxy.HttpProxyMiddleware': 750,
             'scrapy.downloadermiddlewares.defaultheaders.DefaultHeadersMiddleware': None,
+            'your_project.middlewares.CustomRetryMiddleware': 550,
         },
+        'AUTOTHROTTLE_ENABLED': True,
+        'AUTOTHROTTLE_START_DELAY': 5,
+        'AUTOTHROTTLE_MAX_DELAY': 60,
+        'AUTOTHROTTLE_TARGET_CONCURRENCY': 1.0,
+        'RANDOMIZE_DOWNLOAD_DELAY': True
     }
 
     headers = {
-        'authority': 'www.ebay.com',
-        'upgrade-insecure-requests': '1',
-        'user-agent': header.generate()['User-Agent'],
-        'accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,image/apng,*/*;q=0.8,application/signed-exchange;v=b3;q=0.9',
-        'sec-gpc': '1',
-        'sec-fetch-site': 'none',
-        'sec-fetch-mode': 'navigate',
-        'sec-fetch-user': '?1',
-        'sec-fetch-dest': 'document',
-        'accept-language': 'en-US,en;q=0.9',
+        'User-Agent': header.generate()['User-Agent'],
+        'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,image/webp,*/*;q=0.8',
+        'Accept-Language': 'en-US,en;q=0.5',
+        'Accept-Encoding': 'gzip, deflate, br',
+        'Connection': 'keep-alive',
+        'Upgrade-Insecure-Requests': '1',
+        'Cache-Control': 'max-age=0',
     }
-
-    # proxy = 'http://xavigv:e8qcHlJ5jdHxl7Xj_country-UnitedKingdom@proxy.packetstream.io:31112'
 
     def __init__(self, *args, **kwargs):
         super(EbayTop2Spider, self).__init__(*args, **kwargs)
@@ -71,7 +75,7 @@ class EbayTop2Spider(scrapy.Spider):
             if url:
                 self.logger.info(f"Generando solicitud para URL: {url}")
                 yield scrapy.Request(url=url, callback=self.parse, headers=self.headers,
-                                     meta={'nkw': nkw})
+                                     meta={'nkw': nkw}, errback=self.errback_httpbin)
             else:
                 self.logger.warning("URL vacía encontrada en la colección Search_uk_E.")
 
@@ -124,3 +128,29 @@ class EbayTop2Spider(scrapy.Spider):
 
             if count >= 2:
                 break
+
+    def errback_httpbin(self, failure):
+        self.logger.error(repr(failure))
+        if failure.check(HttpError):
+            response = failure.value.response
+            self.logger.error('HttpError on %s', response.url)
+            if response.status == 503:
+                self.logger.warning('503 Service Unavailable on %s', response.url)
+                time.sleep(60)  # Wait for 60 seconds before retrying
+                return scrapy.Request(response.url, callback=self.parse, dont_filter=True, headers=self.headers)
+        elif failure.check(DNSLookupError):
+            request = failure.request
+            self.logger.error('DNSLookupError on %s', request.url)
+        elif failure.check(TimeoutError, TCPTimedOutError):
+            request = failure.request
+            self.logger.error('TimeoutError on %s', request.url)
+
+class CustomRetryMiddleware(RetryMiddleware):
+    def process_response(self, request, response, spider):
+        if response.status in self.retry_http_codes:
+            reason = response_status_message(response.status)
+            retry_times = request.meta.get('retry_times', 0)
+            wait_time = 2 ** retry_times  # Exponential backoff
+            time.sleep(wait_time)
+            return self._retry(request, reason, spider) or response
+        return response
