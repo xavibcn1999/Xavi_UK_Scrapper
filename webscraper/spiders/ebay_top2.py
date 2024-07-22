@@ -152,9 +152,9 @@ class EbayTop2Spider(scrapy.Spider):
 
     def send_email(self, ebay_image, amazon_image, amazon_title, roi, amazon_used_price, ebay_price, amazon_url, ebay_url):
         try:
-            sender_email = "tuemail@gmail.com"
-            receiver_email = "destinatario@gmail.com"
-            password = "tucontraseña"
+            sender_email = "xavusiness@gmail.com"
+            receiver_email = "xavialerts@gmail.com"
+            password = "tnthxazpsezagjdc"  # Aquí usas la contraseña de aplicación
 
             message = MIMEMultipart("alternative")
             message["Subject"] = f"Alerta de ROI > 50%: {amazon_title}"
