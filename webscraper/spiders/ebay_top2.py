@@ -4,6 +4,7 @@ from datetime import datetime
 from fake_headers import Headers
 from scrapy.spidermiddlewares.httperror import HttpError
 from twisted.internet.error import DNSLookupError, TimeoutError, TCPTimedOutError
+from webscraper.items import WebscraperItem  # Importa la clase WebscraperItem
 
 header = Headers(browser="chrome", os="win", headers=True)
 
@@ -18,7 +19,7 @@ class EbayTop2Spider(scrapy.Spider):
         'DOWNLOADER_MIDDLEWARES': {
             'scrapy.downloadermiddlewares.httpproxy.HttpProxyMiddleware': 750,
             'scrapy.downloadermiddlewares.defaultheaders.DefaultHeadersMiddleware': None,
-            'webscraper.middlewares.CustomRetryMiddleware': 550,  # Ensure this is correct
+            'webscraper.middlewares.CustomRetryMiddleware': 550,
         },
         'AUTOTHROTTLE_ENABLED': True,
         'AUTOTHROTTLE_START_DELAY': 5,
@@ -110,13 +111,13 @@ class EbayTop2Spider(scrapy.Spider):
 
             self.logger.info(f"Extracted data - Link: {link}, Title: {title}, Price: {price}, Image: {image}, Shipping Cost: {shipping_cost}")
 
-            item = {
-                'ASIN': nkw,
-                'Image URL': image,
-                'Product Title': title,
-                'Product Price': price,
-                'Shipping Fee': shipping_cost
-            }
+            item = WebscraperItem(
+                ASIN=nkw,
+                Image_URL=image,
+                Product_Title=title,
+                Product_Price=price,
+                Shipping_Fee=shipping_cost
+            )
 
             yield item
 
