@@ -16,7 +16,12 @@ class EbayTop2Spider(scrapy.Spider):
         'FEED_URI': datetime.now().strftime('%Y_%m_%d__%H_%M') + '_ebay.csv',
         'RETRY_TIMES': 15,
         'COOKIES_ENABLED': True,
-        'FEED_EXPORT_ENCODING': "utf-8"
+        'FEED_EXPORT_ENCODING': "utf-8",
+        'AUTOTHROTTLE_ENABLED': True,
+        'AUTOTHROTTLE_START_DELAY': 5,
+        'AUTOTHROTTLE_MAX_DELAY': 60,
+        'DOWNLOAD_DELAY': 2,
+        'RANDOMIZE_DOWNLOAD_DELAY': True
     }
 
     headers = {
@@ -64,17 +69,24 @@ class EbayTop2Spider(scrapy.Spider):
             if url:
                 self.logger.info(f"Generando solicitud para URL: {url}")
                 yield scrapy.Request(url=url, callback=self.parse, headers=self.headers,
-                                     meta={'proxy': self.proxy, 'nkw': nkw})
+                                     meta={'proxy': self.proxy, 'nkw': nkw},
+                                     errback=self.errback_httpbin)
             else:
                 self.logger.warning("URL vacía encontrada en la colección Search_uk_E.")
 
     def parse(self, response):
+        self.logger.info(f"Procesando respuesta para URL: {response.url}")
         nkw = response.meta['nkw']
         listings = response.xpath('//ul//div[@class="s-item__wrapper clearfix"]')
+
+        if not listings:
+            self.logger.warning(f"No se encontraron listados en la página: {response.url}")
 
         count = 0
 
         for listing in listings:
+            self.logger.info(f"Procesando listado {count + 1} para URL: {response.url}")
+
             if listing.xpath('.//li[contains(@class,"srp-river-answer--REWRITE_START")]').get():
                 self.logger.info("Found international sellers separator. Stopping extraction for this URL.")
                 break
@@ -96,14 +108,7 @@ class EbayTop2Spider(scrapy.Spider):
             if not shipping_cost:
                 shipping_cost = listing.xpath('.//span[contains(@class,"s-item__shipping") or contains(@class,"s-item__logisticsCost") or contains(@class,"s-item__freeXDays")]/text()').re_first(r'\+\s?[£$€][\d,.]+')
 
-            seller_name = listing.xpath('.//span[@class="s-item__seller-info-text"]//text()').get('')
-            if not seller_name:
-                seller_name = listing.xpath('.//span[@class="s-item__seller-info"]//text()').get('')
-
-            if seller_name:
-                seller_name = seller_name.split('(')[0].strip()
-            else:
-                self.logger.warning(f"Could not extract seller name for listing: {link}")
+            self.logger.info(f"Datos extraídos: título={title}, precio={price}, URL de imagen={image}, coste de envío={shipping_cost}")
 
             # Actualizar el documento existente en Search_uk_E con los nuevos datos, sin sobrescribir la columna URL
             self.collection_E.update_one(
@@ -113,7 +118,6 @@ class EbayTop2Spider(scrapy.Spider):
                     'Product Title': title,
                     'Product Price': price,
                     'Shipping Fee': shipping_cost,
-                    'Seller Name': seller_name,
                 }}
             )
 
@@ -132,6 +136,7 @@ class EbayTop2Spider(scrapy.Spider):
                     roi = (profit / ebay_price) * 100 if ebay_price else 0
 
                     if roi > 50:
+                        self.logger.info(f"Enviando email por ROI > 50%: {roi}%")
                         self.send_email(
                             ebay_image=image,
                             amazon_image=amazon_item['Image'],
@@ -150,11 +155,26 @@ class EbayTop2Spider(scrapy.Spider):
             if count >= 2:
                 break
 
+    def errback_httpbin(self, failure):
+        self.logger.error(repr(failure))
+
+        if failure.check(HttpError):
+            response = failure.value.response
+            self.logger.error('HttpError on %s', response.url)
+
+        elif failure.check(DNSLookupError):
+            request = failure.request
+            self.logger.error('DNSLookupError on %s', request.url)
+
+        elif failure.check(TimeoutError, TCPTimedOutError):
+            request = failure.request
+            self.logger.error('TimeoutError on %s', request.url)
+
     def send_email(self, ebay_image, amazon_image, amazon_title, roi, amazon_used_price, ebay_price, amazon_url, ebay_url):
         try:
             sender_email = "xavusiness@gmail.com"
             receiver_email = "xavialerts@gmail.com"
-            password = "tnthxazpsezagjdc"  # Aquí usas la contraseña de aplicación
+            password = "tnthxazpsezagjdc"
 
             message = MIMEMultipart("alternative")
             message["Subject"] = f"Alerta de ROI > 50%: {amazon_title}"
