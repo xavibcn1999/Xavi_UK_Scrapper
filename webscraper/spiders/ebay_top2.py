@@ -4,7 +4,6 @@ from datetime import datetime
 from fake_headers import Headers
 from scrapy.spidermiddlewares.httperror import HttpError
 from twisted.internet.error import DNSLookupError, TimeoutError, TCPTimedOutError
-from webscraper.items import WebscraperItem  # Importa la clase WebscraperItem
 
 header = Headers(browser="chrome", os="win", headers=True)
 
@@ -88,14 +87,6 @@ class EbayTop2Spider(scrapy.Spider):
         count = 0
 
         for listing in listings:
-            if listing.xpath('.//li[contains(@class,"srp-river-answer--REWRITE_START")]').get():
-                self.logger.info("Found international sellers separator. Stopping extraction for this URL.")
-                break
-
-            if listing.xpath('.//span[@class="s-item__location s-item__itemLocation"]').get():
-                self.logger.info("Skipping listing with location info.")
-                continue
-
             link = listing.xpath('.//a/@href').get('')
             title = listing.xpath('.//span[@role="heading"]/text()').get('')
             price = listing.xpath('.//span[@class="s-item__price"]/text()').get('')
@@ -111,13 +102,13 @@ class EbayTop2Spider(scrapy.Spider):
 
             self.logger.info(f"Extracted data - Link: {link}, Title: {title}, Price: {price}, Image: {image}, Shipping Cost: {shipping_cost}")
 
-            item = WebscraperItem(
-                ASIN=nkw,
-                Image_URL=image,
-                Product_Title=title,
-                Product_Price=price,
-                Shipping_Fee=shipping_cost
-            )
+            item = {
+                'ASIN': nkw,
+                'Image URL': image,
+                'Product Title': title,
+                'Product Price': price,
+                'Shipping Fee': shipping_cost
+            }
 
             yield item
 
