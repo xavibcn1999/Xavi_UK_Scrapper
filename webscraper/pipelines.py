@@ -26,10 +26,10 @@ class MongoDBPipeline:
         self.collection.update_one(
             {'ASIN': item['ASIN']},
             {'$set': {
-                'Image URL': item['Image_URL'],
-                'Product Title': item['Product_Title'],
-                'Product Price': item['Product_Price'],
-                'Shipping Fee': item['Shipping_Fee']
+                'image_url': item['Image_URL'],
+                'product_title': item['Product_Title'],
+                'product_price': item['Product_Price'],
+                'shipping_fee': item['Shipping_Fee']
             }},
             upsert=True
         )
