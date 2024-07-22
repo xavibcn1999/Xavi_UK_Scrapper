@@ -31,7 +31,8 @@ RETRY_TIMES = 5
 COOKIES_ENABLED = True
 FEED_EXPORT_ENCODING = "utf-8"
 
-# MongoDB settings (these are used in your custom pipeline)
-MONGODB_URI = 'mongodb+srv://xavidb:superman123@serverlessinstance0.lih2lnk.mongodb.net/'
-MONGODB_DATABASE = 'Xavi_UK'
+# settings.py
+
+MONGO_URI = 'mongodb+srv://xavidb:superman123@serverlessinstance0.lih2lnk.mongodb.net/Xavi_UK?retryWrites=true&w=majority'
+MONGO_DATABASE = 'Xavi_UK'
 MONGODB_COLLECTION = 'Search_uk_E'
