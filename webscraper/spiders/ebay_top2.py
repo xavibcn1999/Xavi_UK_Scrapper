@@ -2,7 +2,6 @@ import scrapy
 from pymongo import MongoClient
 from datetime import datetime
 from fake_headers import Headers
-from twisted.internet.error import ConnectionLost, DNSLookupError, TimeoutError, TCPTimedOutError
 
 header = Headers(browser="chrome", os="win", headers=True)
 
@@ -15,11 +14,13 @@ class EbayTop2Spider(scrapy.Spider):
         'RETRY_TIMES': 20,
         'COOKIES_ENABLED': True,
         'FEED_EXPORT_ENCODING': "utf-8",
+        'DOWNLOAD_TIMEOUT': 30,
         'AUTOTHROTTLE_ENABLED': True,
-        'AUTOTHROTTLE_START_DELAY': 10,
-        'AUTOTHROTTLE_MAX_DELAY': 120,
         'DOWNLOAD_DELAY': 5,
-        'RANDOMIZE_DOWNLOAD_DELAY': True
+        'DOWNLOADER_MIDDLEWARES': {
+            'scrapy.downloadermiddlewares.httpproxy.HttpProxyMiddleware': 1,
+            'scrapy.downloadermiddlewares.defaultheaders.DefaultHeadersMiddleware': 2,
+        }
     }
 
     headers = {
@@ -34,8 +35,6 @@ class EbayTop2Spider(scrapy.Spider):
         'sec-fetch-dest': 'document',
         'accept-language': 'en-US,en;q=0.9',
     }
-
-    proxy = 'http://xavigv:e8qcHlJ5jdHxl7Xj_country-UnitedKingdom:proxy.packetstream.io:31112'
 
     def __init__(self, *args, **kwargs):
         super(EbayTop2Spider, self).__init__(*args, **kwargs)
@@ -66,25 +65,25 @@ class EbayTop2Spider(scrapy.Spider):
 
             if url:
                 self.logger.info(f"Generando solicitud para URL: {url}")
-                yield scrapy.Request(url=url, callback=self.parse, headers=self.headers,
-                                     meta={'proxy': self.proxy, 'nkw': nkw},
-                                     errback=self.errback_httpbin)
+                yield scrapy.Request(
+                    url=url, 
+                    callback=self.parse, 
+                    headers=self.headers,
+                    meta={
+                        'proxy': "http://xavigv:e8qcHlJ5jdHxl7Xj_country-UnitedKingdom@proxy.packetstream.io:31112",
+                        'nkw': nkw
+                    }
+                )
             else:
                 self.logger.warning("URL vacía encontrada en la colección Search_uk_E.")
 
     def parse(self, response):
-        self.logger.info(f"Procesando respuesta para URL: {response.url}")
         nkw = response.meta['nkw']
         listings = response.xpath('//ul//div[@class="s-item__wrapper clearfix"]')
-
-        if not listings:
-            self.logger.warning(f"No se encontraron listados en la página: {response.url}")
 
         count = 0
 
         for listing in listings:
-            self.logger.info(f"Procesando listado {count + 1} para URL: {response.url}")
-
             if listing.xpath('.//li[contains(@class,"srp-river-answer--REWRITE_START")]').get():
                 self.logger.info("Found international sellers separator. Stopping extraction for this URL.")
                 break
@@ -106,9 +105,6 @@ class EbayTop2Spider(scrapy.Spider):
             if not shipping_cost:
                 shipping_cost = listing.xpath('.//span[contains(@class,"s-item__shipping") or contains(@class,"s-item__logisticsCost") or contains(@class,"s-item__freeXDays")]/text()').re_first(r'\+\s?[£$€][\d,.]+')
 
-            self.logger.info(f"Datos extraídos: título={title}, precio={price}, URL de imagen={image}, coste de envío={shipping_cost}")
-
-            # Actualizar el documento existente en Search_uk_E con los nuevos datos, sin sobrescribir la columna URL
             self.collection_E.update_one(
                 {'ASIN': nkw},
                 {'$set': {
@@ -123,22 +119,3 @@ class EbayTop2Spider(scrapy.Spider):
 
             if count >= 2:
                 break
-
-    def errback_httpbin(self, failure):
-        self.logger.error(repr(failure))
-
-        if failure.check(HttpError):
-            response = failure.value.response
-            self.logger.error(f'HttpError en {response.url}: {response.status} {response.text}')
-
-        elif failure.check(DNSLookupError):
-            request = failure.request
-            self.logger.error(f'DNSLookupError en {request.url}')
-
-        elif failure.check(TimeoutError, TCPTimedOutError):
-            request = failure.request
-            self.logger.error(f'TimeoutError en {request.url}')
-
-        elif failure.check(ConnectionLost):
-            request = failure.request
-            self.logger.error(f'ConnectionLost en {request.url}')
