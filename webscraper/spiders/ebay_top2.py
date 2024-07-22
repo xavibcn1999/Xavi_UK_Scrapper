@@ -3,8 +3,6 @@ from pymongo import MongoClient
 from datetime import datetime
 from fake_headers import Headers
 import time
-from scrapy.downloadermiddlewares.retry import RetryMiddleware
-from scrapy.utils.response import response_status_message
 from scrapy.spidermiddlewares.httperror import HttpError
 from twisted.internet.error import DNSLookupError, TimeoutError, TCPTimedOutError
 
@@ -13,11 +11,11 @@ header = Headers(browser="chrome", os="win", headers=True)
 class EbayTop2Spider(scrapy.Spider):
     name = 'ebay_top2'
     custom_settings = {
-        'CONCURRENT_REQUESTS': 2,  # Reduce concurrent requests
-        'DOWNLOAD_DELAY': 5,  # Increase delay between requests
+        'CONCURRENT_REQUESTS': 2,
+        'DOWNLOAD_DELAY': 5,
         'FEED_FORMAT': 'csv',
         'FEED_URI': datetime.now().strftime('%Y_%m_%d__%H_%M') + '_ebay.csv',
-        'RETRY_TIMES': 5,  # Reduce retry times
+        'RETRY_TIMES': 5,
         'COOKIES_ENABLED': True,
         'FEED_EXPORT_ENCODING': "utf-8",
         'DOWNLOADER_MIDDLEWARES': {
@@ -131,6 +129,9 @@ class EbayTop2Spider(scrapy.Spider):
             if count >= 2:
                 break
 
+        if count == 0:
+            self.logger.warning(f"No se encontraron listados válidos para ASIN: {nkw}")
+
     def errback_httpbin(self, failure):
         self.logger.error(repr(failure))
         if failure.check(HttpError):
@@ -146,13 +147,3 @@ class EbayTop2Spider(scrapy.Spider):
         elif failure.check(TimeoutError, TCPTimedOutError):
             request = failure.request
             self.logger.error('TimeoutError on %s', request.url)
-
-class CustomRetryMiddleware(RetryMiddleware):
-    def process_response(self, request, response, spider):
-        if response.status in self.retry_http_codes:
-            reason = response_status_message(response.status)
-            retry_times = request.meta.get('retry_times', 0)
-            wait_time = 2 ** retry_times  # Exponential backoff
-            time.sleep(wait_time)
-            return self._retry(request, reason, spider) or response
-        return response
