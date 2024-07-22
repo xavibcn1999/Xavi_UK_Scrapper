@@ -152,7 +152,7 @@ class EbayTop2Spider(scrapy.Spider):
             self.logger.error('DNSLookupError on %s', request.url)
         elif failure.check(TimeoutError, TCPTimedOutError):
             request = failure.request
-            self.logger.error('TimeoutError on %s', request.url')
+            self.logger.error('TimeoutError on %s', request.url)
 
 class CustomRetryMiddleware(RetryMiddleware):
     def process_response(self, request, response, spider):
