@@ -21,7 +21,7 @@ class EbayTop2Spider(scrapy.Spider):
         'DOWNLOADER_MIDDLEWARES': {
             'scrapy.downloadermiddlewares.httpproxy.HttpProxyMiddleware': 750,
             'scrapy.downloadermiddlewares.defaultheaders.DefaultHeadersMiddleware': None,
-            'webscraper.middlewares.CustomRetryMiddleware': 550,  # Ensure this path is correct
+            'webscraper.middlewares.CustomRetryMiddleware': 550,  # Asegúrate de que este es el camino correcto
         },
         'AUTOTHROTTLE_ENABLED': True,
         'AUTOTHROTTLE_START_DELAY': 5,
@@ -46,26 +46,26 @@ class EbayTop2Spider(scrapy.Spider):
 
     def connect(self):
         try:
-            self.logger.info("Attempting to connect to MongoDB...")
+            self.logger.info("Intentando conectar a MongoDB...")
             client = MongoClient('mongodb+srv://xavidb:superman123@serverlessinstance0.lih2lnk.mongodb.net/')
             self.db = client["Xavi_UK"]
             self.collection_E = self.db['Search_uk_E']
             self.collection_A = self.db['Search_uk_A']
-            self.logger.info("Connected to MongoDB.")
+            self.logger.info("Conexión a MongoDB establecida.")
         except Exception as e:
-            self.logger.error(f"Error connecting to MongoDB: {e}")
+            self.logger.error(f"Error al conectar a MongoDB: {e}")
 
     def start_requests(self):
-        self.logger.info("Fetching URLs from Search_uk_E collection...")
+        self.logger.info("Obteniendo URLs de la colección Search_uk_E...")
         try:
             data_urls = list(self.collection_E.find({'url': {'$ne': ''}}))
-            self.logger.info(f"Found {len(data_urls)} URLs to process.")
+            self.logger.info(f"Se encontraron {len(data_urls)} URLs para procesar.")
         except Exception as e:
-            self.logger.error(f"Error fetching URLs from MongoDB: {e}")
+            self.logger.error(f"Error al obtener URLs de MongoDB: {e}")
             data_urls = []
 
         if not data_urls:
-            self.logger.warning("No URLs found in Search_uk_E collection.")
+            self.logger.warning("No se encontraron URLs en la colección Search_uk_E.")
             return
 
         for data_urls_loop in data_urls:
@@ -73,15 +73,15 @@ class EbayTop2Spider(scrapy.Spider):
             nkw = data_urls_loop.get('ASIN', '').strip("'")
 
             if url:
-                self.logger.info(f"Generating request for URL: {url} and ASIN: {nkw}")
+                self.logger.info(f"Generando solicitud para URL: {url} y ASIN: {nkw}")
                 yield scrapy.Request(url=url, callback=self.parse, headers=self.headers,
                                      meta={'nkw': nkw}, errback=self.errback_httpbin)
             else:
-                self.logger.warning("Empty URL found in Search_uk_E collection.")
+                self.logger.warning("URL vacía encontrada en la colección Search_uk_E.")
 
     def parse(self, response):
         nkw = response.meta.get('nkw', 'N/A')
-        self.logger.info(f"Processing response for ASIN: {nkw}")
+        self.logger.info(f"Procesando respuesta para ASIN: {nkw}")
         listings = response.xpath('//ul//div[@class="s-item__wrapper clearfix"]')
 
         count = 0
@@ -118,17 +118,14 @@ class EbayTop2Spider(scrapy.Spider):
                         'Product Title': title,
                         'Product Price': price,
                         'Shipping Fee': shipping_cost
-                    }},
-                    upsert=True  # Ensure that a new document is created if no match is found
+                    }}
                 )
                 if result.modified_count > 0:
-                    self.logger.info(f"Data updated for ASIN: {nkw}")
-                elif result.upserted_id is not None:
-                    self.logger.info(f"New document created for ASIN: {nkw}")
+                    self.logger.info(f"Datos actualizados para ASIN: {nkw}")
                 else:
-                    self.logger.warning(f"No data updated for ASIN: {nkw}, possibly no changes detected.")
+                    self.logger.warning(f"No se actualizó ningún dato para ASIN: {nkw}, puede que no existiera o los datos sean iguales.")
             except Exception as e:
-                self.logger.error(f"Error updating MongoDB for ASIN: {nkw} - {e}")
+                self.logger.error(f"Error al actualizar MongoDB para ASIN: {nkw} - {e}")
 
             count += 1
 
@@ -136,7 +133,7 @@ class EbayTop2Spider(scrapy.Spider):
                 break
 
         if count == 0:
-            self.logger.warning(f"No valid listings found for ASIN: {nkw}")
+            self.logger.warning(f"No se encontraron listados válidos para ASIN: {nkw}")
 
     def errback_httpbin(self, failure):
         self.logger.error(repr(failure))
@@ -153,13 +150,3 @@ class EbayTop2Spider(scrapy.Spider):
         elif failure.check(TimeoutError, TCPTimedOutError):
             request = failure.request
             self.logger.error('TimeoutError on %s', request.url)
-
-class CustomRetryMiddleware(RetryMiddleware):
-    def process_response(self, request, response, spider):
-        if response.status in self.retry_http_codes:
-            reason = response_status_message(response.status)
-            retry_times = request.meta.get('retry_times', 0)
-            wait_time = 2 ** retry_times  # Exponential backoff
-            time.sleep(wait_time)
-            return self._retry(request, reason, spider) or response
-        return response
