@@ -8,6 +8,7 @@ class CustomRetryMiddleware(RetryMiddleware):
             reason = response_status_message(response.status)
             retry_times = request.meta.get('retry_times', 0)
             wait_time = 2 ** retry_times  # Exponential backoff
+            spider.logger.info(f"Retrying {request.url} in {wait_time} seconds due to {response.status}")
             time.sleep(wait_time)
             return self._retry(request, reason, spider) or response
         return response
