@@ -1,10 +1,10 @@
+import re
 import scrapy
 from pymongo import MongoClient
 from datetime import datetime
 from fake_headers import Headers
 from scrapy.spidermiddlewares.httperror import HttpError
 from twisted.internet.error import DNSLookupError, TimeoutError, TCPTimedOutError
-from webscraper.items import WebscraperItem  # Ensure this matches the class in items.py
 
 header = Headers(browser="chrome", os="win", headers=True)
 
@@ -71,10 +71,13 @@ class EbayTop2Spider(scrapy.Spider):
 
         for data_urls_loop in data_urls:
             url = data_urls_loop.get('url', '').strip()
-            nkw = data_urls_loop.get('ASIN', '').strip("'")
 
             if url:
-                self.logger.info(f"Creating request for URL: {url} and ASIN: {nkw}")
+                # Extraemos el valor de `nkw` de la URL
+                nkw_match = re.search(r'_nkw=([^&]+)', url)
+                nkw = nkw_match.group(1) if nkw_match else 'N/A'
+
+                self.logger.info(f"Creating request for URL: {url} and nkw: {nkw}")
                 yield scrapy.Request(url=url, callback=self.parse, headers=self.headers,
                                      meta={'nkw': nkw}, errback=self.errback_httpbin)
             else:
@@ -82,26 +85,34 @@ class EbayTop2Spider(scrapy.Spider):
 
     def parse(self, response):
         nkw = response.meta.get('nkw', 'N/A')
-        self.logger.info(f"Processing response for ASIN: {nkw}")
+        self.logger.info(f"Processing response for nkw: {nkw}")
         listings = response.xpath('//ul//div[@class="s-item__wrapper clearfix"]')
 
         count = 0
 
         for listing in listings:
-            item = WebscraperItem()  # Create an instance of WebscraperItem
+            link = listing.xpath('.//a/@href').get('')
+            title = listing.xpath('.//span[@role="heading"]/text()').get('')
+            price = listing.xpath('.//span[@class="s-item__price"]/text()').get('')
+            if not price:
+                price = listing.xpath('.//span[@class="s-item__price"]/span/text()').get('')
 
-            item['ASIN'] = nkw
-            item['image_url'] = listing.xpath('.//div[contains(@class,"s-item__image")]//img/@src').get('').replace('s-l225.webp', 's-l500.jpg')
-            item['product_title'] = listing.xpath('.//span[@role="heading"]/text()').get('')
-            item['product_price'] = listing.xpath('.//span[@class="s-item__price"]/text()').get('')
-            if not item['product_price']:
-                item['product_price'] = listing.xpath('.//span[@class="s-item__price"]/span/text()').get('')
+            image = listing.xpath('.//div[contains(@class,"s-item__image")]//img/@src').get('')
+            image = image.replace('s-l225.webp', 's-l500.jpg')
 
-            item['shipping_fee'] = listing.xpath('.//span[contains(text(),"postage") or contains(text(),"shipping")]/text()').re_first(r'\+\s?[£$€][\d,.]+')
-            if not item['shipping_fee']:
-                item['shipping_fee'] = listing.xpath('.//span[contains(@class,"s-item__shipping") or contains(@class,"s-item__logisticsCost") or contains(@class,"s-item__freeXDays")]/text()').re_first(r'\+\s?[£$€][\d,.]+')
+            shipping_cost = listing.xpath('.//span[contains(text(),"postage") or contains(text(),"shipping")]/text()').re_first(r'\+\s?[£$€][\d,.]+')
+            if not shipping_cost:
+                shipping_cost = listing.xpath('.//span[contains(@class,"s-item__shipping") or contains(@class,"s-item__logisticsCost") or contains(@class,"s-item__freeXDays")]/text()').re_first(r'\+\s?[£$€][\d,.]+')
 
-            self.logger.info(f"Extracted data - Link: {listing.xpath('.//a/@href').get('')}, Title: {item['product_title']}, Price: {item['product_price']}, Image: {item['image_url']}, Shipping Cost: {item['shipping_fee']}")
+            self.logger.info(f"Extracted data - Link: {link}, Title: {title}, Price: {price}, Image: {image}, Shipping Cost: {shipping_cost}")
+
+            item = {
+                'nkw': nkw,
+                'image_url': image,
+                'product_title': title,
+                'product_price': price,
+                'shipping_fee': shipping_cost
+            }
 
             yield item
 
@@ -111,7 +122,7 @@ class EbayTop2Spider(scrapy.Spider):
                 break
 
         if count == 0:
-            self.logger.warning(f"No valid listings found for ASIN: {nkw}")
+            self.logger.warning(f"No valid listings found for nkw: {nkw}")
 
     def errback_httpbin(self, failure):
         self.logger.error(repr(failure))
