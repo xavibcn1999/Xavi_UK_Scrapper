@@ -35,18 +35,21 @@ class MongoDBPipeline:
             logging.error(f"Failed to close MongoDB connection: {e}")
 
     def process_item(self, item, spider):
-        # Validate the item
-        if not item.get('ASIN') or not item.get('product_title'):
-            raise DropItem(f"Missing ASIN or product title in {item}")
+        required_fields = ['nkw', 'image_url', 'product_title', 'product_price', 'shipping_fee']
+        
+        for field in required_fields:
+            if not item.get(field):
+                logging.warning(f"Missing {field} in item: {item}")
+                raise DropItem(f"Missing {field} in {item}")
 
         try:
             self.collection.update_one(
-                {'ASIN': item['ASIN']},
+                {'nkw': item['nkw']},
                 {'$set': {
-                    'image_url': item.get('image_url', ''),
-                    'product_title': item.get('product_title', ''),
-                    'product_price': item.get('product_price', ''),
-                    'shipping_fee': item.get('shipping_fee', '')
+                    'image_url': item['image_url'],
+                    'product_title': item['product_title'],
+                    'product_price': item['product_price'],
+                    'shipping_fee': item['shipping_fee']
                 }},
                 upsert=True
             )
@@ -55,20 +58,3 @@ class MongoDBPipeline:
         except Exception as e:
             logging.error(f"Failed to save item to MongoDB: {e}")
             raise e
-
-# Optional: Further debugging to check where items are going
-class ZytePipeline:
-    
-    def process_item(self, item, spider):
-        # This pipeline simulates Zyte saving for debugging purposes.
-        # In a real scenario, you would replace this with actual Zyte logic.
-        logging.info(f"Item saved to Zyte: {item}")
-        return item
-
-# settings.py
-
-# Add ZytePipeline to the ITEM_PIPELINES for debugging purpose
-ITEM_PIPELINES = {
-    'webscraper.pipelines.MongoDBPipeline': 300,
-    'webscraper.pipelines.ZytePipeline': 800,  # Ensure Zyte pipeline runs later
-}
