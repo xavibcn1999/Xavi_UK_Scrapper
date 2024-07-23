@@ -1,7 +1,6 @@
 import re
 import scrapy
 from pymongo import MongoClient
-from datetime import datetime
 from fake_headers import Headers
 from scrapy.spidermiddlewares.httperror import HttpError
 from twisted.internet.error import DNSLookupError, TimeoutError, TCPTimedOutError
