@@ -1,6 +1,6 @@
-# pipelines.py
 import pymongo
 from scrapy.exceptions import DropItem
+import logging
 
 class MongoDBPipeline:
 
@@ -18,22 +18,57 @@ class MongoDBPipeline:
         )
 
     def open_spider(self, spider):
-        self.client = pymongo.MongoClient(self.mongo_uri)
-        self.db = self.client[self.mongo_db]
-        self.collection = self.db['Search_uk_E']
+        try:
+            self.client = pymongo.MongoClient(self.mongo_uri)
+            self.db = self.client[self.mongo_db]
+            self.collection = self.db[self.mongo_collection]
+            logging.info(f"Connected to MongoDB: {self.mongo_uri}, DB: {self.mongo_db}, Collection: {self.mongo_collection}")
+        except Exception as e:
+            logging.error(f"Failed to connect to MongoDB: {e}")
+            raise e
 
     def close_spider(self, spider):
-        self.client.close()
+        try:
+            self.client.close()
+            logging.info("Closed MongoDB connection")
+        except Exception as e:
+            logging.error(f"Failed to close MongoDB connection: {e}")
 
     def process_item(self, item, spider):
-        self.collection.update_one(
-            {'ASIN': item['ASIN']},
-            {'$set': {
-                'image_url': item['image_url'],
-                'product_title': item['product_title'],
-                'product_price': item['product_price'],
-                'shipping_fee': item['shipping_fee']
-            }},
-            upsert=True
-        )
+        # Validate the item
+        if not item.get('ASIN') or not item.get('product_title'):
+            raise DropItem(f"Missing ASIN or product title in {item}")
+
+        try:
+            self.collection.update_one(
+                {'ASIN': item['ASIN']},
+                {'$set': {
+                    'image_url': item.get('image_url', ''),
+                    'product_title': item.get('product_title', ''),
+                    'product_price': item.get('product_price', ''),
+                    'shipping_fee': item.get('shipping_fee', '')
+                }},
+                upsert=True
+            )
+            logging.info(f"Item saved to MongoDB: {item}")
+            return item
+        except Exception as e:
+            logging.error(f"Failed to save item to MongoDB: {e}")
+            raise e
+
+# Optional: Further debugging to check where items are going
+class ZytePipeline:
+    
+    def process_item(self, item, spider):
+        # This pipeline simulates Zyte saving for debugging purposes.
+        # In a real scenario, you would replace this with actual Zyte logic.
+        logging.info(f"Item saved to Zyte: {item}")
         return item
+
+# settings.py
+
+# Add ZytePipeline to the ITEM_PIPELINES for debugging purpose
+ITEM_PIPELINES = {
+    'webscraper.pipelines.MongoDBPipeline': 300,
+    'webscraper.pipelines.ZytePipeline': 800,  # Ensure Zyte pipeline runs later
+}
