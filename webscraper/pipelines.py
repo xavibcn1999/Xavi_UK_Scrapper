@@ -58,21 +58,3 @@ class MongoDBPipeline:
         except Exception as e:
             logging.error(f"Failed to save item to MongoDB: {e}")
             raise e
-
-
-# Optional: Further debugging to check where items are going
-class ZytePipeline:
-    
-    def process_item(self, item, spider):
-        # This pipeline simulates Zyte saving for debugging purposes.
-        # In a real scenario, you would replace this with actual Zyte logic.
-        logging.info(f"Item saved to Zyte: {item}")
-        return item
-
-# settings.py
-
-# Add ZytePipeline to the ITEM_PIPELINES for debugging purpose
-ITEM_PIPELINES = {
-    'webscraper.pipelines.MongoDBPipeline': 300,
-    'webscraper.pipelines.ZytePipeline': 800,  # Ensure Zyte pipeline runs later
-}
