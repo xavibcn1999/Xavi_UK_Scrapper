@@ -10,21 +10,19 @@ header = Headers(browser="chrome", os="win", headers=True)
 class EbayTop2Spider(scrapy.Spider):
     name = 'ebay_top2'
     custom_settings = {
-        'CONCURRENT_REQUESTS': 2,
-        'DOWNLOAD_DELAY': 5,
-        'RETRY_TIMES': 5,
+        'CONCURRENT_REQUESTS': 16,  # Restaurar a 16 para más concurrencia
+        'DOWNLOAD_DELAY': 0,  # Eliminar el retraso de descarga para máxima velocidad
+        'RETRY_TIMES': 15,  # Aumentar el número de reintentos
         'COOKIES_ENABLED': True,
         'FEED_EXPORT_ENCODING': "utf-8",
+        'FEED_FORMAT': 'csv',
+        'FEED_URI': datetime.now().strftime('%Y_%m_%d__%H_%M') + '_ebay.csv',
         'DOWNLOADER_MIDDLEWARES': {
             'scrapy.downloadermiddlewares.httpproxy.HttpProxyMiddleware': 750,
             'scrapy.downloadermiddlewares.defaultheaders.DefaultHeadersMiddleware': None,
             'webscraper.middlewares.CustomRetryMiddleware': 550,
         },
-        'AUTOTHROTTLE_ENABLED': True,
-        'AUTOTHROTTLE_START_DELAY': 5,
-        'AUTOTHROTTLE_MAX_DELAY': 60,
-        'AUTOTHROTTLE_TARGET_CONCURRENCY': 1.0,
-        'RANDOMIZE_DOWNLOAD_DELAY': True,
+        'AUTOTHROTTLE_ENABLED': False,  # Deshabilitar Autothrottle para máxima velocidad
         'ITEM_PIPELINES': {
             'webscraper.pipelines.MongoDBPipeline': 300,
         }
