@@ -1,19 +1,22 @@
 import re
 import scrapy
-from datetime import datetime
 from pymongo import MongoClient
 from fake_headers import Headers
 from scrapy.spidermiddlewares.httperror import HttpError
 from twisted.internet.error import DNSLookupError, TimeoutError, TCPTimedOutError
+import logging
+from logging.handlers import RotatingFileHandler
+from datetime import datetime
 
 header = Headers(browser="chrome", os="win", headers=True)
 
 class EbayTop2Spider(scrapy.Spider):
     name = 'ebay_top2'
     custom_settings = {
-        'CONCURRENT_REQUESTS': 16,  # Restaurar a 16 para más concurrencia
-        'DOWNLOAD_DELAY': 0,  # Eliminar el retraso de descarga para máxima velocidad
-        'RETRY_TIMES': 15,  # Aumentar el número de reintentos
+        'LOG_LEVEL': 'INFO',  # Set log level to INFO for less verbose output
+        'CONCURRENT_REQUESTS': 16,  # Increase concurrency for faster scraping
+        'DOWNLOAD_DELAY': 0,  # Remove download delay for maximum speed
+        'RETRY_TIMES': 15,  # Increase retry times
         'COOKIES_ENABLED': True,
         'FEED_EXPORT_ENCODING': "utf-8",
         'FEED_FORMAT': 'csv',
@@ -23,7 +26,7 @@ class EbayTop2Spider(scrapy.Spider):
             'scrapy.downloadermiddlewares.defaultheaders.DefaultHeadersMiddleware': None,
             'webscraper.middlewares.CustomRetryMiddleware': 550,
         },
-        'AUTOTHROTTLE_ENABLED': False,  # Deshabilitar Autothrottle para máxima velocidad
+        'AUTOTHROTTLE_ENABLED': False,  # Disable AutoThrottle for maximum speed
         'ITEM_PIPELINES': {
             'webscraper.pipelines.MongoDBPipeline': 300,
         }
@@ -41,7 +44,12 @@ class EbayTop2Spider(scrapy.Spider):
 
     def __init__(self, *args, **kwargs):
         super(EbayTop2Spider, self).__init__(*args, **kwargs)
+        self.setup_logging()
         self.connect()
+
+    def setup_logging(self):
+        handler = RotatingFileHandler('scrapy_log.log', maxBytes=10000000, backupCount=5)
+        logging.getLogger().addHandler(handler)
 
     def connect(self):
         try:
@@ -71,7 +79,7 @@ class EbayTop2Spider(scrapy.Spider):
             url = data_urls_loop.get('url', '').strip()
 
             if url:
-                # Extraemos el valor de `nkw` de la URL
+                # Extract the value of `nkw` from the URL
                 nkw_match = re.search(r'_nkw=([^&]+)', url)
                 nkw = nkw_match.group(1) if nkw_match else 'N/A'
 
@@ -89,12 +97,10 @@ class EbayTop2Spider(scrapy.Spider):
         count = 0
 
         for listing in listings:
-            # Verificar si se encuentra el separador de vendedores internacionales
             if listing.xpath('.//li[contains(@class,"srp-river-answer--REWRITE_START")]').get():
                 self.logger.info("Found international sellers separator. Stopping extraction for this URL.")
                 break
 
-            # Saltar listados con información de ubicación
             if listing.xpath('.//span[@class="s-item__location s-item__itemLocation"]').get():
                 self.logger.info("Skipping listing with location info.")
                 continue
