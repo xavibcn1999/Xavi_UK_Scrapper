@@ -89,6 +89,16 @@ class EbayTop2Spider(scrapy.Spider):
         count = 0
 
         for listing in listings:
+            # Verificar si se encuentra el separador de vendedores internacionales
+            if listing.xpath('.//li[contains(@class,"srp-river-answer--REWRITE_START")]').get():
+                self.logger.info("Found international sellers separator. Stopping extraction for this URL.")
+                break
+
+            # Saltar listados con información de ubicación
+            if listing.xpath('.//span[@class="s-item__location s-item__itemLocation"]').get():
+                self.logger.info("Skipping listing with location info.")
+                continue
+
             link = listing.xpath('.//a/@href').get('')
             title = listing.xpath('.//span[@role="heading"]/text()').get('')
             price = listing.xpath('.//span[@class="s-item__price"]/text()').get('')
