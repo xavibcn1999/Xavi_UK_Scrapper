@@ -35,7 +35,7 @@ class MongoDBPipeline:
             logging.error(f"Failed to close MongoDB connection: {e}")
 
     def process_item(self, item, spider):
-        required_fields = ['ASIN', 'image_url', 'product_title', 'product_price', 'shipping_fee']
+        required_fields = ['nkw', 'image_url', 'product_title', 'product_price', 'shipping_fee']
         
         for field in required_fields:
             if not item.get(field):
@@ -44,7 +44,7 @@ class MongoDBPipeline:
 
         try:
             self.collection.update_one(
-                {'ASIN': item['ASIN']},
+                {'nkw': item['nkw']},
                 {'$set': {
                     'image_url': item['image_url'],
                     'product_title': item['product_title'],
@@ -58,6 +58,7 @@ class MongoDBPipeline:
         except Exception as e:
             logging.error(f"Failed to save item to MongoDB: {e}")
             raise e
+
 
 # Optional: Further debugging to check where items are going
 class ZytePipeline:
