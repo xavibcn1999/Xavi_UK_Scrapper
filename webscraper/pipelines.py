@@ -51,8 +51,53 @@ class MongoDBPipeline:
         except Exception as e:
             logging.error(f"Error calculating ROI and sending email: {e}")
 
-    def send_email(self, ebay_image, ebay_url, ebay_price, amazon_image, amazon_url, amazon_price, roi):
+    def send_email(self, ebay_image, ebay_title, ebay_price, amazon_image, amazon_url, amazon_price, roi):
         try:
             sender_email = "xavusiness@gmail.com"
             receiver_email = "xavialerts@gmail.com"
-           
+            password = "tnthxazpsezagjdc"
+
+            message = MIMEMultipart("alternative")
+            message["Subject"] = "Alerta de ROI superior al 50%"
+            message["From"] = sender_email
+            message["To"] = receiver_email
+
+            text = f"""\
+            Alerta de ROI superior al 50%:
+            - Imagen de eBay: {ebay_image}
+            - URL de eBay: {ebay_title}
+            - Precio de eBay: £{ebay_price}
+            - Imagen de Amazon: {amazon_image}
+            - URL de Amazon: {amazon_url}
+            - Precio de Amazon: £{amazon_price}
+            - ROI: {roi * 100}%
+            """
+
+            html = f"""\
+            <html>
+              <body>
+                <h2>Alerta de ROI superior al 50%</h2>
+                <p><strong>Imagen de eBay:</strong> <img src="{ebay_image}" width="100"></p>
+                <p><strong>URL de eBay:</strong> {ebay_title}</p>
+                <p><strong>Precio de eBay:</strong> £{ebay_price}</p>
+                <p><strong>Imagen de Amazon:</strong> <img src="{amazon_image}" width="100"></p>
+                <p><strong>URL de Amazon:</strong> <a href="{amazon_url}">{amazon_url}</a></p>
+                <p><strong>Precio de Amazon:</strong> £{amazon_price}</p>
+                <p><strong>ROI:</strong> {roi * 100}%</p>
+              </body>
+            </html>
+            """
+
+            part1 = MIMEText(text, "plain")
+            part2 = MIMEText(html, "html")
+
+            message.attach(part1)
+            message.attach(part2)
+
+            with smtplib.SMTP_SSL("smtp.gmail.com", 465) as server:
+                server.login(sender_email, password)
+                server.sendmail(sender_email, receiver_email, message.as_string())
+
+            logging.info("Email enviado exitosamente")
+        except Exception as e:
+            logging.error(f"Error al enviar email: {e}")
