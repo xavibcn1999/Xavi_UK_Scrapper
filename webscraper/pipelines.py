@@ -41,6 +41,11 @@ class MongoDBPipeline:
             return item
 
         self.collection_e.update_one({'_id': item['_id']}, {'$set': item}, upsert=True)
+        
+        # Añadir la URL de eBay
+        ebay_url = self.get_ebay_url(item['_id'])
+        item['ebay_url'] = ebay_url
+        
         self.calculate_and_send_email(item)
         return item
 
@@ -48,6 +53,18 @@ class MongoDBPipeline:
         """Convierte un string de precio a float, eliminando cualquier símbolo adicional."""
         price_str = price_str.replace('£', '').replace('+', '').replace(',', '').strip()
         return float(price_str)
+
+    def get_ebay_url(self, item_id):
+        try:
+            document = self.collection_e.find_one({'_id': item_id})
+            if document:
+                return document.get('url', '')
+            else:
+                logging.error(f"No se encontró documento con _id: {item_id}")
+                return ''
+        except Exception as e:
+            logging.error(f"Error obteniendo la URL de eBay: {e}")
+            return ''
 
     def calculate_and_send_email(self, item):
         try:
@@ -87,7 +104,7 @@ class MongoDBPipeline:
 
                 if roi > 0.5:
                     self.send_email(
-                        item['image_url'], item.get('product_url', ''), ebay_price,
+                        item['image_url'], item.get('ebay_url', ''), ebay_price,
                         amazon_item.get('Image', ''), amazon_item.get('URL: Amazon', ''), amazon_used_price, roi
                     )
 
