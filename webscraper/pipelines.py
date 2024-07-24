@@ -23,9 +23,22 @@ class MongoDBPipeline:
         self.client.close()
 
     def process_item(self, item, spider):
-        # Asegurarse de que se utilice la columna 'url' existente en lugar de 'product_url'
-        if 'url' in item:
-            item['product_url'] = item['url']
+        # Asegurarse de que el item tiene '_id'
+        if 'doc_id' in item:
+            item['_id'] = item['doc_id']
+
+        # Convertir los precios a float
+        try:
+            item['product_price'] = float(item['product_price'].replace('£', '').replace(',', '').strip())
+            if item.get('shipping_fee'):
+                item['shipping_fee'] = float(item['shipping_fee'].replace('£', '').replace(',', '').strip())
+            else:
+                item['shipping_fee'] = 0.0
+        except Exception as e:
+            logging.error(f"Error converting prices: {e}")
+            item['product_price'] = 0.0
+            item['shipping_fee'] = 0.0
+
         self.collection_e.update_one({'_id': item['_id']}, {'$set': item}, upsert=True)
         self.calculate_and_send_email(item)
         return item
@@ -33,8 +46,8 @@ class MongoDBPipeline:
     def calculate_and_send_email(self, item):
         try:
             asin = item['nkw']
-            ebay_price = float(item['product_price'].replace('£', '').replace(',', '').strip())
-            
+            ebay_price = item['product_price'] + item['shipping_fee']
+
             amazon_item = self.collection_a.find_one({'ASIN': asin})
             if amazon_item:
                 amazon_used_price_str = amazon_item.get('Buy Box Used: 180 days avg', '0')
@@ -42,7 +55,7 @@ class MongoDBPipeline:
                 
                 fba_fee_str = amazon_item.get('FBA Fees:', '0')
                 fba_fee = float(fba_fee_str.replace('£', '').replace(',', '').strip())
-                
+
                 referral_fee_percentage = 0.153 if amazon_used_price > 5 else 0.051
                 referral_fee = amazon_used_price * referral_fee_percentage
 
