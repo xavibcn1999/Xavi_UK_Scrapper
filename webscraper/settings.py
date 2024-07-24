@@ -1,36 +1,37 @@
 # webscraper/settings.py
 
-import datetime  # Make sure to import datetime
+import datetime  # Asegúrate de importar datetime
 
 BOT_NAME = 'webscraper'
 
 SPIDER_MODULES = ['webscraper.spiders']
 NEWSPIDER_MODULE = 'webscraper.spiders'
 
-# MongoDB settings
+# Configuración de MongoDB
 MONGO_URI = 'mongodb+srv://xavidb:superman123@serverlessinstance0.lih2lnk.mongodb.net/Xavi_UK?retryWrites=true&w=majority'
 MONGO_DATABASE = 'Xavi_UK'
-MONGODB_COLLECTION = 'Search_uk_E'
+MONGO_COLLECTION_E = 'Search_uk_E'
+MONGO_COLLECTION_A = 'Search_uk_A'
 
-# Configure item pipelines
+# Configurar pipelines de ítems
 ITEM_PIPELINES = {
     'webscraper.pipelines.MongoDBPipeline': 300,
 }
 
-# Downloader middlewares
+# Middlewares del downloader
 DOWNLOADER_MIDDLEWARES = {
     'scrapy.downloadermiddlewares.httpproxy.HttpProxyMiddleware': 750,
     'scrapy.downloadermiddlewares.defaultheaders.DefaultHeadersMiddleware': None,
-    'webscraper.middlewares.CustomRetryMiddleware': 550,  # Ensure this is correct
+    'webscraper.middlewares.CustomRetryMiddleware': 550,
 }
 
-# AutoThrottle settings
-AUTOTHROTTLE_ENABLED = False  # Disable AutoThrottle for maximum speed
+# Configuración de AutoThrottle
+AUTOTHROTTLE_ENABLED = False  # Desactivar AutoThrottle para máxima velocidad
 
-# Other settings
-CONCURRENT_REQUESTS = 16  # Increased concurrency
-DOWNLOAD_DELAY = 0  # No download delay for maximum speed
-RETRY_TIMES = 15  # Increased retry times
+# Otras configuraciones
+CONCURRENT_REQUESTS = 16  # Aumentar concurrencia
+DOWNLOAD_DELAY = 0  # Sin demora para máxima velocidad
+RETRY_TIMES = 15  # Aumentar el número de reintentos
 COOKIES_ENABLED = True
 FEED_EXPORT_ENCODING = "utf-8"
 FEED_FORMAT = 'csv'
