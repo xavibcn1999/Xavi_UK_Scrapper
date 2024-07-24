@@ -1,90 +1,53 @@
-import pymongo
-from scrapy.exceptions import DropItem
-import logging
 import smtplib
 from email.mime.text import MIMEText
 from email.mime.multipart import MIMEMultipart
+from scrapy.utils.project import get_project_settings
+from pymongo import MongoClient
+import logging
 
 class MongoDBPipeline:
-
-    def __init__(self, mongo_uri, mongo_db, mongo_collection):
-        self.mongo_uri = mongo_uri
-        self.mongo_db = mongo_db
-        self.mongo_collection = mongo_collection
-
-    @classmethod
-    def from_crawler(cls, crawler):
-        return cls(
-            mongo_uri=crawler.settings.get('MONGO_URI'),
-            mongo_db=crawler.settings.get('MONGO_DATABASE'),
-            mongo_collection=crawler.settings.get('MONGODB_COLLECTION', 'items')
-        )
+    def __init__(self):
+        settings = get_project_settings()
+        self.mongo_uri = settings.get('MONGO_URI')
+        self.mongo_db = settings.get('MONGO_DATABASE')
+        self.collection_name_e = settings.get('MONGO_COLLECTION_E')
+        self.collection_name_a = settings.get('MONGO_COLLECTION_A')
 
     def open_spider(self, spider):
-        try:
-            self.client = pymongo.MongoClient(self.mongo_uri)
-            self.db = self.client[self.mongo_db]
-            self.collection = self.db[self.mongo_collection]
-            logging.info(f"Connected to MongoDB: {self.mongo_uri}, DB: {self.mongo_db}, Collection: {self.mongo_collection}")
-        except Exception as e:
-            logging.error(f"Failed to connect to MongoDB: {e}")
-            raise e
+        self.client = MongoClient(self.mongo_uri)
+        self.db = self.client[self.mongo_db]
+        self.collection_e = self.db[self.collection_name_e]
+        self.collection_a = self.db[self.collection_name_a]
 
     def close_spider(self, spider):
-        try:
-            self.client.close()
-            logging.info("Closed MongoDB connection")
-        except Exception as e:
-            logging.error(f"Failed to close MongoDB connection: {e}")
+        self.client.close()
 
     def process_item(self, item, spider):
-        required_fields = ['nkw', 'image_url', 'product_title', 'product_price', 'shipping_fee']
-        
-        for field in required_fields:
-            if not item.get(field):
-                logging.warning(f"Missing {field} in item: {item}")
-                raise DropItem(f"Missing {field} in {item}")
-
-        try:
-            self.collection.update_one(
-                {'_id': item['doc_id']},
-                {'$set': {
-                    'nkw': item['nkw'],
-                    'image_url': item['image_url'],
-                    'product_title': item['product_title'],
-                    'product_price': item['product_price'],
-                    'shipping_fee': item['shipping_fee']
-                }},
-                upsert=False
-            )
-            self.calculate_and_send_email(item)
-            logging.info(f"Item saved to MongoDB and email sent if applicable: {item}")
-            return item
-        except Exception as e:
-            logging.error(f"Failed to save item to MongoDB: {e}")
-            raise e
+        self.collection_e.update_one({'_id': item['doc_id']}, {'$set': item}, upsert=True)
+        self.calculate_and_send_email(item)
+        return item
 
     def calculate_and_send_email(self, item):
-        amazon_item = self.collection.find_one({'nkw': item['nkw']})
-        if not amazon_item:
-            logging.warning(f"No matching Amazon item found for {item['nkw']}")
-            return
-
         try:
-            amazon_used_price = float(amazon_item.get('Buy Box Used: 180 days avg', '0').replace('£', '').replace(',', '').strip())
-            fba_fee = float(amazon_item.get('FBA Fees:', '0').replace('£', '').replace(',', '').strip())
-            referral_fee_percentage = 0.153 if amazon_used_price > 5 else 0.051
-            referral_fee = amazon_used_price * referral_fee_percentage
-
+            asin = item['nkw']
             ebay_price = float(item['product_price'].replace('£', '').replace(',', '').strip())
-            profit = ebay_price - amazon_used_price - fba_fee - referral_fee
-            roi = profit / ebay_price if ebay_price else 0
 
-            if roi > 0.5:
-                self.send_email(
-                    item['image_url'], item['nkw'], ebay_price,
-                    amazon_item['image'], amazon_item['url'], amazon_used_price, roi
-                )
+            amazon_item = self.collection_a.find_one({'ASIN': asin})
+            if amazon_item:
+                amazon_used_price = float(amazon_item.get('Buy Box Used: 180 days avg', '0').replace('£', '').replace(',', '').strip())
+                fba_fee = float(amazon_item.get('FBA Fees:', '0').replace('£', '').replace(',', '').strip())
+                referral_fee_percentage = 0.153 if amazon_used_price > 5 else 0.051
+                referral_fee = amazon_used_price * referral_fee_percentage
+
+                profit = ebay_price - amazon_used_price - fba_fee - referral_fee
+                roi = profit / ebay_price if ebay_price else 0
+
+                if roi > 0.5:
+                    self.send_email(
+                        item['image_url'], item['product_title'], ebay_price,
+                        amazon_item.get('Image', ''), amazon_item.get('URL: Amazon', ''), amazon_used_price, roi
+                    )
+
         except Exception as e:
             logging.error(f"Error calculating ROI and sending email: {e}")
 
