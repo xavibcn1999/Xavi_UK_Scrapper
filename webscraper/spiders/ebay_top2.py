@@ -107,6 +107,7 @@ class EbayTop2Spider(scrapy.Spider):
 
             item = {
                 'nkw': nkw,
+                'url': link,
                 'image_url': image,
                 'product_title': title,
                 'product_price': price,
