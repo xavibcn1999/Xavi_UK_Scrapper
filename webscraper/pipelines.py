@@ -53,11 +53,11 @@ class MongoDBPipeline:
     def calculate_and_send_email(self, item):
         try:
             asin = item['nkw']
-            ebay_price = item['product_price'] + item['shipping_fee']
+            ebay_price = round(item['product_price'] + item['shipping_fee'], 2)
             logging.info(f"Calculando ROI para ASIN: {asin}")
             logging.info(f"Precio del producto en eBay: {item['product_price']}")
             logging.info(f"Costo de envío en eBay: {item['shipping_fee']}")
-            logging.info(f"Precio de eBay (producto + envío): {ebay_price:.2f}")
+            logging.info(f"Precio de eBay (producto + envío): {ebay_price}")
 
             amazon_item = self.collection_a.find_one({'ASIN': asin})
             
@@ -88,17 +88,16 @@ class MongoDBPipeline:
                     fba_fee = float(fba_fee_str)
 
                 referral_fee_percentage = 0.153 if amazon_used_price > 5 else 0.051
-                referral_fee = amazon_used_price * referral_fee_percentage
+                referral_fee = round(amazon_used_price * referral_fee_percentage, 2)
 
-                total_cost = ebay_price + fba_fee + referral_fee
-                profit = amazon_used_price - total_cost
-                roi = profit / total_cost if total_cost else 0
+                profit = round(amazon_used_price - ebay_price - fba_fee - referral_fee, 2)
+                roi = round((profit / ebay_price) * 100, 2) if ebay_price else 0
 
-                logging.info(f"Precio de venta en Amazon (Buy Box Used): {amazon_used_price:.2f}")
-                logging.info(f"Tarifa de FBA: {fba_fee:.2f}")
-                logging.info(f"Tarifa de referencia: {referral_fee:.2f}")
-                logging.info(f"Ganancia: {profit:.2f}")
-                logging.info(f"ROI: {roi * 100:.2f}%")
+                logging.info(f"Precio de venta en Amazon (Buy Box Used): {amazon_used_price}")
+                logging.info(f"Tarifa de FBA: {fba_fee}")
+                logging.info(f"Tarifa de referencia: {referral_fee}")
+                logging.info(f"Ganancia: {profit}")
+                logging.info(f"ROI: {roi}%")
 
                 if roi > 0.5:
                     self.send_email(
@@ -128,7 +127,7 @@ class MongoDBPipeline:
             - Imagen de Amazon: {amazon_image}
             - URL de Amazon: {amazon_url}
             - Precio de Amazon: £{amazon_price:.2f}
-            - ROI: {roi * 100:.2f}%
+            - ROI: {roi:.2f}%
             """
 
             html = f"""\
@@ -141,7 +140,7 @@ class MongoDBPipeline:
                 <p><strong>Imagen de Amazon:</strong> <img src="{amazon_image}" width="100"></p>
                 <p><strong>URL de Amazon:</strong> <a href="{amazon_url}">{amazon_url}</a></p>
                 <p><strong>Precio de Amazon:</strong> £{amazon_price:.2f}</p>
-                <p><strong>ROI:</strong> {roi * 100:.2f}%</p>
+                <p><strong>ROI:</strong> {roi:.2f}%</p>
               </body>
             </html>
             """
