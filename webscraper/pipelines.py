@@ -14,7 +14,7 @@ class MongoDBPipeline:
         return cls(
             mongo_uri=crawler.settings.get('MONGO_URI'),
             mongo_db=crawler.settings.get('MONGO_DATABASE'),
-            mongo_collection=crawler.settings.get('MONGODB_COLLECTION', 'items')
+            mongo_collection=crawler.settings.get('MONGODB_COLLECTION', 'Search_uk_E')
         )
 
     def open_spider(self, spider):
@@ -44,17 +44,18 @@ class MongoDBPipeline:
 
         try:
             self.collection.update_one(
-                {'nkw': item['nkw']},
+                {'_id': item['doc_id']},
                 {'$set': {
+                    'nkw': item['nkw'],
                     'image_url': item['image_url'],
                     'product_title': item['product_title'],
                     'product_price': item['product_price'],
                     'shipping_fee': item['shipping_fee']
                 }},
-                upsert=True
+                upsert=False  # Ensure it does not create a new document
             )
-            logging.info(f"Item saved to MongoDB: {item}")
+            logging.info(f"Item updated in MongoDB: {item}")
             return item
         except Exception as e:
-            logging.error(f"Failed to save item to MongoDB: {e}")
+            logging.error(f"Failed to update item in MongoDB: {e}")
             raise e
