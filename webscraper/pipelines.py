@@ -46,60 +46,52 @@ class MongoDBPipeline:
 
     def convert_price(self, price_str):
         """Convierte un string de precio a float, eliminando cualquier símbolo adicional."""
-        if isinstance(price_str, str):
-            price_str = price_str.replace('£', '').replace('+', '').replace(',', '').strip()
+        price_str = price_str.replace('£', '').replace('+', '').replace(',', '').strip()
         return float(price_str)
 
     def calculate_and_send_email(self, item):
         try:
             asin = item['nkw']
             ebay_price = item['product_price'] + item['shipping_fee']
-            logging.info(f"Calculando ROI para ASIN: {asin}")
-            logging.info(f"Precio de eBay (producto + envío): {ebay_price}")
 
+            # Recuperar el documento de Amazon correspondiente al ASIN
             amazon_item = self.collection_a.find_one({'ASIN': asin})
-            
-            if amazon_item:
-                logging.info(f"Documento de Amazon recuperado: {amazon_item}")
-                
-                amazon_used_price_str = amazon_item.get('Buy Box Used: 180 days avg.', 0)
-                logging.info(f"Valor extraído de 'Buy Box Used: 180 days avg': {amazon_used_price_str}")
-                
-                # Verificar si el valor es una cadena antes de intentar convertir
-                if isinstance(amazon_used_price_str, str):
-                    try:
-                        amazon_used_price = self.convert_price(amazon_used_price_str)
-                    except ValueError as e:
-                        logging.error(f"Error al convertir 'Buy Box Used: 180 days avg' a float: {e}")
-                        amazon_used_price = 0.0
-                else:
-                    amazon_used_price = float(amazon_used_price_str)
 
-                fba_fee_str = amazon_item.get('FBA Fees', 0)
-                if isinstance(fba_fee_str, str):
-                    try:
-                        fba_fee = self.convert_price(fba_fee_str)
-                    except ValueError as e:
-                        logging.error(f"Error al convertir 'FBA Fees' a float: {e}")
-                        fba_fee = 0.0
-                else:
-                    fba_fee = float(fba_fee_str)
+            if amazon_item:
+                # Imprimir el documento completo para ver su contenido
+                logging.info(f"Documento de Amazon recuperado: {amazon_item}")
+
+                # Extraer y convertir a float el precio del Buy Box Used de Amazon de los últimos 180 días
+                amazon_used_price_str = amazon_item.get('Buy Box Used: 180 days avg', '0')
+                logging.info(f"Valor extraído de 'Buy Box Used: 180 days avg': {amazon_used_price_str}")
+
+                # Intentar convertir el valor a float
+                try:
+                    amazon_used_price = float(amazon_used_price_str.replace('£', '').replace(',', '').strip())
+                except ValueError as e:
+                    logging.error(f"Error al convertir 'Buy Box Used: 180 days avg' a float: {e}")
+                    amazon_used_price = 0.0
+
+                # Extraer y convertir a float las tarifas de FBA de Amazon
+                fba_fee_str = amazon_item.get('FBA Fees:', '0')
+                try:
+                    fba_fee = float(fba_fee_str.replace('£', '').replace(',', '').strip())
+                except ValueError as e:
+                    logging.error(f"Error al convertir 'FBA Fees:' a float: {e}")
+                    fba_fee = 0.0
 
                 referral_fee_percentage = 0.153 if amazon_used_price > 5 else 0.051
                 referral_fee = amazon_used_price * referral_fee_percentage
 
                 profit = amazon_used_price - ebay_price - fba_fee - referral_fee
-                roi = profit / ebay_price if ebay_price else 0
+                roi = (profit / ebay_price) * 100 if ebay_price else 0
 
-                logging.info(f"Precio de venta en Amazon (Buy Box Used): {amazon_used_price}")
-                logging.info(f"Tarifa de FBA: {fba_fee}")
-                logging.info(f"Tarifa de referencia: {referral_fee}")
-                logging.info(f"Ganancia: {profit}")
-                logging.info(f"ROI: {roi * 100}%")
+                if roi > 50:
+                    # Obtener la URL de eBay desde la colección Search_uk_E
+                    ebay_url = self.collection_e.find_one({'_id': item['_id']}).get('url', '')
 
-                if roi > 0.5:
                     self.send_email(
-                        item['image_url'], item.get('product_url', ''), ebay_price,
+                        item['image_url'], ebay_url, ebay_price,
                         amazon_item.get('Image', ''), amazon_item.get('URL: Amazon', ''), amazon_used_price, roi
                     )
 
@@ -125,7 +117,7 @@ class MongoDBPipeline:
             - Imagen de Amazon: {amazon_image}
             - URL de Amazon: {amazon_url}
             - Precio de Amazon: £{amazon_price}
-            - ROI: {roi * 100}%
+            - ROI: {roi}%
             """
 
             html = f"""\
@@ -138,7 +130,7 @@ class MongoDBPipeline:
                 <p><strong>Imagen de Amazon:</strong> <img src="{amazon_image}" width="100"></p>
                 <p><strong>URL de Amazon:</strong> <a href="{amazon_url}">{amazon_url}</a></p>
                 <p><strong>Precio de Amazon:</strong> £{amazon_price}</p>
-                <p><strong>ROI:</strong> {roi * 100}%</p>
+                <p><strong>ROI:</strong> {roi}%</p>
               </body>
             </html>
             """
