@@ -23,10 +23,6 @@ class MongoDBPipeline:
         self.client.close()
 
     def process_item(self, item, spider):
-        # Asegurarse de que el item tiene '_id'
-        if 'doc_id' in item:
-            item['_id'] = item['doc_id']
-
         # Convertir los precios a float
         try:
             item['product_price'] = self.convert_price(item['product_price'])
@@ -38,6 +34,11 @@ class MongoDBPipeline:
             logging.error(f"Error converting prices: {e}")
             item['product_price'] = 0.0
             item['shipping_fee'] = 0.0
+
+        # Asegurarse de que el item tiene '_id'
+        if '_id' not in item:
+            logging.error("El item no tiene '_id'")
+            return item
 
         self.collection_e.update_one({'_id': item['_id']}, {'$set': item}, upsert=True)
         self.calculate_and_send_email(item)
@@ -69,7 +70,7 @@ class MongoDBPipeline:
 
                 if roi > 0.5:
                     self.send_email(
-                        item['image_url'], item['product_url'], ebay_price,
+                        item['image_url'], item['nkw'], ebay_price,
                         amazon_item.get('Image', ''), amazon_item.get('URL: Amazon', ''), amazon_used_price, roi
                     )
 
