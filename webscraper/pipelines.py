@@ -29,9 +29,9 @@ class MongoDBPipeline:
 
         # Convertir los precios a float
         try:
-            item['product_price'] = float(item['product_price'].replace('£', '').replace(',', '').strip())
+            item['product_price'] = self.convert_price(item['product_price'])
             if item.get('shipping_fee'):
-                item['shipping_fee'] = float(item['shipping_fee'].replace('£', '').replace(',', '').strip())
+                item['shipping_fee'] = self.convert_price(item['shipping_fee'])
             else:
                 item['shipping_fee'] = 0.0
         except Exception as e:
@@ -42,6 +42,11 @@ class MongoDBPipeline:
         self.collection_e.update_one({'_id': item['_id']}, {'$set': item}, upsert=True)
         self.calculate_and_send_email(item)
         return item
+
+    def convert_price(self, price_str):
+        """Convierte un string de precio a float, eliminando cualquier símbolo adicional."""
+        price_str = price_str.replace('£', '').replace('+', '').replace(',', '').strip()
+        return float(price_str)
 
     def calculate_and_send_email(self, item):
         try:
