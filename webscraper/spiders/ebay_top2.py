@@ -39,7 +39,7 @@ class EbayTop2Spider(scrapy.Spider):
         'Cache-Control': 'max-age=0',
     }
 
-    proxy = 'http://xavigv:e8qcHlJ5jdHxl7Xj@proxy.packetstream.io:31112'
+    proxy = 'http://xavigv:e8qcHlJ5jdHxl7Xj_country-UnitedKingdom:proxy.packetstream.io:31112'
     
     def __init__(self, *args, **kwargs):
         super(EbayTop2Spider, self).__init__(*args, **kwargs)
