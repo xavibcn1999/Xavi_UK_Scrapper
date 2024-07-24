@@ -1,5 +1,7 @@
 # webscraper/settings.py
 
+import datetime  # Make sure to import datetime
+
 BOT_NAME = 'webscraper'
 
 SPIDER_MODULES = ['webscraper.spiders']
@@ -32,4 +34,4 @@ RETRY_TIMES = 15  # Increased retry times
 COOKIES_ENABLED = True
 FEED_EXPORT_ENCODING = "utf-8"
 FEED_FORMAT = 'csv'
-FEED_URI = datetime.now().strftime('%Y_%m_%d__%H_%M') + '_ebay.csv'
+FEED_URI = datetime.datetime.now().strftime('%Y_%m_%d__%H_%M') + '_ebay.csv'
