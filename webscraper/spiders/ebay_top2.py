@@ -39,8 +39,8 @@ class EbayTop2Spider(scrapy.Spider):
         'Cache-Control': 'max-age=0',
     }
 
-    proxy = 'http://xavigv:e8qcHlJ5jdHxl7Xj_country-UnitedKingdom:proxy.packetstream.io:31112'
-    
+    proxy = 'http://xavigv:e8qcHlJ5jdHxl7Xj_country-UnitedKingdom@proxy.packetstream.io:31112'
+
     def __init__(self, *args, **kwargs):
         super(EbayTop2Spider, self).__init__(*args, **kwargs)
         self.connect()
@@ -78,8 +78,13 @@ class EbayTop2Spider(scrapy.Spider):
                 nkw = nkw_match.group(1) if nkw_match else 'N/A'
 
                 self.logger.info(f"Creating request for URL: {url} and nkw: {nkw}")
-                yield scrapy.Request(url=url, callback=self.parse, headers=self.headers,
-                                     meta={'nkw': nkw, '_id': data_urls_loop['_id']}, errback=self.errback_httpbin)
+                yield scrapy.Request(
+                    url=url, 
+                    callback=self.parse, 
+                    headers=self.headers,
+                    meta={'nkw': nkw, '_id': data_urls_loop['_id'], 'proxy': self.proxy},
+                    errback=self.errback_httpbin
+                )
             else:
                 self.logger.warning("Empty URL found in the Search_uk_E collection.")
 
@@ -104,7 +109,10 @@ class EbayTop2Spider(scrapy.Spider):
             shipping_cost = listing.xpath('.//span[contains(text(),"postage") or contains(text(),"shipping")]/text()').re_first(r'\+\s?[£$€][\d,.]+')
             if not shipping_cost:
                 shipping_cost = listing.xpath('.//span[contains(@class,"s-item__shipping") or contains(@class,"s-item__logisticsCost") or contains(@class,"s-item__freeXDays")]/text()').re_first(r'\+\s?[£$€][\d,.]+')
-
+            
+            if not shipping_cost:
+                shipping_cost = '0.0'
+            
             self.logger.info(f"Extracted data - Link: {link}, Title: {title}, Price: {price}, Image: {image}, Shipping Cost: {shipping_cost}")
 
             item = {
@@ -134,7 +142,7 @@ class EbayTop2Spider(scrapy.Spider):
             if response.status == 503:
                 self.logger.warning('503 Service Unavailable on %s', response.url)
                 time.sleep(60)  # Wait for 60 seconds before retrying
-                return scrapy.Request(response.url, callback=self.parse, dont_filter=True, headers=self.headers)
+                return scrapy.Request(response.url, callback=self.parse, dont_filter=True, headers=self.headers, meta={'proxy': self.proxy})
         elif failure.check(DNSLookupError):
             request = failure.request
             self.logger.error('DNSLookupError on %s', request.url)
