@@ -15,8 +15,8 @@ class MongoDBPipeline:
         self.gmail_accounts = [
             {"email": "xavusiness@gmail.com", "password": "tnthxazpsezagjdc"},
             {"email": "xaviergomezvidal@gmail.com", "password": "cqpbqwvqbqvjpmly"},
-            {"email": "xavigv0408@gmail.com", "password": "xmeineyjhqwgkxgb"},
-            {"email": "xavigv0408@gmail.com", "password": "iztckfjltnfolobb"},
+            {"email": "xavigv77@gmail.com", "password": "crdgantmezylfjyq"},
+            {"email": "xavigv0408@gmail.com", "password": "excohgpjkrbyvbtn"},
             {"email": "xavigomezvidal@gmail.com", "password": "lunuwnctjjsbchzx"},
             {"email": "xavibcn1999@gmail.com", "password": "vcjlpcfemckrpsvm"}
         ]
