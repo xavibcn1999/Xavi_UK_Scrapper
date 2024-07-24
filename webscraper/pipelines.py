@@ -48,14 +48,14 @@ class MongoDBPipeline:
 
                 if roi > 0.5:
                     self.send_email(
-                        item['image_url'], item['product_title'], item['product_url'], ebay_price,
+                        item['image_url'], item['product_url'], ebay_price,
                         amazon_item.get('Image', ''), amazon_item.get('URL: Amazon', ''), amazon_used_price, roi
                     )
 
         except Exception as e:
             logging.error(f"Error calculating ROI and sending email: {e}")
 
-    def send_email(self, ebay_image, ebay_title, ebay_url, ebay_price, amazon_image, amazon_url, amazon_price, roi):
+    def send_email(self, ebay_image, ebay_url, ebay_price, amazon_image, amazon_url, amazon_price, roi):
         try:
             sender_email = "xavusiness@gmail.com"
             receiver_email = "xavialerts@gmail.com"
