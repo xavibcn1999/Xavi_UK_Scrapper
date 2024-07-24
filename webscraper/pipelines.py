@@ -51,68 +51,119 @@ class MongoDBPipeline:
         return float(price_str)
 
     def calculate_and_send_email(self, item):
-    try:
-        asin = item['nkw']
-        ebay_price = round(item['product_price'] + item['shipping_fee'], 2)
-        logging.info(f"Calculando ROI para ASIN: {asin}")
-        logging.info(f"Precio del producto en eBay: {item['product_price']}")
-        logging.info(f"Costo de envío en eBay: {item['shipping_fee']}")
-        logging.info(f"Precio de eBay (producto + envío): {ebay_price}")
+        try:
+            asin = item['nkw']
+            ebay_price = round(item['product_price'] + item['shipping_fee'], 2)
+            logging.info(f"Calculando ROI para ASIN: {asin}")
+            logging.info(f"Precio del producto en eBay: {item['product_price']}")
+            logging.info(f"Costo de envío en eBay: {item['shipping_fee']}")
+            logging.info(f"Precio de eBay (producto + envío): {ebay_price}")
 
-        amazon_item = self.collection_a.find_one({'ASIN': asin})
+            amazon_item = self.collection_a.find_one({'ASIN': asin})
+            
+            if amazon_item:
+                logging.info(f"Documento de Amazon recuperado: {amazon_item}")
+                
+                amazon_used_price_str = amazon_item.get('Buy Box Used: 180 days avg.', 0)
+                logging.info(f"Valor extraído de 'Buy Box Used: 180 days avg': {amazon_used_price_str}")
+                
+                # Verificar si el valor es una cadena antes de intentar convertir
+                if isinstance(amazon_used_price_str, str):
+                    try:
+                        amazon_used_price = self.convert_price(amazon_used_price_str)
+                    except ValueError as e:
+                        logging.error(f"Error al convertir 'Buy Box Used: 180 days avg' a float: {e}")
+                        amazon_used_price = 0.0
+                else:
+                    amazon_used_price = float(amazon_used_price_str)
 
-        if amazon_item:
-            logging.info(f"Documento de Amazon recuperado: {amazon_item}")
+                fba_fee_str = amazon_item.get('FBA Fees', 0)
+                if isinstance(fba_fee_str, str):
+                    try:
+                        fba_fee = self.convert_price(fba_fee_str)
+                    except ValueError as e:
+                        logging.error(f"Error al convertir 'FBA Fees' a float: {e}")
+                        fba_fee = 0.0
+                else:
+                    fba_fee = float(fba_fee_str)
 
-            amazon_used_price_str = amazon_item.get('Buy Box Used: 180 days avg.', 0)
-            logging.info(f"Valor extraído de 'Buy Box Used: 180 days avg': {amazon_used_price_str}")
+                referral_fee_percentage = 0.153 if amazon_used_price > 5 else 0.051
+                referral_fee = round(amazon_used_price * referral_fee_percentage, 2)
 
-            # Verificar si el valor es una cadena antes de intentar convertir
-            if isinstance(amazon_used_price_str, str):
-                try:
-                    amazon_used_price = self.convert_price(amazon_used_price_str)
-                except ValueError as e:
-                    logging.error(f"Error al convertir 'Buy Box Used: 180 days avg' a float: {e}")
-                    amazon_used_price = 0.0
-            else:
-                amazon_used_price = float(amazon_used_price_str)
+                # Calcular el costo total
+                total_cost = round(ebay_price + fba_fee + referral_fee, 2)
 
-            fba_fee_str = amazon_item.get('FBA Fees', 0)
-            if isinstance(fba_fee_str, str):
-                try:
-                    fba_fee = self.convert_price(fba_fee_str)
-                except ValueError as e:
-                    logging.error(f"Error al convertir 'FBA Fees' a float: {e}")
-                    fba_fee = 0.0
-            else:
-                fba_fee = float(fba_fee_str)
+                # Calcular la ganancia
+                profit = round(amazon_used_price - total_cost, 2)
 
-            referral_fee_percentage = 0.153 if amazon_used_price > 5 else 0.051
-            referral_fee = round(amazon_used_price * referral_fee_percentage, 2)
+                # Calcular el ROI
+                roi = round((profit / total_cost) * 100, 2) if total_cost else 0
 
-            # Calcular el costo total
-            total_cost = round(ebay_price + fba_fee + referral_fee, 2)
+                logging.info(f"Precio de venta en Amazon (Buy Box Used): {amazon_used_price}")
+                logging.info(f"Tarifa de FBA: {fba_fee}")
+                logging.info(f"Tarifa de referencia: {referral_fee}")
+                logging.info(f"Ganancia: {profit}")
+                logging.info(f"ROI: {roi}%")
 
-            # Calcular la ganancia
-            profit = round(amazon_used_price - total_cost, 2)
+                # Generar la URL de eBay
+                ebay_url = f"https://www.ebay.co.uk/sch/i.html?_from=R40&_trksid=p2334524.m570.l1313&_nkw={asin}&_sacat=267&LH_TitleDesc=0&_odkw=1492086894&_osacat=267&LH_BIN=1&_sop=15&LH_PrefLoc=1&rt=nc&LH_ItemCondition=2750%7C4000%7C5000%7C6000%7C10"
 
-            # Calcular el ROI
-            roi = round((profit / total_cost) * 100, 2) if total_cost else 0
+                if roi > 0.5:
+                    self.send_email(
+                        item['image_url'], ebay_url, ebay_price,
+                        amazon_item.get('Image', ''), amazon_item.get('URL: Amazon', ''), amazon_used_price, roi
+                    )
 
-            logging.info(f"Precio de venta en Amazon (Buy Box Used): {amazon_used_price}")
-            logging.info(f"Tarifa de FBA: {fba_fee}")
-            logging.info(f"Tarifa de referencia: {referral_fee}")
-            logging.info(f"Ganancia: {profit}")
-            logging.info(f"ROI: {roi}%")
+        except Exception as e:
+            logging.error(f"Error calculating ROI and sending email: {e}")
 
-            # Generar la URL de eBay
-            ebay_url = f"https://www.ebay.co.uk/sch/i.html?_from=R40&_trksid=p2334524.m570.l1313&_nkw={asin}&_sacat=267&LH_TitleDesc=0&_odkw=1492086894&_osacat=267&LH_BIN=1&_sop=15&LH_PrefLoc=1&rt=nc&LH_ItemCondition=2750%7C4000%7C5000%7C6000%7C10"
+    def send_email(self, ebay_image, ebay_url, ebay_price, amazon_image, amazon_url, amazon_price, roi):
+        try:
+            sender_email = "xavusiness@gmail.com"
+            receiver_email = "xavialerts@gmail.com"
+            password = "tnthxazpsezagjdc"
 
-            if roi > 0.5:
-                self.send_email(
-                    item['image_url'], ebay_url, ebay_price,
-                    amazon_item.get('Image', ''), amazon_item.get('URL: Amazon', ''), amazon_used_price, roi
-                )
+            message = MIMEMultipart("alternative")
+            message["Subject"] = "Alerta de ROI superior al 50%"
+            message["From"] = sender_email
+            message["To"] = receiver_email
 
-    except Exception as e:
-        logging.error(f"Error calculating ROI and sending email: {e}")
+            text = f"""\
+            Alerta de ROI superior al 50%:
+            - Imagen de eBay: {ebay_image}
+            - URL de eBay: {ebay_url}
+            - Precio de eBay: £{ebay_price:.2f}
+            - Imagen de Amazon: {amazon_image}
+            - URL de Amazon: {amazon_url}
+            - Precio de Amazon: £{amazon_price:.2f}
+            - ROI: {roi:.2f}%
+            """
+
+            html = f"""\
+            <html>
+              <body>
+                <h2>Alerta de ROI superior al 50%</h2>
+                <p><strong>Imagen de eBay:</strong> <img src="{ebay_image}" width="100"></p>
+                <p><strong>URL de eBay:</strong> <a href="{ebay_url}">{ebay_url}</a></p>
+                <p><strong>Precio de eBay:</strong> £{ebay_price:.2f}</p>
+                <p><strong>Imagen de Amazon:</strong> <img src="{amazon_image}" width="100"></p>
+                <p><strong>URL de Amazon:</strong> <a href="{amazon_url}">{amazon_url}</a></p>
+                <p><strong>Precio de Amazon:</strong> £{amazon_price:.2f}</p>
+                <p><strong>ROI:</strong> {roi:.2f}%</p>
+              </body>
+            </html>
+            """
+
+            part1 = MIMEText(text, "plain")
+            part2 = MIMEText(html, "html")
+
+            message.attach(part1)
+            message.attach(part2)
+
+            with smtplib.SMTP_SSL("smtp.gmail.com", 465) as server:
+                server.login(sender_email, password)
+                server.sendmail(sender_email, receiver_email, message.as_string())
+
+            logging.info("Email enviado exitosamente")
+        except Exception as e:
+            logging.error(f"Error al enviar email: {e}")
