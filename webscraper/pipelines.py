@@ -12,6 +12,15 @@ class MongoDBPipeline:
         self.mongo_db = settings.get('MONGO_DATABASE')
         self.collection_name_e = settings.get('MONGO_COLLECTION_E')
         self.collection_name_a = settings.get('MONGO_COLLECTION_A')
+        self.gmail_accounts = [
+            {"email": "xavusiness@gmail.com", "password": "tnthxazpsezagjdc"},
+            {"email": "xaviergomezvidal@gmail.com", "password": "cqpbqwvqbqvjpmly"},
+            {"email": "xavigv0408@gmail.com", "password": "xmeineyjhqwgkxgb"},
+            {"email": "xavigv0408@gmail.com", "password": "iztckfjltnfolobb"},
+            {"email": "xavigomezvidal@gmail.com", "password": "lunuwnctjjsbchzx"},
+            {"email": "xavibcn1999@gmail.com", "password": "vcjlpcfemckrpsvm"}
+        ]
+        self.current_account = 0
 
     def open_spider(self, spider):
         self.client = MongoClient(self.mongo_uri)
@@ -23,19 +32,14 @@ class MongoDBPipeline:
         self.client.close()
 
     def process_item(self, item, spider):
-        # Convertir los precios a float
         try:
             item['product_price'] = self.convert_price(item['product_price'])
-            if item.get('shipping_fee'):
-                item['shipping_fee'] = self.convert_price(item['shipping_fee'])
-            else:
-                item['shipping_fee'] = 0.0
+            item['shipping_fee'] = self.convert_price(item['shipping_fee']) if item.get('shipping_fee') else 0.0
         except Exception as e:
             logging.error(f"Error converting prices: {e}")
             item['product_price'] = 0.0
             item['shipping_fee'] = 0.0
 
-        # Asegurarse de que el item tiene '_id'
         if '_id' not in item:
             logging.error("El item no tiene '_id'")
             return item
@@ -45,7 +49,6 @@ class MongoDBPipeline:
         return item
 
     def convert_price(self, price_str):
-        """Convierte un string de precio a float, eliminando cualquier símbolo adicional."""
         if isinstance(price_str, str):
             price_str = price_str.replace('£', '').replace('+', '').replace(',', '').strip()
         return float(price_str)
@@ -60,14 +63,12 @@ class MongoDBPipeline:
             logging.info(f"Precio de eBay (producto + envío): {ebay_price}")
 
             amazon_item = self.collection_a.find_one({'ASIN': asin})
-            
             if amazon_item:
                 logging.info(f"Documento de Amazon recuperado: {amazon_item}")
-                
+
                 amazon_used_price_str = amazon_item.get('Buy Box Used: 180 days avg.', 0)
                 logging.info(f"Valor extraído de 'Buy Box Used: 180 days avg': {amazon_used_price_str}")
-                
-                # Verificar si el valor es una cadena antes de intentar convertir
+
                 if isinstance(amazon_used_price_str, str):
                     try:
                         amazon_used_price = self.convert_price(amazon_used_price_str)
@@ -90,13 +91,8 @@ class MongoDBPipeline:
                 referral_fee_percentage = 0.153 if amazon_used_price > 5 else 0.051
                 referral_fee = round(amazon_used_price * referral_fee_percentage, 2)
 
-                # Calcular el costo total
                 total_cost = round(ebay_price + fba_fee + referral_fee, 2)
-
-                # Calcular la ganancia
                 profit = round(amazon_used_price - total_cost, 2)
-
-                # Calcular el ROI
                 roi = round((profit / total_cost) * 100, 2) if total_cost else 0
 
                 logging.info(f"Precio de venta en Amazon (Buy Box Used): {amazon_used_price}")
@@ -105,7 +101,6 @@ class MongoDBPipeline:
                 logging.info(f"Ganancia: {profit}")
                 logging.info(f"ROI: {roi}%")
 
-                # Generar la URL de eBay
                 ebay_url = f"https://www.ebay.co.uk/sch/i.html?_from=R40&_trksid=p2334524.m570.l1313&_nkw={asin}&_sacat=267&LH_TitleDesc=0&_odkw=1492086894&_osacat=267&LH_BIN=1&_sop=15&LH_PrefLoc=1&rt=nc&LH_ItemCondition=2750%7C4000%7C5000%7C6000%7C10"
 
                 if roi > 0.5:
@@ -113,15 +108,17 @@ class MongoDBPipeline:
                         item['image_url'], ebay_url, ebay_price,
                         amazon_item.get('Image', ''), amazon_item.get('URL: Amazon', ''), amazon_used_price, roi
                     )
-
         except Exception as e:
             logging.error(f"Error calculating ROI and sending email: {e}")
 
     def send_email(self, ebay_image, ebay_url, ebay_price, amazon_image, amazon_url, amazon_price, roi):
         try:
-            sender_email = "xavusiness@gmail.com"
+            account = self.gmail_accounts[self.current_account]
+            self.current_account = (self.current_account + 1) % len(self.gmail_accounts)
+
+            sender_email = account["email"]
+            password = account["password"]
             receiver_email = "xavialerts@gmail.com"
-            password = "tnthxazpsezagjdc"
 
             message = MIMEMultipart("alternative")
             message["Subject"] = "Alerta de ROI superior al 50%"
@@ -171,5 +168,9 @@ class MongoDBPipeline:
                 server.sendmail(sender_email, receiver_email, message.as_string())
 
             logging.info("Email enviado exitosamente")
-        except Exception as e:
+        except smtplib.SMTPException as e:
             logging.error(f"Error al enviar email: {e}")
+            if "Daily user sending limit exceeded" in str(e):
+                logging.info("Cambio de cuenta debido al límite diario alcanzado.")
+                self.current_account = (self.current_account + 1) % len(self.gmail_accounts)
+                self.send_email(ebay_image, ebay_url, ebay_price, amazon_image, amazon_url, amazon_price, roi)
