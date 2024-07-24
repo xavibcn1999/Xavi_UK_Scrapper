@@ -62,7 +62,7 @@ class MongoDBPipeline:
             if amazon_item:
                 logging.info(f"Documento de Amazon recuperado: {amazon_item}")
                 
-                amazon_used_price_str = amazon_item.get('Buy Box Used: 180 days avg', 0)
+                amazon_used_price_str = amazon_item.get('Buy Box Used: 180 days avg.', 0)
                 logging.info(f"Valor extraído de 'Buy Box Used: 180 days avg': {amazon_used_price_str}")
                 
                 # Verificar si el valor es una cadena antes de intentar convertir
