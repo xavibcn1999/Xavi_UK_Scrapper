@@ -66,6 +66,7 @@ class MongoDBPipeline:
             if amazon_item:
                 logging.info(f"Documento de Amazon recuperado: {amazon_item}")
 
+                amazon_title = amazon_item.get('Title', 'Título no disponible')
                 amazon_used_price_str = amazon_item.get('Buy Box Used: 180 days avg.', 0)
                 logging.info(f"Valor extraído de 'Buy Box Used: 180 days avg': {amazon_used_price_str}")
 
@@ -106,12 +107,12 @@ class MongoDBPipeline:
                 if roi > 0.5:
                     self.send_email(
                         item['image_url'], ebay_url, ebay_price,
-                        amazon_item.get('Image', ''), amazon_item.get('URL: Amazon', ''), amazon_used_price, roi
+                        amazon_item.get('Image', ''), amazon_item.get('URL: Amazon', ''), amazon_used_price, roi, amazon_title
                     )
         except Exception as e:
             logging.error(f"Error calculating ROI and sending email: {e}")
 
-    def send_email(self, ebay_image, ebay_url, ebay_price, amazon_image, amazon_url, amazon_price, roi):
+    def send_email(self, ebay_image, ebay_url, ebay_price, amazon_image, amazon_url, amazon_price, roi, amazon_title):
         try:
             account = self.gmail_accounts[self.current_account]
             self.current_account = (self.current_account + 1) % len(self.gmail_accounts)
@@ -121,7 +122,7 @@ class MongoDBPipeline:
             receiver_email = "xavialerts@gmail.com"
 
             message = MIMEMultipart("alternative")
-            message["Subject"] = "Alerta de ROI superior al 50%"
+            message["Subject"] = amazon_title
             message["From"] = sender_email
             message["To"] = receiver_email
 
@@ -139,7 +140,7 @@ class MongoDBPipeline:
             html = f"""\
             <html>
               <body>
-                <h2>Alerta de ROI superior al 50%</h2>
+                <h4>{amazon_title}</h4>
                 <p><strong>Precio de Amazon:</strong> £{amazon_price:.2f}</p>
                 <p><strong>Precio de eBay:</strong> £{ebay_price:.2f}</p>
                 <p style="font-size: 1.5em;"><strong>ROI:</strong> {roi:.2f}%</p>
@@ -167,12 +168,12 @@ class MongoDBPipeline:
 
             logging.info("Email enviado exitosamente")
         except smtplib.SMTPException as e:
-            logging.error(f"Error al enviar email: {e}")
+            logging.error(f"Error al enviar email con la cuenta {sender_email}: {e}")
             if "Daily user sending limit exceeded" in str(e):
-                logging.info("Cambio de cuenta debido al límite diario alcanzado.")
+                logging.info(f"Cambio de cuenta debido al límite diario alcanzado: {sender_email}")
                 self.current_account = (self.current_account + 1) % len(self.gmail_accounts)
-                self.send_email(ebay_image, ebay_url, ebay_price, amazon_image, amazon_url, amazon_price, roi)
+                self.send_email(ebay_image, ebay_url, ebay_price, amazon_image, amazon_url, amazon_price, roi, amazon_title)
             elif "Username and Password not accepted" in str(e):
-                logging.info("Cambio de cuenta debido a credenciales incorrectas.")
+                logging.info(f"Cambio de cuenta debido a credenciales incorrectas: {sender_email}")
                 self.current_account = (self.current_account + 1) % len(self.gmail_accounts)
                 self.send_email(ebay_image, ebay_url, ebay_price, amazon_image, amazon_url, amazon_price, roi)
