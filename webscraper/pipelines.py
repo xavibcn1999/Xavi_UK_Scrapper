@@ -34,13 +34,16 @@ class MongoDBPipeline:
 
             amazon_item = self.collection_a.find_one({'ASIN': asin})
             if amazon_item:
-                amazon_used_price = float(amazon_item.get('Buy Box Used: 180 days avg', '0').replace('£', '').replace(',', '').strip())
-                fba_fee = float(amazon_item.get('FBA Fees:', '0').replace('£', '').replace(',', '').strip())
+                amazon_used_price = amazon_item.get('Buy Box Used: 180 days avg', '0').replace('£', '').replace(',', '').strip()
+                amazon_used_price = float(amazon_used_price) if amazon_used_price else 0.0
+                fba_fee = amazon_item.get('FBA Fees:', '0').replace('£', '').replace(',', '').strip()
+                fba_fee = float(fba_fee) if fba_fee else 0.0
+
                 referral_fee_percentage = 0.153 if amazon_used_price > 5 else 0.051
                 referral_fee = amazon_used_price * referral_fee_percentage
 
                 profit = ebay_price - amazon_used_price - fba_fee - referral_fee
-                roi = profit / ebay_price if ebay_price else 0
+                roi = profit / ebay_price if ebay_price else -1  # -1 si ebay_price es cero
 
                 if roi > 0.5:
                     self.send_email(
