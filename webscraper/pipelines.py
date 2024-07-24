@@ -151,8 +151,6 @@ class MongoDBPipeline:
                     <img src="{amazon_image}" width="250" height="375" alt="Amazon Image">
                   </a>
                 </div>
-                <p><strong>URL de eBay:</strong> <a href="{ebay_url}" target="_blank">{ebay_url}</a></p>
-                <p><strong>URL de Amazon:</strong> <a href="{amazon_url}" target="_blank">{amazon_url}</a></p>
               </body>
             </html>
             """
@@ -172,5 +170,9 @@ class MongoDBPipeline:
             logging.error(f"Error al enviar email: {e}")
             if "Daily user sending limit exceeded" in str(e):
                 logging.info("Cambio de cuenta debido al límite diario alcanzado.")
+                self.current_account = (self.current_account + 1) % len(self.gmail_accounts)
+                self.send_email(ebay_image, ebay_url, ebay_price, amazon_image, amazon_url, amazon_price, roi)
+            elif "Username and Password not accepted" in str(e):
+                logging.info("Cambio de cuenta debido a credenciales incorrectas.")
                 self.current_account = (self.current_account + 1) % len(self.gmail_accounts)
                 self.send_email(ebay_image, ebay_url, ebay_price, amazon_image, amazon_url, amazon_price, roi)
