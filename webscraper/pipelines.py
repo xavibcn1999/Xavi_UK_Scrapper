@@ -41,11 +41,6 @@ class MongoDBPipeline:
             return item
 
         self.collection_e.update_one({'_id': item['_id']}, {'$set': item}, upsert=True)
-        
-        # Añadir la URL de eBay
-        ebay_url = self.get_ebay_url(item['_id'])
-        item['ebay_url'] = ebay_url
-        
         self.calculate_and_send_email(item)
         return item
 
@@ -53,18 +48,6 @@ class MongoDBPipeline:
         """Convierte un string de precio a float, eliminando cualquier símbolo adicional."""
         price_str = price_str.replace('£', '').replace('+', '').replace(',', '').strip()
         return float(price_str)
-
-    def get_ebay_url(self, item_id):
-        try:
-            document = self.collection_e.find_one({'_id': item_id})
-            if document:
-                return document.get('url', '')
-            else:
-                logging.error(f"No se encontró documento con _id: {item_id}")
-                return ''
-        except Exception as e:
-            logging.error(f"Error obteniendo la URL de eBay: {e}")
-            return ''
 
     def calculate_and_send_email(self, item):
         try:
@@ -78,20 +61,20 @@ class MongoDBPipeline:
                 logging.info(f"Documento de Amazon recuperado: {amazon_item}")
                 
                 # Extraer y convertir a float el precio del Buy Box Used de Amazon de los últimos 180 días
-                amazon_used_price_str = amazon_item.get('Buy Box Used: 180 days avg.', '0')
-                logging.info(f"Valor extraído de 'Buy Box Used: 180 days avg.': {amazon_used_price_str}")
+                amazon_used_price_str = amazon_item.get('Buy Box Used: 180 days avg', '0')
+                logging.info(f"Valor extraído de 'Buy Box Used: 180 days avg': {amazon_used_price_str}")
                 
                 # Intentar convertir el valor a float
                 try:
-                    amazon_used_price = float(amazon_used_price_str)
+                    amazon_used_price = float(amazon_used_price_str.replace('£', '').replace(',', '').strip())
                 except ValueError as e:
-                    logging.error(f"Error al convertir 'Buy Box Used: 180 days avg.' a float: {e}")
+                    logging.error(f"Error al convertir 'Buy Box Used: 180 days avg' a float: {e}")
                     amazon_used_price = 0.0
 
                 # Extraer y convertir a float las tarifas de FBA de Amazon
                 fba_fee_str = amazon_item.get('FBA Fees', '0')
                 try:
-                    fba_fee = float(fba_fee_str)
+                    fba_fee = float(fba_fee_str.replace('£', '').replace(',', '').strip())
                 except ValueError as e:
                     logging.error(f"Error al convertir 'FBA Fees' a float: {e}")
                     fba_fee = 0.0
@@ -99,17 +82,18 @@ class MongoDBPipeline:
                 referral_fee_percentage = 0.153 if amazon_used_price > 5 else 0.051
                 referral_fee = amazon_used_price * referral_fee_percentage
 
-                profit = ebay_price - amazon_used_price - fba_fee - referral_fee
+                profit = amazon_used_price - ebay_price - fba_fee - referral_fee
                 roi = profit / ebay_price if ebay_price else 0
 
                 if roi > 0.5:
                     self.send_email(
-                        item['image_url'], item.get('ebay_url', ''), ebay_price,
+                        item['image_url'], item.get('product_url', ''), ebay_price,
                         amazon_item.get('Image', ''), amazon_item.get('URL: Amazon', ''), amazon_used_price, roi
                     )
 
         except Exception as e:
             logging.error(f"Error calculating ROI and sending email: {e}")
+
 
     def send_email(self, ebay_image, ebay_url, ebay_price, amazon_image, amazon_url, amazon_price, roi):
         try:
