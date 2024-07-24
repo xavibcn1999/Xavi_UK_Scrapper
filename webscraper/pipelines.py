@@ -143,13 +143,19 @@ class MongoDBPipeline:
             <html>
               <body>
                 <h2>Alerta de ROI superior al 50%</h2>
-                <p><strong>Imagen de eBay:</strong> <img src="{ebay_image}" width="100"></p>
-                <p><strong>URL de eBay:</strong> <a href="{ebay_url}">{ebay_url}</a></p>
-                <p><strong>Precio de eBay:</strong> £{ebay_price:.2f}</p>
-                <p><strong>Imagen de Amazon:</strong> <img src="{amazon_image}" width="100"></p>
-                <p><strong>URL de Amazon:</strong> <a href="{amazon_url}">{amazon_url}</a></p>
                 <p><strong>Precio de Amazon:</strong> £{amazon_price:.2f}</p>
-                <p><strong>ROI:</strong> {roi:.2f}%</p>
+                <p><strong>Precio de eBay:</strong> £{ebay_price:.2f}</p>
+                <p style="font-size: 1.5em;"><strong>ROI:</strong> {roi:.2f}%</p>
+                <div style="display: flex; justify-content: space-between; align-items: center;">
+                  <a href="{ebay_url}" target="_blank">
+                    <img src="{ebay_image}" width="250" height="375" alt="eBay Image">
+                  </a>
+                  <a href="{amazon_url}" target="_blank">
+                    <img src="{amazon_image}" width="250" height="375" alt="Amazon Image">
+                  </a>
+                </div>
+                <p><strong>URL de eBay:</strong> <a href="{ebay_url}" target="_blank">{ebay_url}</a></p>
+                <p><strong>URL de Amazon:</strong> <a href="{amazon_url}" target="_blank">{amazon_url}</a></p>
               </body>
             </html>
             """
