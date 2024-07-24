@@ -56,28 +56,30 @@ class MongoDBPipeline:
 
             # Recuperar el documento de Amazon correspondiente al ASIN
             amazon_item = self.collection_a.find_one({'ASIN': asin})
+            ebay_item = self.collection_e.find_one({'_id': item['_id']})
+            ebay_url = ebay_item.get('url', '') if ebay_item else ''
 
             if amazon_item:
                 # Imprimir el documento completo para ver su contenido
                 logging.info(f"Documento de Amazon recuperado: {amazon_item}")
 
                 # Extraer y convertir a float el precio del Buy Box Used de Amazon de los últimos 180 días
-                amazon_used_price_str = amazon_item.get('Buy Box Used: 180 days avg', '0')
-                logging.info(f"Valor extraído de 'Buy Box Used: 180 days avg': {amazon_used_price_str}")
+                amazon_used_price_str = amazon_item.get('Buy Box Used: 180 days avg.', '0')
+                logging.info(f"Valor extraído de 'Buy Box Used: 180 days avg.': {amazon_used_price_str}")
 
                 # Intentar convertir el valor a float
                 try:
                     amazon_used_price = float(amazon_used_price_str.replace('£', '').replace(',', '').strip())
                 except ValueError as e:
-                    logging.error(f"Error al convertir 'Buy Box Used: 180 days avg' a float: {e}")
+                    logging.error(f"Error al convertir 'Buy Box Used: 180 days avg.' a float: {e}")
                     amazon_used_price = 0.0
 
                 # Extraer y convertir a float las tarifas de FBA de Amazon
-                fba_fee_str = amazon_item.get('FBA Fees:', '0')
+                fba_fee_str = amazon_item.get('FBA Fees', '0')
                 try:
                     fba_fee = float(fba_fee_str.replace('£', '').replace(',', '').strip())
                 except ValueError as e:
-                    logging.error(f"Error al convertir 'FBA Fees:' a float: {e}")
+                    logging.error(f"Error al convertir 'FBA Fees' a float: {e}")
                     fba_fee = 0.0
 
                 referral_fee_percentage = 0.153 if amazon_used_price > 5 else 0.051
@@ -87,9 +89,6 @@ class MongoDBPipeline:
                 roi = (profit / ebay_price) * 100 if ebay_price else 0
 
                 if roi > 50:
-                    # Obtener la URL de eBay desde la colección Search_uk_E
-                    ebay_url = self.collection_e.find_one({'_id': item['_id']}).get('url', '')
-
                     self.send_email(
                         item['image_url'], ebay_url, ebay_price,
                         amazon_item.get('Image', ''), amazon_item.get('URL: Amazon', ''), amazon_used_price, roi
