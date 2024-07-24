@@ -9,7 +9,8 @@ from twisted.internet.error import DNSLookupError, TimeoutError, TCPTimedOutErro
 header = Headers(browser="chrome", os="win", headers=True)
 
 class EbayTop2Spider(scrapy.Spider):
-    name = 'ebay_top2'
+    name = 'ebay_top2'  # Asegúrate de que el nombre sea una cadena de texto
+
     custom_settings = {
         'CONCURRENT_REQUESTS': 16,
         'DOWNLOAD_DELAY': 0,
