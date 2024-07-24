@@ -50,32 +50,50 @@ class MongoDBPipeline:
         return float(price_str)
 
     def calculate_and_send_email(self, item):
-        try:
-            asin = item['nkw']
-            ebay_price = item['product_price'] + item['shipping_fee']
+    try:
+        asin = item['nkw']
+        ebay_price = item['product_price'] + item['shipping_fee']
 
-            amazon_item = self.collection_a.find_one({'ASIN': asin})
-            if amazon_item:
-                amazon_used_price_str = amazon_item.get('Buy Box Used: 180 days avg', '0')
+        amazon_item = self.collection_a.find_one({'ASIN': asin})
+        
+        if amazon_item:
+            # Imprimir el documento completo para ver su contenido
+            logging.info(f"Documento de Amazon recuperado: {amazon_item}")
+            
+            # Extraer y convertir a float el precio del Buy Box Used de Amazon de los últimos 180 días
+            amazon_used_price_str = amazon_item.get('Buy Box Used: 180 days avg', '0')
+            logging.info(f"Valor extraído de 'Buy Box Used: 180 days avg': {amazon_used_price_str}")
+            
+            # Intentar convertir el valor a float
+            try:
                 amazon_used_price = float(amazon_used_price_str.replace('£', '').replace(',', '').strip())
-                
-                fba_fee_str = amazon_item.get('FBA Fees:', '0')
+            except ValueError as e:
+                logging.error(f"Error al convertir 'Buy Box Used: 180 days avg' a float: {e}")
+                amazon_used_price = 0.0
+
+            # Extraer y convertir a float las tarifas de FBA de Amazon
+            fba_fee_str = amazon_item.get('FBA Fees:', '0')
+            try:
                 fba_fee = float(fba_fee_str.replace('£', '').replace(',', '').strip())
+            except ValueError as e:
+                logging.error(f"Error al convertir 'FBA Fees:' a float: {e}")
+                fba_fee = 0.0
 
-                referral_fee_percentage = 0.153 if amazon_used_price > 5 else 0.051
-                referral_fee = amazon_used_price * referral_fee_percentage
+            referral_fee_percentage = 0.153 if amazon_used_price > 5 else 0.051
+            referral_fee = amazon_used_price * referral_fee_percentage
 
-                profit = ebay_price - amazon_used_price - fba_fee - referral_fee
-                roi = profit / ebay_price if ebay_price else 0
+            profit = ebay_price - amazon_used_price - fba_fee - referral_fee
+            roi = profit / ebay_price if ebay_price else 0
 
-                if roi > 0.5:
-                    self.send_email(
-                        item['image_url'], item.get('product_url', ''), ebay_price,
-                        amazon_item.get('Image', ''), amazon_item.get('URL: Amazon', ''), amazon_used_price, roi
-                    )
+            if roi > 0.5:
+                self.send_email(
+                    item['image_url'], item.get('product_url', ''), ebay_price,
+                    amazon_item.get('Image', ''), amazon_item.get('URL: Amazon', ''), amazon_used_price, roi
+                )
 
-        except Exception as e:
-            logging.error(f"Error calculating ROI and sending email: {e}")
+    except Exception as e:
+        logging.error(f"Error calculating ROI and sending email: {e}")
+
 
     def send_email(self, ebay_image, ebay_url, ebay_price, amazon_image, amazon_url, amazon_price, roi):
         try:
