@@ -4,7 +4,7 @@ def calculate_and_send_email(self, item):
         ebay_product_price = item['product_price']
         ebay_shipping_fee = item['shipping_fee']
         ebay_price = ebay_product_price + ebay_shipping_fee
-        
+
         # Debugging information
         logging.info(f"Calculando ROI para ASIN: {asin}")
         logging.info(f"Precio del producto en eBay: {ebay_product_price}")
@@ -42,8 +42,9 @@ def calculate_and_send_email(self, item):
             referral_fee = amazon_used_price * referral_fee_percentage
 
             # Adjusted profit calculation
-            profit = amazon_used_price - ebay_price - fba_fee - referral_fee
-            roi = (profit / ebay_price) * 100 if ebay_price else 0
+            total_cost = ebay_price + fba_fee + referral_fee
+            profit = amazon_used_price - total_cost
+            roi = (profit / total_cost) * 100 if total_cost else 0
 
             logging.info(f"Precio de venta en Amazon (Buy Box Used): {amazon_used_price}")
             logging.info(f"Tarifa de FBA: {fba_fee}")
@@ -61,3 +62,53 @@ def calculate_and_send_email(self, item):
     except Exception as e:
         logging.error(f"Error calculating ROI and sending email: {e}")
 
+def send_email(self, ebay_image, ebay_url, ebay_price, amazon_image, amazon_url, amazon_price, roi):
+    try:
+        sender_email = "xavusiness@gmail.com"
+        receiver_email = "xavialerts@gmail.com"
+        password = "tnthxazpsezagjdc"
+
+        message = MIMEMultipart("alternative")
+        message["Subject"] = "Alerta de ROI superior al 50%"
+        message["From"] = sender_email
+        message["To"] = receiver_email
+
+        text = f"""\
+        Alerta de ROI superior al 50%:
+        - Imagen de eBay: {ebay_image}
+        - URL de eBay: {ebay_url}
+        - Precio de eBay: £{ebay_price}
+        - Imagen de Amazon: {amazon_image}
+        - URL de Amazon: {amazon_url}
+        - Precio de Amazon: £{amazon_price}
+        - ROI: {roi}%
+        """
+
+        html = f"""\
+        <html>
+          <body>
+            <h2>Alerta de ROI superior al 50%</h2>
+            <p><strong>Imagen de eBay:</strong> <img src="{ebay_image}" width="100"></p>
+            <p><strong>URL de eBay:</strong> <a href="{ebay_url}">{ebay_url}</a></p>
+            <p><strong>Precio de eBay:</strong> £{ebay_price}</p>
+            <p><strong>Imagen de Amazon:</strong> <img src="{amazon_image}" width="100"></p>
+            <p><strong>URL de Amazon:</strong> <a href="{amazon_url}">{amazon_url}</a></p>
+            <p><strong>Precio de Amazon:</strong> £{amazon_price}</p>
+            <p><strong>ROI:</strong> {roi}%</p>
+          </body>
+        </html>
+        """
+
+        part1 = MIMEText(text, "plain")
+        part2 = MIMEText(html, "html")
+
+        message.attach(part1)
+        message.attach(part2)
+
+        with smtplib.SMTP_SSL("smtp.gmail.com", 465) as server:
+            server.login(sender_email, password)
+            server.sendmail(sender_email, receiver_email, message.as_string())
+
+        logging.info("Email enviado exitosamente")
+    except Exception as e:
+        logging.error(f"Error al enviar email: {e}")
