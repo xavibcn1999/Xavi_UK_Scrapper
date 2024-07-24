@@ -23,7 +23,10 @@ class MongoDBPipeline:
         self.client.close()
 
     def process_item(self, item, spider):
-        self.collection_e.update_one({'_id': item['doc_id']}, {'$set': item}, upsert=True)
+        # Asegurarse de que se utilice la columna 'url' existente en lugar de 'product_url'
+        if 'url' in item:
+            item['product_url'] = item['url']
+        self.collection_e.update_one({'_id': item['_id']}, {'$set': item}, upsert=True)
         self.calculate_and_send_email(item)
         return item
 
