@@ -77,13 +77,14 @@ class EbayTop2Spider(scrapy.Spider):
 
                 self.logger.info(f"Creating request for URL: {url} and nkw: {nkw}")
                 yield scrapy.Request(url=url, callback=self.parse, headers=self.headers,
-                                     meta={'nkw': nkw, 'doc_id': data_urls_loop['_id']}, errback=self.errback_httpbin)
+                                     meta={'nkw': nkw, 'doc_id': data_urls_loop['_id'], 'product_url': url}, errback=self.errback_httpbin)
             else:
                 self.logger.warning("Empty URL found in the Search_uk_E collection.")
 
     def parse(self, response):
         nkw = response.meta.get('nkw', 'N/A')
         doc_id = response.meta.get('doc_id')
+        product_url = response.meta.get('product_url')
         self.logger.info(f"Processing response for nkw: {nkw}")
         listings = response.xpath('//ul//div[@class="s-item__wrapper clearfix"]')
 
@@ -107,12 +108,12 @@ class EbayTop2Spider(scrapy.Spider):
 
             item = {
                 'nkw': nkw,
-                'url': link,
                 'image_url': image,
                 'product_title': title,
                 'product_price': price,
                 'shipping_fee': shipping_cost,
-                'doc_id': doc_id
+                'doc_id': doc_id,
+                'product_url': product_url
             }
 
             yield item
