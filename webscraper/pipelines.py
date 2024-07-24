@@ -44,7 +44,7 @@ class MongoDBPipeline:
 
                 if roi > 0.5:
                     self.send_email(
-                        item['image_url'], item['product_title'], ebay_price,
+                        item.get('image_url', ''), item.get('product_title', ''), ebay_price,
                         amazon_item.get('Image', ''), amazon_item.get('URL: Amazon', ''), amazon_used_price, roi
                     )
 
