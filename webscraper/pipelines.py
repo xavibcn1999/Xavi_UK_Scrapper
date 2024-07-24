@@ -65,18 +65,25 @@ class MongoDBPipeline:
                 amazon_used_price_str = amazon_item.get('Buy Box Used: 180 days avg', 0)
                 logging.info(f"Valor extraído de 'Buy Box Used: 180 days avg': {amazon_used_price_str}")
                 
-                try:
-                    amazon_used_price = self.convert_price(amazon_used_price_str)
-                except ValueError as e:
-                    logging.error(f"Error al convertir 'Buy Box Used: 180 days avg' a float: {e}")
-                    amazon_used_price = 0.0
+                # Verificar si el valor es una cadena antes de intentar convertir
+                if isinstance(amazon_used_price_str, str):
+                    try:
+                        amazon_used_price = self.convert_price(amazon_used_price_str)
+                    except ValueError as e:
+                        logging.error(f"Error al convertir 'Buy Box Used: 180 days avg' a float: {e}")
+                        amazon_used_price = 0.0
+                else:
+                    amazon_used_price = float(amazon_used_price_str)
 
                 fba_fee_str = amazon_item.get('FBA Fees', 0)
-                try:
-                    fba_fee = self.convert_price(fba_fee_str)
-                except ValueError as e:
-                    logging.error(f"Error al convertir 'FBA Fees' a float: {e}")
-                    fba_fee = 0.0
+                if isinstance(fba_fee_str, str):
+                    try:
+                        fba_fee = self.convert_price(fba_fee_str)
+                    except ValueError as e:
+                        logging.error(f"Error al convertir 'FBA Fees' a float: {e}")
+                        fba_fee = 0.0
+                else:
+                    fba_fee = float(fba_fee_str)
 
                 referral_fee_percentage = 0.153 if amazon_used_price > 5 else 0.051
                 referral_fee = amazon_used_price * referral_fee_percentage
