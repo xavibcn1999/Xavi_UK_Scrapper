@@ -55,6 +55,8 @@ class MongoDBPipeline:
             asin = item['nkw']
             ebay_price = item['product_price'] + item['shipping_fee']
             logging.info(f"Calculando ROI para ASIN: {asin}")
+            logging.info(f"Precio del producto en eBay: {item['product_price']}")
+            logging.info(f"Costo de envío en eBay: {item['shipping_fee']}")
             logging.info(f"Precio de eBay (producto + envío): {ebay_price}")
 
             amazon_item = self.collection_a.find_one({'ASIN': asin})
