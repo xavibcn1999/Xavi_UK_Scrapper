@@ -61,22 +61,22 @@ class MongoDBPipeline:
                 logging.info(f"Documento de Amazon recuperado: {amazon_item}")
                 
                 # Extraer y convertir a float el precio del Buy Box Used de Amazon de los últimos 180 días
-                amazon_used_price_str = amazon_item.get('Buy Box Used: 180 days avg', '0')
-                logging.info(f"Valor extraído de 'Buy Box Used: 180 days avg': {amazon_used_price_str}")
+                amazon_used_price_str = amazon_item.get('Buy Box Used: 180 days avg.', '0')
+                logging.info(f"Valor extraído de 'Buy Box Used: 180 days avg.': {amazon_used_price_str}")
                 
                 # Intentar convertir el valor a float
                 try:
-                    amazon_used_price = float(amazon_used_price_str.replace('£', '').replace(',', '').strip())
+                    amazon_used_price = float(amazon_used_price_str)
                 except ValueError as e:
-                    logging.error(f"Error al convertir 'Buy Box Used: 180 days avg' a float: {e}")
+                    logging.error(f"Error al convertir 'Buy Box Used: 180 days avg.' a float: {e}")
                     amazon_used_price = 0.0
 
                 # Extraer y convertir a float las tarifas de FBA de Amazon
-                fba_fee_str = amazon_item.get('FBA Fees:', '0')
+                fba_fee_str = amazon_item.get('FBA Fees', '0')
                 try:
-                    fba_fee = float(fba_fee_str.replace('£', '').replace(',', '').strip())
+                    fba_fee = float(fba_fee_str)
                 except ValueError as e:
-                    logging.error(f"Error al convertir 'FBA Fees:' a float: {e}")
+                    logging.error(f"Error al convertir 'FBA Fees' a float: {e}")
                     fba_fee = 0.0
 
                 referral_fee_percentage = 0.153 if amazon_used_price > 5 else 0.051
