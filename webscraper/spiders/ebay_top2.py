@@ -97,12 +97,10 @@ class EbayTop2Spider(scrapy.Spider):
         count = 0
 
         for listing in listings:
-            # Verificar si el listado es de vendedores internacionales
             if listing.xpath('.//li[contains(@class,"srp-river-answer--REWRITE_START")]').get():
                 self.logger.info("Found international sellers separator. Stopping extraction for this URL.")
                 break
 
-            # Verificar si el listado tiene información de ubicación
             if listing.xpath('.//span[@class="s-item__location s-item__itemLocation"]').get():
                 self.logger.info("Skipping listing with location info.")
                 continue
