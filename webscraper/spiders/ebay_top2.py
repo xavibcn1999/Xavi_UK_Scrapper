@@ -11,9 +11,9 @@ header = Headers(browser="chrome", os="win", headers=True)
 class EbayTop2Spider(scrapy.Spider):
     name = 'ebay_top2'
     custom_settings = {
-        'CONCURRENT_REQUESTS': 16,  # Restaurar a 16 para más concurrencia
-        'DOWNLOAD_DELAY': 0,  # Eliminar el retraso de descarga para máxima velocidad
-        'RETRY_TIMES': 15,  # Aumentar el número de reintentos
+        'CONCURRENT_REQUESTS': 16,
+        'DOWNLOAD_DELAY': 0,
+        'RETRY_TIMES': 15,
         'COOKIES_ENABLED': True,
         'FEED_EXPORT_ENCODING': "utf-8",
         'FEED_FORMAT': 'csv',
@@ -23,7 +23,7 @@ class EbayTop2Spider(scrapy.Spider):
             'scrapy.downloadermiddlewares.defaultheaders.DefaultHeadersMiddleware': None,
             'webscraper.middlewares.CustomRetryMiddleware': 550,
         },
-        'AUTOTHROTTLE_ENABLED': False,  # Deshabilitar Autothrottle para máxima velocidad
+        'AUTOTHROTTLE_ENABLED': False,
         'ITEM_PIPELINES': {
             'webscraper.pipelines.MongoDBPipeline': 300,
         }
@@ -77,12 +77,13 @@ class EbayTop2Spider(scrapy.Spider):
 
                 self.logger.info(f"Creating request for URL: {url} and nkw: {nkw}")
                 yield scrapy.Request(url=url, callback=self.parse, headers=self.headers,
-                                     meta={'nkw': nkw}, errback=self.errback_httpbin)
+                                     meta={'nkw': nkw, 'doc_id': data_urls_loop['_id']}, errback=self.errback_httpbin)
             else:
                 self.logger.warning("Empty URL found in the Search_uk_E collection.")
 
     def parse(self, response):
         nkw = response.meta.get('nkw', 'N/A')
+        doc_id = response.meta.get('doc_id')
         self.logger.info(f"Processing response for nkw: {nkw}")
         listings = response.xpath('//ul//div[@class="s-item__wrapper clearfix"]')
 
@@ -109,7 +110,8 @@ class EbayTop2Spider(scrapy.Spider):
                 'image_url': image,
                 'product_title': title,
                 'product_price': price,
-                'shipping_fee': shipping_cost
+                'shipping_fee': shipping_cost,
+                'doc_id': doc_id
             }
 
             yield item
@@ -137,3 +139,43 @@ class EbayTop2Spider(scrapy.Spider):
         elif failure.check(TimeoutError, TCPTimedOutError):
             request = failure.request
             self.logger.error('TimeoutError on %s', request.url)
+
+# In your pipelines.py, modify the process_item method to perform an update operation
+import pymongo
+
+class MongoDBPipeline:
+
+    def __init__(self, mongo_uri, mongo_db, mongo_collection):
+        self.mongo_uri = mongo_uri
+        self.mongo_db = mongo_db
+        self.mongo_collection = mongo_collection
+
+    @classmethod
+    def from_crawler(cls, crawler):
+        return cls(
+            mongo_uri=crawler.settings.get('MONGO_URI'),
+            mongo_db=crawler.settings.get('MONGO_DATABASE'),
+            mongo_collection=crawler.settings.get('MONGODB_COLLECTION', 'items')
+        )
+
+    def open_spider(self, spider):
+        self.client = pymongo.MongoClient(self.mongo_uri)
+        self.db = self.client[self.mongo_db]
+        self.collection = self.db['Search_uk_E']
+
+    def close_spider(self, spider):
+        self.client.close()
+
+    def process_item(self, item, spider):
+        self.collection.update_one(
+            {'_id': item['doc_id']},
+            {'$set': {
+                'nkw': item['nkw'],
+                'image_url': item['image_url'],
+                'product_title': item['product_title'],
+                'product_price': item['product_price'],
+                'shipping_fee': item['shipping_fee']
+            }},
+            upsert=False  # Ensure it does not create a new document
+        )
+        return item
