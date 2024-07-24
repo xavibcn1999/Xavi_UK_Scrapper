@@ -5,9 +5,11 @@ from pymongo import MongoClient
 from fake_headers import Headers
 from scrapy.spidermiddlewares.httperror import HttpError
 from twisted.internet.error import DNSLookupError, TimeoutError, TCPTimedOutError
+
 header = Headers(browser="chrome", os="win", headers=True)
+
 class EbayTop2Spider(scrapy.Spider):
-    name = 'ebay_top2'
+    name = 'ebay_top2'  # Ensure this is a string
     custom_settings = {
         'CONCURRENT_REQUESTS': 16,
         'DOWNLOAD_DELAY': 0,
@@ -26,6 +28,7 @@ class EbayTop2Spider(scrapy.Spider):
             'webscraper.pipelines.MongoDBPipeline': 300,
         }
     }
+
     headers = {
         'User-Agent': header.generate()['User-Agent'],
         'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,image/webp,*/*;q=0.8',
@@ -35,9 +38,11 @@ class EbayTop2Spider(scrapy.Spider):
         'Upgrade-Insecure-Requests': '1',
         'Cache-Control': 'max-age=0',
     }
+
     def __init__(self, *args, **kwargs):
         super(EbayTop2Spider, self).__init__(*args, **kwargs)
         self.connect()
+
     def connect(self):
         try:
             self.logger.info("Attempting to connect to MongoDB...")
@@ -48,6 +53,7 @@ class EbayTop2Spider(scrapy.Spider):
             self.logger.info("Connected to MongoDB.")
         except Exception as e:
             self.logger.error(f"Error connecting to MongoDB: {e}")
+
     def start_requests(self):
         self.logger.info("Fetching URLs from the Search_uk_E collection...")
         try:
@@ -56,38 +62,49 @@ class EbayTop2Spider(scrapy.Spider):
         except Exception as e:
             self.logger.error(f"Error fetching URLs from MongoDB: {e}")
             data_urls = []
+
         if not data_urls:
             self.logger.warning("No URLs found in the Search_uk_E collection.")
             return
+
         for data_urls_loop in data_urls:
             url = data_urls_loop.get('url', '').strip()
+
             if url:
                 # Extraemos el valor de `nkw` de la URL
                 nkw_match = re.search(r'_nkw=([^&]+)', url)
                 nkw = nkw_match.group(1) if nkw_match else 'N/A'
+
                 self.logger.info(f"Creating request for URL: {url} and nkw: {nkw}")
                 yield scrapy.Request(url=url, callback=self.parse, headers=self.headers,
                                      meta={'nkw': nkw, 'doc_id': data_urls_loop['_id']}, errback=self.errback_httpbin)
             else:
                 self.logger.warning("Empty URL found in the Search_uk_E collection.")
+
     def parse(self, response):
         nkw = response.meta.get('nkw', 'N/A')
         doc_id = response.meta.get('doc_id')
         self.logger.info(f"Processing response for nkw: {nkw}")
         listings = response.xpath('//ul//div[@class="s-item__wrapper clearfix"]')
+
         count = 0
+
         for listing in listings:
             link = listing.xpath('.//a/@href').get('')
             title = listing.xpath('.//span[@role="heading"]/text()').get('')
             price = listing.xpath('.//span[@class="s-item__price"]/text()').get('')
             if not price:
                 price = listing.xpath('.//span[@class="s-item__price"]/span/text()').get('')
+
             image = listing.xpath('.//div[contains(@class,"s-item__image")]//img/@src').get('')
             image = image.replace('s-l225.webp', 's-l500.jpg')
+
             shipping_cost = listing.xpath('.//span[contains(text(),"postage") or contains(text(),"shipping")]/text()').re_first(r'\+\s?[£$€][\d,.]+')
             if not shipping_cost:
                 shipping_cost = listing.xpath('.//span[contains(@class,"s-item__shipping") or contains(@class,"s-item__logisticsCost") or contains(@class,"s-item__freeXDays")]/text()').re_first(r'\+\s?[£$€][\d,.]+')
+
             self.logger.info(f"Extracted data - Link: {link}, Title: {title}, Price: {price}, Image: {image}, Shipping Cost: {shipping_cost}")
+
             item = {
                 'nkw': nkw,
                 'image_url': image,
@@ -96,12 +113,17 @@ class EbayTop2Spider(scrapy.Spider):
                 'shipping_fee': shipping_cost,
                 'doc_id': doc_id
             }
+
             yield item
+
             count += 1
+
             if count >= 2:
                 break
+
         if count == 0:
             self.logger.warning(f"No valid listings found for nkw: {nkw}")
+
     def errback_httpbin(self, failure):
         self.logger.error(repr(failure))
         if failure.check(HttpError):
