@@ -81,4 +81,61 @@ class EbayTop2Spider(scrapy.Spider):
             else:
                 self.logger.warning("Empty URL found in the Search_uk_E collection.")
 
-    def parse(self,
+    def parse(self, response):
+        nkw = response.meta.get('nkw', 'N/A')
+        doc_id = response.meta.get('doc_id')
+        self.logger.info(f"Processing response for nkw: {nkw}")
+        listings = response.xpath('//ul//div[@class="s-item__wrapper clearfix"]')
+
+        count = 0
+
+        for listing in listings:
+            link = listing.xpath('.//a/@href').get('')
+            title = listing.xpath('.//span[@role="heading"]/text()').get('')
+            price = listing.xpath('.//span[@class="s-item__price"]/text()').get('')
+            if not price:
+                price = listing.xpath('.//span[@class="s-item__price"]/span/text()').get('')
+
+            image = listing.xpath('.//div[contains(@class,"s-item__image")]//img/@src').get('')
+            image = image.replace('s-l225.webp', 's-l500.jpg')
+
+            shipping_cost = listing.xpath('.//span[contains(text(),"postage") or contains(text(),"shipping")]/text()').re_first(r'\+\s?[£$€][\d,.]+')
+            if not shipping_cost:
+                shipping_cost = listing.xpath('.//span[contains(@class,"s-item__shipping") or contains(@class,"s-item__logisticsCost") or contains(@class,"s-item__freeXDays")]/text()').re_first(r'\+\s?[£$€][\d,.]+')
+
+            self.logger.info(f"Extracted data - Link: {link}, Title: {title}, Price: {price}, Image: {image}, Shipping Cost: {shipping_cost}")
+
+            item = {
+                'nkw': nkw,
+                'image_url': image,
+                'product_title': title,
+                'product_price': price,
+                'shipping_fee': shipping_cost,
+                'doc_id': doc_id
+            }
+
+            yield item
+
+            count += 1
+
+            if count >= 2:
+                break
+
+        if count == 0:
+            self.logger.warning(f"No valid listings found for nkw: {nkw}")
+
+    def errback_httpbin(self, failure):
+        self.logger.error(repr(failure))
+        if failure.check(HttpError):
+            response = failure.value.response
+            self.logger.error('HttpError on %s', response.url)
+            if response.status == 503:
+                self.logger.warning('503 Service Unavailable on %s', response.url)
+                time.sleep(60)  # Wait for 60 seconds before retrying
+                return scrapy.Request(response.url, callback=self.parse, dont_filter=True, headers=self.headers)
+        elif failure.check(DNSLookupError):
+            request = failure.request
+            self.logger.error('DNSLookupError on %s', request.url)
+        elif failure.check(TimeoutError, TCPTimedOutError):
+            request = failure.request
+            self.logger.error('TimeoutError on %s', request.url)
