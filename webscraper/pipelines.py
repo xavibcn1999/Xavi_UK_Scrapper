@@ -31,28 +31,31 @@ class MongoDBPipeline:
         try:
             asin = item['nkw']
             ebay_price = float(item['product_price'].replace('£', '').replace(',', '').strip())
+            ebay_url = item.get('url', '')
 
             amazon_item = self.collection_a.find_one({'ASIN': asin})
             if amazon_item:
-                amazon_used_price = amazon_item.get('Buy Box Used: 180 days avg', '0')
-                amazon_used_price = float(amazon_used_price.replace('£', '').replace(',', '').strip())
-                fba_fee = amazon_item.get('FBA Fees:', '0')
-                fba_fee = float(fba_fee.replace('£', '').replace(',', '').strip())
+                # Manejo de formato adicional
+                amazon_used_price_raw = amazon_item.get('Buy Box Used: 180 days avg', '0')
+                amazon_used_price = float(str(amazon_used_price_raw).replace('£', '').replace(',', '').strip())
+                fba_fee_raw = amazon_item.get('FBA Fees:', '0')
+                fba_fee = float(str(fba_fee_raw).replace('£', '').replace(',', '').strip())
                 referral_fee_percentage = 0.153 if amazon_used_price > 5 else 0.051
                 referral_fee = amazon_used_price * referral_fee_percentage
 
                 profit = ebay_price - amazon_used_price - fba_fee - referral_fee
-                roi = (profit / ebay_price) if ebay_price else -1
+                roi = profit / ebay_price if ebay_price else 0
 
                 if roi > 0.5:
                     self.send_email(
-                        item['image_url'], item['product_title'], item['product_price'],
+                        item['image_url'], ebay_url, ebay_price,
                         amazon_item.get('Image', ''), amazon_item.get('URL: Amazon', ''), amazon_used_price, roi
                     )
+
         except Exception as e:
             logging.error(f"Error calculating ROI and sending email: {e}")
 
-    def send_email(self, ebay_image, ebay_title, ebay_price, amazon_image, amazon_url, amazon_price, roi):
+    def send_email(self, ebay_image, ebay_url, ebay_price, amazon_image, amazon_url, amazon_price, roi):
         try:
             sender_email = "xavusiness@gmail.com"
             receiver_email = "xavialerts@gmail.com"
@@ -66,8 +69,8 @@ class MongoDBPipeline:
             text = f"""\
             Alerta de ROI superior al 50%:
             - Imagen de eBay: {ebay_image}
-            - URL de eBay: {ebay_title}
-            - Precio de eBay: {ebay_price}
+            - URL de eBay: {ebay_url}
+            - Precio de eBay: £{ebay_price}
             - Imagen de Amazon: {amazon_image}
             - URL de Amazon: {amazon_url}
             - Precio de Amazon: £{amazon_price}
@@ -79,7 +82,7 @@ class MongoDBPipeline:
               <body>
                 <h2>Alerta de ROI superior al 50%</h2>
                 <p><strong>Imagen de eBay:</strong> <img src="{ebay_image}" width="100"></p>
-                <p><strong>URL de eBay:</strong> <a href="{ebay_title}">{ebay_title}</a></p>
+                <p><strong>URL de eBay:</strong> <a href="{ebay_url}">{ebay_url}</a></p>
                 <p><strong>Precio de eBay:</strong> £{ebay_price}</p>
                 <p><strong>Imagen de Amazon:</strong> <img src="{amazon_image}" width="100"></p>
                 <p><strong>URL de Amazon:</strong> <a href="{amazon_url}">{amazon_url}</a></p>
