@@ -5,6 +5,11 @@ BOT_NAME = 'webscraper'
 SPIDER_MODULES = ['webscraper.spiders']
 NEWSPIDER_MODULE = 'webscraper.spiders'
 
+# MongoDB settings
+MONGO_URI = 'mongodb+srv://xavidb:superman123@serverlessinstance0.lih2lnk.mongodb.net/Xavi_UK?retryWrites=true&w=majority'
+MONGO_DATABASE = 'Xavi_UK'
+MONGODB_COLLECTION = 'Search_uk_E'
+
 # Configure item pipelines
 ITEM_PIPELINES = {
     'webscraper.pipelines.MongoDBPipeline': 300,
@@ -18,21 +23,13 @@ DOWNLOADER_MIDDLEWARES = {
 }
 
 # AutoThrottle settings
-AUTOTHROTTLE_ENABLED = True
-AUTOTHROTTLE_START_DELAY = 5
-AUTOTHROTTLE_MAX_DELAY = 60
-AUTOTHROTTLE_TARGET_CONCURRENCY = 1.0
-RANDOMIZE_DOWNLOAD_DELAY = True
+AUTOTHROTTLE_ENABLED = False  # Disable AutoThrottle for maximum speed
 
 # Other settings
-CONCURRENT_REQUESTS = 2
-DOWNLOAD_DELAY = 5
-RETRY_TIMES = 5
+CONCURRENT_REQUESTS = 16  # Increased concurrency
+DOWNLOAD_DELAY = 0  # No download delay for maximum speed
+RETRY_TIMES = 15  # Increased retry times
 COOKIES_ENABLED = True
 FEED_EXPORT_ENCODING = "utf-8"
-
-# settings.py
-
-MONGO_URI = 'mongodb+srv://xavidb:superman123@serverlessinstance0.lih2lnk.mongodb.net/Xavi_UK?retryWrites=true&w=majority'
-MONGO_DATABASE = 'Xavi_UK'
-MONGODB_COLLECTION = 'Search_uk_E'
+FEED_FORMAT = 'csv'
+FEED_URI = datetime.now().strftime('%Y_%m_%d__%H_%M') + '_ebay.csv'
