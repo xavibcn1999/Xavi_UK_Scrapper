@@ -58,6 +58,8 @@ class MongoDBPipeline:
             logging.info(f"Precio de eBay (producto + envío): {ebay_price}")
 
             amazon_item = self.collection_a.find_one({'ASIN': asin})
+            ebay_item = self.collection_e.find_one({'_id': item['_id']})
+            ebay_url = ebay_item.get('url', '') if ebay_item else ''
             
             if amazon_item:
                 logging.info(f"Documento de Amazon recuperado: {amazon_item}")
@@ -99,7 +101,7 @@ class MongoDBPipeline:
 
                 if roi > 0.5:
                     self.send_email(
-                        item['image_url'], item.get('product_url', ''), ebay_price,
+                        item['image_url'], ebay_url, ebay_price,
                         amazon_item.get('Image', ''), amazon_item.get('URL: Amazon', ''), amazon_used_price, roi
                     )
 
