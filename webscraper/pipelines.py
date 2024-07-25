@@ -159,21 +159,29 @@ class MongoDBPipeline:
 
                 html = f"""\
                 <html>
-                  <body>
-                    <h4>{amazon_title}</h4>
-                    <p><strong>Precio de Amazon:</strong> £{amazon_price:.2f}</p>
-                    <p><strong>Precio de eBay:</strong> £{ebay_price:.2f}</p>
-                    <p style="font-size: 1.5em;"><strong>ROI:</strong> {roi:.2f}%</p>
-                    <div style="display: flex; justify-content: space-between; align-items: center;">
-  <a href="{ebay_url}" onclick="window.open(this.href, 'ebayWindow', 'width=800,height=600,noopener,noreferrer,toolbar=yes,menubar=yes,location=yes'); return false;">
-    <img src="{ebay_image}" width="250" height="375" alt="eBay Image">
-  </a>
-  <a href="{amazon_url}" onclick="window.open(this.href, 'amazonWindow', 'width=800,height=600,noopener,noreferrer,toolbar=yes,menubar=yes,location=yes'); return false;">
-    <img src="{amazon_image}" width="250" height="375" alt="Amazon Image">
-  </a>
-</div>
-                  </body>
-                </html>
+  <head>
+    <script>
+      function openNewWindow(url, windowName) {
+        window.open(url, windowName, 'width=800,height=600,noopener,noreferrer,toolbar=yes,menubar=yes,location=yes');
+        return false;
+      }
+    </script>
+  </head>
+  <body>
+    <h4>{amazon_title}</h4>
+    <p><strong>Precio de Amazon:</strong> £{amazon_price:.2f}</p>
+    <p><strong>Precio de eBay:</strong> £{ebay_price:.2f}</p>
+    <p style="font-size: 1.5em;"><strong>ROI:</strong> {roi:.2f}%</p>
+    <div style="display: flex; justify-content: space-between; align-items: center;">
+      <a href="{ebay_url}" onclick="return openNewWindow(this.href, 'ebayWindow');">
+        <img src="{ebay_image}" width="250" height="375" alt="eBay Image">
+      </a>
+      <a href="{amazon_url}" onclick="return openNewWindow(this.href, 'amazonWindow');">
+        <img src="{amazon_image}" width="250" height="375" alt="Amazon Image">
+      </a>
+    </div>
+  </body>
+</html>
                 """
                 
                 part1 = MIMEText(text, "plain")
