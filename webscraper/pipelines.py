@@ -15,6 +15,7 @@ class MongoDBPipeline:
         self.collection_name_a = settings.get('MONGO_COLLECTION_A')
         self.collection_name_cache = 'Search_uk_Cache'  # New collection for caching
         self.gmail_accounts = [
+            {"email": "xavusiness@gmail.com", "password": "tnthxazpsezagjdc"},
             {"email": "xaviergomezvidal@gmail.com", "password": "cqpbqwvqbqvjpmly"},
             {"email": "xavigv77@gmail.com", "password": "crdgantmezylfjyq"},
             {"email": "xavigv0408@gmail.com", "password": "excohgpjkrbyvbtn"},
@@ -121,6 +122,8 @@ class MongoDBPipeline:
                         self.collection_cache.update_one({'_id': cached_item['_id']}, {'$set': {'last_checked': datetime.utcnow()}})
                         logging.info(f"Item already exists in cache: {item['nkw']} - {item['product_title']} - {item['image_url']}")
                     else:
+                        item['last_checked'] = datetime.utcnow()
+                        self.collection_cache.update_one({'_id': item['_id']}, {'$set': item}, upsert=True)
                         self.send_email(
                             item['image_url'], ebay_url, ebay_price,
                             amazon_item.get('Image', ''), amazon_item.get('URL: Amazon', ''), amazon_used_price, roi, amazon_title
@@ -176,25 +179,22 @@ class MongoDBPipeline:
                 part1 = MIMEText(text, "plain")
                 part2 = MIMEText(html, "html")
 
-                                part1 = MIMEText(text, "plain")
-                part2 = MIMEText(html, "html")
+message.attach(part1)
+message.attach(part2)
 
-                message.attach(part1)
-                message.attach(part2)
+with smtplib.SMTP_SSL("smtp.gmail.com", 465) as server:
+    server.login(sender_email, password)
+    server.sendmail(sender_email, receiver_email, message.as_string())
 
-                with smtplib.SMTP_SSL("smtp.gmail.com", 465) as server:
-                    server.login(sender_email, password)
-                    server.sendmail(sender_email, receiver_email, message.as_string())
+logging.info(f"Email enviado exitosamente desde {sender_email}")
 
-                logging.info(f"Email enviado exitosamente desde {sender_email}")
-
-                # Update cache after successful email send
-                self.collection_cache.update_one(
-                    {'_id': item['_id']},
-                    {'$set': item},
-                    upsert=True
-                )
-                break
+# Update cache after successful email send
+self.collection_cache.update_one(
+    {'_id': item['_id']},
+    {'$set': item},
+    upsert=True
+)
+break
             except smtplib.SMTPException as e:
                 logging.error(f"Error al enviar email con la cuenta {sender_email}: {e}")
                 if "Daily user sending limit exceeded" in str(e):
