@@ -132,50 +132,51 @@ class MongoDBPipeline:
             logging.error(f"Error calculating ROI y sending email: {e}")
 
     def send_email(self, ebay_image, ebay_url, ebay_price, amazon_image, amazon_url, amazon_price, roi, amazon_title):
-        try:
-            account = self.gmail_accounts[self.current_account]
-            self.current_account = (self.current_account + 1) % len(self.gmail_accounts)
+        while True:
+            try:
+                account = self.gmail_accounts[self.current_account]
+                self.current_account = (self.current_account + 1) % len(self.gmail_accounts)
 
-            sender_email = account["email"]
-            password = account["password"]
-            receiver_email = "xavialerts@gmail.com"
+                sender_email = account["email"]
+                password = account["password"]
+                receiver_email = "xavialerts@gmail.com"
 
-            message = MIMEMultipart("alternative")
-            message["Subject"] = amazon_title
-            message["From"] = sender_email
-            message["To"] = receiver_email
+                message = MIMEMultipart("alternative")
+                message["Subject"] = amazon_title
+                message["From"] = sender_email
+                message["To"] = receiver_email
 
-            text = f"""\
-            Alerta de ROI superior al 50%:
-            - Imagen de eBay: {ebay_image}
-            - URL de eBay: {ebay_url}
-            - Precio de eBay: £{ebay_price:.2f}
-            - Imagen de Amazon: {amazon_image}
-            - URL de Amazon: {amazon_url}
-            - Precio de Amazon: £{amazon_price:.2f}
-            - ROI: {roi:.2f}%
-            """
+                text = f"""\
+                Alerta de ROI superior al 50%:
+                - Imagen de eBay: {ebay_image}
+                - URL de eBay: {ebay_url}
+                - Precio de eBay: £{ebay_price:.2f}
+                - Imagen de Amazon: {amazon_image}
+                - URL de Amazon: {amazon_url}
+                - Precio de Amazon: £{amazon_price:.2f}
+                - ROI: {roi:.2f}%
+                """
 
-            html = f"""\
-            <html>
-              <body>
-                <h4>{amazon_title}</h4>
-                <p><strong>Precio de Amazon:</strong> £{amazon_price:.2f}</p>
-                <p><strong>Precio de eBay:</strong> £{ebay_price:.2f}</p>
-                <p style="font-size: 1.5em;"><strong>ROI:</strong> {roi:.2f}%</p>
-                <div style="display: flex; justify-content: space-between; align-items: center;">
-                  <a href="{ebay_url}" target="_blank">
-                    <img src="{ebay_image}" width="250" height="375" alt="eBay Image">
-                  </a>
-                  <a href="{amazon_url}" target="_blank">
-                    <img src="{amazon_image}" width="250" height="375" alt="Amazon Image">
-                  </a>
-                </div>
-              </body>
-            </html>
-            """
+                html = f"""\
+                <html>
+                  <body>
+                    <h4>{amazon_title}</h4>
+                    <p><strong>Precio de Amazon:</strong> £{amazon_price:.2f}</p>
+                    <p><strong>Precio de eBay:</strong> £{ebay_price:.2f}</p>
+                    <p style="font-size: 1.5em;"><strong>ROI:</strong> {roi:.2f}%</p>
+                    <div style="display: flex; justify-content: space-between; align-items: center;">
+                      <a href="{ebay_url}" target="_blank">
+                        <img src="{ebay_image}" width="250" height="375" alt="eBay Image">
+                      </a>
+                      <a href="{amazon_url}" target="_blank">
+                        <img src="{amazon_image}" width="250" height="375" alt="Amazon Image">
+                      </a>
+                    </div>
+                  </body>
+                </html>
+                """
 
-            part1 = MIMEText(text, "plain")
+                part1 = MIMEText(text, "plain")
             part2 = MIMEText(html, "html")
 
             message.attach(part1)
