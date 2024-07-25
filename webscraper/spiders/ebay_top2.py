@@ -71,6 +71,7 @@ class EbayTop2Spider(scrapy.Spider):
             return
 
         # Clear the cache collection before starting new extraction
+        self.logger.info("Clearing the cache collection before new extraction.")
         self.collection_cache.delete_many({})
 
         for data_urls_loop in data_urls:
