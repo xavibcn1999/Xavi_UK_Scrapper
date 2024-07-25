@@ -123,15 +123,15 @@ class MongoDBPipeline:
                         logging.info(f"Item already exists in cache: {item['nkw']} - {item['product_title']} - {item['image_url']}")
                     else:
                         item['last_checked'] = datetime.utcnow()
-                        self.collection_cache.update_one({'_id': item['_id']}, {'$set': item}, upsert=True)
                         self.send_email(
+                            item,  # Passing item to send_email method
                             item['image_url'], ebay_url, ebay_price,
                             amazon_item.get('Image', ''), amazon_item.get('URL: Amazon', ''), amazon_used_price, roi, amazon_title
                         )
         except Exception as e:
             logging.error(f"Error calculating ROI y sending email: {e}")
 
-    def send_email(self, ebay_image, ebay_url, ebay_price, amazon_image, amazon_url, amazon_price, roi, amazon_title):
+    def send_email(self, item, ebay_image, ebay_url, ebay_price, amazon_image, amazon_url, amazon_price, roi, amazon_title):
         while True:
             try:
                 account = self.gmail_accounts[self.current_account]
@@ -167,7 +167,7 @@ class MongoDBPipeline:
                     <div style="display: flex; justify-content: space-between; align-items: center;">
                       <a href="{ebay_url}" target="_blank">
                         <img src="{ebay_image}" width="250" height="375" alt="eBay Image">
-                      </a>
+                                            </a>
                       <a href="{amazon_url}" target="_blank">
                         <img src="{amazon_image}" width="250" height="375" alt="Amazon Image">
                       </a>
