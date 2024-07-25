@@ -49,17 +49,9 @@ class MongoDBPipeline:
             return item
 
         self.collection_e.update_one({'_id': item['_id']}, {'$set': item}, upsert=True)
-
-        # Check cache before sending email
-        cached_item = self.collection_cache.find_one({'nkw': item['nkw'], 'product_title': item['product_title']})
-        if cached_item:
-            # Update timestamp to mark as relevant
-            self.collection_cache.update_one({'_id': cached_item['_id']}, {'$set': {'last_checked': datetime.utcnow()}})
-            logging.info(f"Item already exists in cache: {item['nkw']} - {item['product_title']}")
-        else:
-            item['last_checked'] = datetime.utcnow()
-            self.collection_cache.update_one({'_id': item['_id']}, {'$set': item}, upsert=True)
-            self.calculate_and_send_email(item)
+        
+        # Calculate and potentially send email
+        self.calculate_and_send_email(item)
 
         return item
 
@@ -119,11 +111,20 @@ class MongoDBPipeline:
 
                 ebay_url = f"https://www.ebay.co.uk/sch/i.html?_from=R40&_trksid=p2334524.m570.l1313&_nkw={asin}&_sacat=267&LH_TitleDesc=0&_odkw=1492086894&_osacat=267&LH_BIN=1&_sop=15&LH_PrefLoc=1&rt=nc&LH_ItemCondition=2750%7C4000%7C5000%7C6000%7C10"
 
-                if roi > 0.5:
-                    self.send_email(
-                        item['image_url'], ebay_url, ebay_price,
-                        amazon_item.get('Image', ''), amazon_item.get('URL: Amazon', ''), amazon_used_price, roi, amazon_title
-                    )
+                if roi > 50:
+                    # Check cache before sending email
+                    cached_item = self.collection_cache.find_one({'nkw': item['nkw'], 'product_title': item['product_title']})
+                    if cached_item:
+                        # Update timestamp to mark as relevant
+                        self.collection_cache.update_one({'_id': cached_item['_id']}, {'$set': {'last_checked': datetime.utcnow()}})
+                        logging.info(f"Item already exists in cache: {item['nkw']} - {item['product_title']}")
+                    else:
+                        item['last_checked'] = datetime.utcnow()
+                        self.collection_cache.update_one({'_id': item['_id']}, {'$set': item}, upsert=True)
+                        self.send_email(
+                            item['image_url'], ebay_url, ebay_price,
+                            amazon_item.get('Image', ''), amazon_item.get('URL: Amazon', ''), amazon_used_price, roi, amazon_title
+                        )
         except Exception as e:
             logging.error(f"Error calculating ROI and sending email: {e}")
 
