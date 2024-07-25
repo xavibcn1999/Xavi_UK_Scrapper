@@ -32,6 +32,7 @@ class MongoDBPipeline:
         self.collection_cache = self.db[self.collection_name_cache]  # Connect to the new collection
 
     def close_spider(self, spider):
+        self.clean_cache()
         self.client.close()
 
     def process_item(self, item, spider):
@@ -57,7 +58,7 @@ class MongoDBPipeline:
             logging.info(f"Item already exists in cache: {item['nkw']} - {item['product_title']}")
         else:
             item['last_checked'] = datetime.utcnow()
-            self.collection_cache.insert_one(item)
+            self.collection_cache.update_one({'_id': item['_id']}, {'$set': item}, upsert=True)
             self.calculate_and_send_email(item)
 
         return item
