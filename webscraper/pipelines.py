@@ -147,18 +147,17 @@ class MongoDBPipeline:
                 message["To"] = receiver_email
 
                 text = f"""\
-                Alerta de ROI superior al 50%:
-                - Imagen de eBay: {ebay_image}
-                - URL de eBay: {ebay_url}
-                - Precio de eBay: £{ebay_price:.2f}
-                - Imagen de Amazon: {amazon_image}
-                - URL de Amazon: {amazon_url}
-                - Precio de Amazon: £{amazon_price:.2f}
-                - ROI: {roi:.2f}%
-                """
+Alerta de ROI superior al 50%:
+- Imagen de eBay: {ebay_image}
+- URL de eBay: {ebay_url}
+- Precio de eBay: £{ebay_price:.2f}
+- Imagen de Amazon: {amazon_image}
+- URL de Amazon: {amazon_url}
+- Precio de Amazon: £{amazon_price:.2f}
+- ROI: {roi:.2f}%
+"""
 
-                
-                  html = f"""\
+html = f"""\
 <html>
   <body>
     <h4>{amazon_title}</h4>
@@ -176,6 +175,7 @@ class MongoDBPipeline:
   </body>
 </html>
 """
+
 
 
                 part1 = MIMEText(text, "plain")
