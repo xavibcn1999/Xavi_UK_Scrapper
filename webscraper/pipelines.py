@@ -157,6 +157,8 @@ Alerta de ROI superior al 50%:
 - ROI: {roi:.2f}%
 """
 
+# Parte del código previo omitida para contexto
+
 html = f"""\
 <html>
   <body>
@@ -176,33 +178,32 @@ html = f"""\
 </html>
 """
 
+part1 = MIMEText(text, "plain")
+part2 = MIMEText(html, "html")
 
+message.attach(part1)
+message.attach(part2)
 
-                part1 = MIMEText(text, "plain")
-                part2 = MIMEText(html, "html")
+try:
+    with smtplib.SMTP_SSL("smtp.gmail.com", 465) as server:
+        server.login(sender_email, password)
+        server.sendmail(sender_email, receiver_email, message.as_string())
 
-                message.attach(part1)
-                message.attach(part2)
+    logging.info(f"Email enviado exitosamente desde {sender_email}")
 
-                with smtplib.SMTP_SSL("smtp.gmail.com", 465) as server:
-                    server.login(sender_email, password)
-                    server.sendmail(sender_email, receiver_email, message.as_string())
-
-                logging.info(f"Email enviado exitosamente desde {sender_email}")
-
-                # Update cache after successful email send
-                self.collection_cache.update_one(
-                    {'_id': item['_id']},
-                    {'$set': item},
-                    upsert=True
-                )
-                break
-            except smtplib.SMTPException as e:
-                logging.error(f"Error al enviar email con la cuenta {sender_email}: {e}")
-                if "Daily user sending limit exceeded" in str(e):
-                    logging.info(f"Cambio de cuenta debido al límite diario alcanzado: {sender_email}")
-                elif "Username and Password not accepted" in str(e):
-                    logging.info(f"Cambio de cuenta debido a credenciales incorrectas: {sender_email}")
-                else:
-                    break
-                self.current_account = (self.current_account + 1) % len(self.gmail_accounts)
+    # Actualizar la caché después de enviar el correo con éxito
+    self.collection_cache.update_one(
+        {'_id': item['_id']},
+        {'$set': item},
+        upsert=True
+    )
+    break
+except smtplib.SMTPException as e:
+    logging.error(f"Error al enviar email con la cuenta {sender_email}: {e}")
+    if "Daily user sending limit exceeded" in str(e):
+        logging.info(f"Cambio de cuenta debido al límite diario alcanzado: {sender_email}")
+    elif "Username and Password not accepted" in str(e):
+        logging.info(f"Cambio de cuenta debido a credenciales incorrectas: {sender_email}")
+    else:
+        break
+    self.current_account = (self.current_account + 1) % len(self.gmail_accounts)
