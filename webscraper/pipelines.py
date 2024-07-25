@@ -21,7 +21,6 @@ class MongoDBPipeline:
             {"email": "xavigv0408@gmail.com", "password": "excohgpjkrbyvbtn"},
             {"email": "xavigomezvidal@gmail.com", "password": "lunuwnctjjsbchzx"},
             {"email": "xavibcn1999@gmail.com", "password": "vcjlpcfemckrpsvm"}
-
         ]
         self.current_account = 0
         self.exchange_rate = 1.29  # 1 GBP = 1.29 USD
@@ -50,6 +49,7 @@ class MongoDBPipeline:
             logging.error("El item no tiene '_id'")
             return item
 
+        # Store item in eBay items collection
         self.collection_e.update_one({'_id': item['_id']}, {'$set': item}, upsert=True)
         
         # Calculate and potentially send email
@@ -125,14 +125,14 @@ class MongoDBPipeline:
                     else:
                         item['last_checked'] = datetime.utcnow()
                         self.send_email(
-                            item,  # Passing item to send_email method
                             item['image_url'], ebay_url, ebay_price,
-                            amazon_item.get('Image', ''), amazon_item.get('URL: Amazon', ''), amazon_used_price, roi, amazon_title
+                            amazon_item.get('Image', ''), amazon_item.get('URL: Amazon', ''), amazon_used_price, roi, amazon_title,
+                            item
                         )
         except Exception as e:
             logging.error(f"Error calculating ROI y sending email: {e}")
 
-    def send_email(self, item, ebay_image, ebay_url, ebay_price, amazon_image, amazon_url, amazon_price, roi, amazon_title):
+    def send_email(self, ebay_image, ebay_url, ebay_price, amazon_image, amazon_url, amazon_price, roi, amazon_title, item):
         while True:
             try:
                 account = self.gmail_accounts[self.current_account]
@@ -168,7 +168,7 @@ class MongoDBPipeline:
                     <div style="display: flex; justify-content: space-between; align-items: center;">
                       <a href="{ebay_url}" target="_blank">
                         <img src="{ebay_image}" width="250" height="375" alt="eBay Image">
-                                            </a>
+                      </a>
                       <a href="{amazon_url}" target="_blank">
                         <img src="{amazon_image}" width="250" height="375" alt="Amazon Image">
                       </a>
