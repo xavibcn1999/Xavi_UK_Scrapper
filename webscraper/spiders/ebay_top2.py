@@ -1,6 +1,6 @@
 import re
 import scrapy
-from datetime import datetime
+from datetime import datetime, timedelta
 from pymongo import MongoClient
 from fake_headers import Headers
 from scrapy.spidermiddlewares.httperror import HttpError
@@ -70,15 +70,11 @@ class EbayTop2Spider(scrapy.Spider):
             self.logger.warning("No URLs found in the Search_uk_E collection.")
             return
 
-        # Clear the cache collection before starting new extraction
-        self.logger.info("Clearing the cache collection before new extraction.")
-        self.collection_cache.delete_many({})
-
         for data_urls_loop in data_urls:
             url = data_urls_loop.get('url', '').strip()
 
             if url:
-                # Extraemos el valor de `nkw` de la URL
+                # Extract the value of `nkw` from the URL
                 nkw_match = re.search(r'_nkw=([^&]+)', url)
                 nkw = nkw_match.group(1) if nkw_match else 'N/A'
 
