@@ -161,16 +161,16 @@ class MongoDBPipeline:
                 <html>
                   <body>
                     <h4>{amazon_title}</h4>
-                    <p><strong>Precio de Amazon:</strong> £{amazon_price:.2f}</p>
-                    <p><strong>Precio de eBay:</strong> £{ebay_price:.2f}</p>
-                    <p style="font-size: 1.5em;"><strong>ROI:</strong> {roi:.2f}%</p>
-                    <div style="display: flex; justify-content: space-between; align-items: center;">
-                      <a href="{ebay_url}" target="_blank">
-                        <img src="{ebay_image}" width="250" height="375" alt="eBay Image">
-                                           </a>
-                      <a href="{amazon_url}" target="_blank">
-                        <img src="{amazon_image}" width="250" height="375" alt="Amazon Image">
-                      </a>
+    <p><strong>Precio de Amazon:</strong> £{amazon_price:.2f}</p>
+    <p><strong>Precio de eBay:</strong> £{ebay_price:.2f}</p>
+    <p style="font-size: 1.5em;"><strong>ROI:</strong> {roi:.2f}%</p>
+    <div style="display: flex; justify-content: space-between; align-items: center;">
+      <a href="{ebay_url}" target="_blank" onclick="window.open(this.href, '_blank', 'noopener,noreferrer'); return false;">
+        <img src="{ebay_image}" width="250" height="375" alt="eBay Image">
+      </a>
+      <a href="{amazon_url}" target="_blank" onclick="window.open(this.href, '_blank', 'noopener,noreferrer'); return false;">
+        <img src="{amazon_image}" width="250" height="375" alt="Amazon Image">
+      </a>
                     </div>
                   </body>
                 </html>
