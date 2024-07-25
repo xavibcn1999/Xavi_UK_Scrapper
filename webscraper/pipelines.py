@@ -116,11 +116,11 @@ class MongoDBPipeline:
 
                 if roi > 50:
                     # Check cache before sending email
-                    cached_item = self.collection_cache.find_one({'nkw': item['nkw'], 'product_title': item['product_title']})
+                    cached_item = self.collection_cache.find_one({'nkw': item['nkw'], 'product_title': item['product_title'], 'seller_name': item.get('seller_name', '')})
                     if cached_item:
                         # Update timestamp to mark as relevant
                         self.collection_cache.update_one({'_id': cached_item['_id']}, {'$set': {'last_checked': datetime.utcnow()}})
-                        logging.info(f"Item already exists in cache: {item['nkw']} - {item['product_title']}")
+                        logging.info(f"Item already exists in cache: {item['nkw']} - {item['product_title']} - {item.get('seller_name', '')}")
                     else:
                         item['last_checked'] = datetime.utcnow()
                         self.collection_cache.update_one({'_id': item['_id']}, {'$set': item}, upsert=True)
