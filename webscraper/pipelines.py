@@ -126,7 +126,7 @@ class MongoDBPipeline:
                             amazon_item.get('Image', ''), amazon_item.get('URL: Amazon', ''), amazon_used_price, roi, amazon_title
                         )
         except Exception as e:
-            logging.error(f"Error calculating ROI and sending email: {e}")
+            logging.error(f"Error calculating ROI y sending email: {e}")
 
     def send_email(self, ebay_image, ebay_url, ebay_price, amazon_image, amazon_url, amazon_price, roi, amazon_title):
         try:
