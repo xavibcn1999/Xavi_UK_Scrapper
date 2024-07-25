@@ -157,8 +157,7 @@ class MongoDBPipeline:
                 - ROI: {roi:.2f}%
                 """
 
-                html = f"""\
-                <html>
+                
                   html = f"""\
 <html>
   <body>
