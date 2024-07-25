@@ -49,7 +49,6 @@ class MongoDBPipeline:
             logging.error("El item no tiene '_id'")
             return item
 
-        # Store item in eBay items collection
         self.collection_e.update_one({'_id': item['_id']}, {'$set': item}, upsert=True)
         
         # Calculate and potentially send email
@@ -123,16 +122,14 @@ class MongoDBPipeline:
                         self.collection_cache.update_one({'_id': cached_item['_id']}, {'$set': {'last_checked': datetime.utcnow()}})
                         logging.info(f"Item already exists in cache: {item['nkw']} - {item['product_title']} - {item['image_url']}")
                     else:
-                        item['last_checked'] = datetime.utcnow()
                         self.send_email(
                             item['image_url'], ebay_url, ebay_price,
-                            amazon_item.get('Image', ''), amazon_item.get('URL: Amazon', ''), amazon_used_price, roi, amazon_title,
-                            item
+                            amazon_item.get('Image', ''), amazon_item.get('URL: Amazon', ''), amazon_used_price, roi, amazon_title
                         )
         except Exception as e:
             logging.error(f"Error calculating ROI y sending email: {e}")
 
-    def send_email(self, ebay_image, ebay_url, ebay_price, amazon_image, amazon_url, amazon_price, roi, amazon_title, item):
+    def send_email(self, ebay_image, ebay_url, ebay_price, amazon_image, amazon_url, amazon_price, roi, amazon_title):
         while True:
             try:
                 account = self.gmail_accounts[self.current_account]
@@ -178,6 +175,9 @@ class MongoDBPipeline:
                 """
 
                 part1 = MIMEText(text, "plain")
+                part2 = MIMEText(html, "html")
+
+                                part1 = MIMEText(text, "plain")
                 part2 = MIMEText(html, "html")
 
                 message.attach(part1)
