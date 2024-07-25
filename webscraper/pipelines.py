@@ -4,6 +4,7 @@ from email.mime.multipart import MIMEMultipart
 from scrapy.utils.project import get_project_settings
 from pymongo import MongoClient
 import logging
+from datetime import datetime
 
 class MongoDBPipeline:
     def __init__(self):
@@ -51,8 +52,11 @@ class MongoDBPipeline:
         # Check cache before sending email
         cached_item = self.collection_cache.find_one({'nkw': item['nkw'], 'product_title': item['product_title']})
         if cached_item:
+            # Update timestamp to mark as relevant
+            self.collection_cache.update_one({'_id': cached_item['_id']}, {'$set': {'last_checked': datetime.utcnow()}})
             logging.info(f"Item already exists in cache: {item['nkw']} - {item['product_title']}")
         else:
+            item['last_checked'] = datetime.utcnow()
             self.collection_cache.insert_one(item)
             self.calculate_and_send_email(item)
 
