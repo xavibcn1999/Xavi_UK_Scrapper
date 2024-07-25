@@ -15,7 +15,6 @@ class MongoDBPipeline:
         self.collection_name_a = settings.get('MONGO_COLLECTION_A')
         self.collection_name_cache = 'Search_uk_Cache'  # New collection for caching
         self.gmail_accounts = [
-            {"email": "xavusiness@gmail.com", "password": "tnthxazpsezagjdc"},
             {"email": "xaviergomezvidal@gmail.com", "password": "cqpbqwvqbqvjpmly"},
             {"email": "xavigv77@gmail.com", "password": "crdgantmezylfjyq"},
             {"email": "xavigv0408@gmail.com", "password": "excohgpjkrbyvbtn"},
