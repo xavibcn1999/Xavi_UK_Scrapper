@@ -1,12 +1,10 @@
 import smtplib
 from email.mime.text import MIMEText
 from email.mime.multipart import MIMEMultipart
-from email.mime.image import MIMEImage
 from scrapy.utils.project import get_project_settings
 from pymongo import MongoClient
 import logging
 from datetime import datetime
-import requests
 
 class MongoDBPipeline:
     def __init__(self):
@@ -58,8 +56,7 @@ class MongoDBPipeline:
 
         return item
 
-
-        def convert_price(self, price_str):
+    def convert_price(self, price_str):
         if isinstance(price_str, str):
             price_str = price_str.replace('£', '').replace('US $', '').replace('+', '').replace(',', '').strip()
             if 'US' in price_str:
@@ -134,7 +131,7 @@ class MongoDBPipeline:
         except Exception as e:
             logging.error(f"Error calculating ROI y sending email: {e}")
 
-        def send_email(self, item, ebay_image, ebay_url, ebay_price, amazon_image, amazon_url, amazon_price, roi, amazon_title):
+    def send_email(self, item, ebay_image, ebay_url, ebay_price, amazon_image, amazon_url, amazon_price, roi, amazon_title):
         while True:
             try:
                 account = self.gmail_accounts[self.current_account]
@@ -144,7 +141,7 @@ class MongoDBPipeline:
                 password = account["password"]
                 receiver_email = "xavialerts@gmail.com"
 
-                message = MIMEMultipart("related")
+                message = MIMEMultipart("alternative")
                 message["Subject"] = amazon_title
                 message["From"] = sender_email
                 message["To"] = receiver_email
@@ -160,16 +157,6 @@ class MongoDBPipeline:
                 - ROI: {roi:.2f}%
                 """
 
-                # Descargar las imágenes y adjuntarlas
-                ebay_img_data = requests.get(ebay_image).content
-                amazon_img_data = requests.get(amazon_image).content
-
-                ebay_img = MIMEImage(ebay_img_data)
-                amazon_img = MIMEImage(amazon_img_data)
-
-                ebay_img.add_header('Content-ID', '<ebay_image>')
-                amazon_img.add_header('Content-ID', '<amazon_image>')
-
                 html = f"""\
                 <html>
                   <body>
@@ -177,12 +164,12 @@ class MongoDBPipeline:
                     <p><strong>Precio de Amazon:</strong> £{amazon_price:.2f}</p>
                     <p><strong>Precio de eBay:</strong> £{ebay_price:.2f}</p>
                     <p style="font-size: 1.5em;"><strong>ROI:</strong> {roi:.2f}%</p>
-                                       <div style="display: flex; justify-content: space-between; align-items: center;">
-                      <a href="{ebay_url}" target="_blank" onclick="window.open('{ebay_url}', '_blank', 'width=800,height=600'); return false;">
-                        <img src="cid:ebay_image" width="250" height="375" alt="eBay Image">
-                      </a>
-                      <a href="{amazon_url}" target="_blank" onclick="window.open('{amazon_url}', '_blank', 'width=800,height=600'); return false;">
-                        <img src="cid:amazon_image" width="250" height="375" alt="Amazon Image">
+                    <div style="display: flex; justify-content: space-between; align-items: center;">
+                      <a href="{ebay_url}" target="_blank">
+                        <img src="{ebay_image}" width="250" height="375" alt="eBay Image">
+                                           </a>
+                      <a href="{amazon_url}" target="_blank">
+                        <img src="{amazon_image}" width="250" height="375" alt="Amazon Image">
                       </a>
                     </div>
                   </body>
@@ -194,8 +181,6 @@ class MongoDBPipeline:
 
                 message.attach(part1)
                 message.attach(part2)
-                message.attach(ebay_img)
-                message.attach(amazon_img)
 
                 with smtplib.SMTP_SSL("smtp.gmail.com", 465) as server:
                     server.login(sender_email, password)
@@ -219,4 +204,3 @@ class MongoDBPipeline:
                 else:
                     break
                 self.current_account = (self.current_account + 1) % len(self.gmail_accounts)
-
