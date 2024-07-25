@@ -52,6 +52,7 @@ class EbayTop2Spider(scrapy.Spider):
             self.db = client["Xavi_UK"]
             self.collection_E = self.db['Search_uk_E']
             self.collection_A = self.db['Search_uk_A']
+            self.collection_cache = self.db['Search_uk_Cache']  # New collection for caching
             self.logger.info("Connected to MongoDB.")
         except Exception as e:
             self.logger.error(f"Error connecting to MongoDB: {e}")
@@ -68,6 +69,9 @@ class EbayTop2Spider(scrapy.Spider):
         if not data_urls:
             self.logger.warning("No URLs found in the Search_uk_E collection.")
             return
+
+        # Clear the cache collection before starting new extraction
+        self.collection_cache.delete_many({})
 
         for data_urls_loop in data_urls:
             url = data_urls_loop.get('url', '').strip()
