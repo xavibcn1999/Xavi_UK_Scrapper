@@ -147,63 +147,60 @@ class MongoDBPipeline:
                 message["To"] = receiver_email
 
                 text = f"""\
-Alerta de ROI superior al 50%:
-- Imagen de eBay: {ebay_image}
-- URL de eBay: {ebay_url}
-- Precio de eBay: £{ebay_price:.2f}
-- Imagen de Amazon: {amazon_image}
-- URL de Amazon: {amazon_url}
-- Precio de Amazon: £{amazon_price:.2f}
-- ROI: {roi:.2f}%
-"""
+                Alerta de ROI superior al 50%:
+                - Imagen de eBay: {ebay_image}
+                - URL de eBay: {ebay_url}
+                - Precio de eBay: £{ebay_price:.2f}
+                - Imagen de Amazon: {amazon_image}
+                - URL de Amazon: {amazon_url}
+                - Precio de Amazon: £{amazon_price:.2f}
+                - ROI: {roi:.2f}%
+                """
 
-# Parte del código previo omitida para contexto
+                html = f"""\
+                <html>
+                  <body>
+                    <h4>{amazon_title}</h4>
+                    <p><strong>Precio de Amazon:</strong> £{amazon_price:.2f}</p>
+                    <p><strong>Precio de eBay:</strong> £{ebay_price:.2f}</p>
+                    <p style="font-size: 1.5em;"><strong>ROI:</strong> {roi:.2f}%</p>
+                    <div style="display: flex; justify-content: space-between; align-items: center;">
+                      <a href="{ebay_url}" target="_blank">
+                        <img src="{ebay_image}" width="250" height="375" alt="eBay Image">
+                                           </a>
+                      <a href="{amazon_url}" target="_blank">
+                        <img src="{amazon_image}" width="250" height="375" alt="Amazon Image">
+                      </a>
+                    </div>
+                  </body>
+                </html>
+                """
 
-html = f"""\
-<html>
-  <body>
-    <h4>{amazon_title}</h4>
-    <p><strong>Precio de Amazon:</strong> £{amazon_price:.2f}</p>
-    <p><strong>Precio de eBay:</strong> £{ebay_price:.2f}</p>
-    <p style="font-size: 1.5em;"><strong>ROI:</strong> {roi:.2f}%</p>
-    <div style="display: flex; justify-content: space-between; align-items: center;">
-      <a href="{ebay_url}" target="_blank" onclick="window.open('{ebay_url}', '_blank', 'width=800,height=600'); return false;">
-        <img src="{ebay_image}" width="250" height="375" alt="eBay Image">
-      </a>
-      <a href="{amazon_url}" target="_blank" onclick="window.open('{amazon_url}', '_blank', 'width=800,height=600'); return false;">
-        <img src="{amazon_image}" width="250" height="375" alt="Amazon Image">
-      </a>
-    </div>
-  </body>
-</html>
-"""
+                part1 = MIMEText(text, "plain")
+                part2 = MIMEText(html, "html")
 
-part1 = MIMEText(text, "plain")
-part2 = MIMEText(html, "html")
+                message.attach(part1)
+                message.attach(part2)
 
-message.attach(part1)
-message.attach(part2)
+                with smtplib.SMTP_SSL("smtp.gmail.com", 465) as server:
+                    server.login(sender_email, password)
+                    server.sendmail(sender_email, receiver_email, message.as_string())
 
-try:
-    with smtplib.SMTP_SSL("smtp.gmail.com", 465) as server:
-        server.login(sender_email, password)
-        server.sendmail(sender_email, receiver_email, message.as_string())
+                logging.info(f"Email enviado exitosamente desde {sender_email}")
 
-    logging.info(f"Email enviado exitosamente desde {sender_email}")
-
-    # Actualizar la caché después de enviar el correo con éxito
-    self.collection_cache.update_one(
-        {'_id': item['_id']},
-        {'$set': item},
-        upsert=True
-    )
-    break
-except smtplib.SMTPException as e:
-    logging.error(f"Error al enviar email con la cuenta {sender_email}: {e}")
-    if "Daily user sending limit exceeded" in str(e):
-        logging.info(f"Cambio de cuenta debido al límite diario alcanzado: {sender_email}")
-    elif "Username and Password not accepted" in str(e):
-        logging.info(f"Cambio de cuenta debido a credenciales incorrectas: {sender_email}")
-    else:
-        break
-    self.current_account = (self.current_account + 1) % len(self.gmail_accounts)
+                # Update cache after successful email send
+                self.collection_cache.update_one(
+                    {'_id': item['_id']},
+                    {'$set': item},
+                    upsert=True
+                )
+                break
+            except smtplib.SMTPException as e:
+                logging.error(f"Error al enviar email con la cuenta {sender_email}: {e}")
+                if "Daily user sending limit exceeded" in str(e):
+                    logging.info(f"Cambio de cuenta debido al límite diario alcanzado: {sender_email}")
+                elif "Username and Password not accepted" in str(e):
+                    logging.info(f"Cambio de cuenta debido a credenciales incorrectas: {sender_email}")
+                else:
+                    break
+                self.current_account = (self.current_account + 1) % len(self.gmail_accounts)
