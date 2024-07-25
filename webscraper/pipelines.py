@@ -112,7 +112,7 @@ class MongoDBPipeline:
                 logging.info(f"Ganancia: {profit}")
                 logging.info(f"ROI: {roi}%")
 
-                ebay_url = f"https://www.ebay.co.uk/sch/i.html?_from=R40&_trksid=p2334524.m570.l1313&_nkw={asin}&_sacat=267&LH_TitleDesc=0&_odkw=1492086894&_osacat=267&LH_BIN=1&_sop=15&LH_PrefLoc=1&rt=nc&LH_ItemCondition=2750%7C4000%7C5000%7C6000%7C10"
+                ebay_url = f"https://www.ebay.co.uk/sch/i.html?_from=R40&_nkw={asin}&_sacat=261186&LH_ItemCondition=2750%7C4000%7C5000%7C6000&LH_PrefLoc=1&rt=nc&LH_BIN=1"
 
                 if roi > 50:
                     # Check cache before sending email
