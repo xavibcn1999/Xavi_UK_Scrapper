@@ -63,7 +63,8 @@ class MongoDBPipeline:
                 return float(price_str) / self.exchange_rate
         return float(price_str)
 
-    def calculate_and_send_email(self, item):
+
+        def calculate_and_send_email(self, item):
         try:
             asin = item['nkw']
             ebay_price = round(item['product_price'] + item['shipping_fee'], 2)
@@ -167,7 +168,7 @@ class MongoDBPipeline:
                     <div style="display: flex; justify-content: space-between; align-items: center;">
                       <a href="{ebay_url}" target="_blank">
                         <img src="{ebay_image}" width="250" height="375" alt="eBay Image">
-                                           </a>
+                      </a>
                       <a href="{amazon_url}" target="_blank">
                         <img src="{amazon_image}" width="250" height="375" alt="Amazon Image">
                       </a>
@@ -176,7 +177,8 @@ class MongoDBPipeline:
                 </html>
                 """
 
-                part1 = MIMEText(text, "plain")
+
+                                part1 = MIMEText(text, "plain")
                 part2 = MIMEText(html, "html")
 
                 message.attach(part1)
@@ -204,3 +206,4 @@ class MongoDBPipeline:
                 else:
                     break
                 self.current_account = (self.current_account + 1) % len(self.gmail_accounts)
+
