@@ -12,6 +12,7 @@ class MongoDBPipeline:
         self.mongo_db = settings.get('MONGO_DATABASE')
         self.collection_name_e = settings.get('MONGO_COLLECTION_E')
         self.collection_name_a = settings.get('MONGO_COLLECTION_A')
+        self.collection_name_cache = 'Search_uk_Cache'  # New collection for caching
         self.gmail_accounts = [
             {"email": "xavusiness@gmail.com", "password": "tnthxazpsezagjdc"},
             {"email": "xaviergomezvidal@gmail.com", "password": "cqpbqwvqbqvjpmly"},
@@ -27,6 +28,7 @@ class MongoDBPipeline:
         self.db = self.client[self.mongo_db]
         self.collection_e = self.db[self.collection_name_e]
         self.collection_a = self.db[self.collection_name_a]
+        self.collection_cache = self.db[self.collection_name_cache]  # Connect to the new collection
 
     def close_spider(self, spider):
         self.client.close()
@@ -45,7 +47,15 @@ class MongoDBPipeline:
             return item
 
         self.collection_e.update_one({'_id': item['_id']}, {'$set': item}, upsert=True)
-        self.calculate_and_send_email(item)
+
+        # Check cache before sending email
+        cached_item = self.collection_cache.find_one({'nkw': item['nkw'], 'product_title': item['product_title']})
+        if cached_item:
+            logging.info(f"Item already exists in cache: {item['nkw']} - {item['product_title']}")
+        else:
+            self.collection_cache.insert_one(item)
+            self.calculate_and_send_email(item)
+
         return item
 
     def convert_price(self, price_str):
@@ -166,7 +176,7 @@ class MongoDBPipeline:
                 server.login(sender_email, password)
                 server.sendmail(sender_email, receiver_email, message.as_string())
 
-            logging.info("Email enviado exitosamente")
+            logging.info(f"Email enviado exitosamente desde {sender_email}")
         except smtplib.SMTPException as e:
             logging.error(f"Error al enviar email con la cuenta {sender_email}: {e}")
             if "Daily user sending limit exceeded" in str(e):
