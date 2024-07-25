@@ -25,8 +25,7 @@ class MongoDBPipeline:
         self.current_account = 0
         self.exchange_rate = 1.29  # 1 GBP = 1.29 USD
 
-
-        def open_spider(self, spider):
+    def open_spider(self, spider):
         self.client = MongoClient(self.mongo_uri)
         self.db = self.client[self.mongo_db]
         self.collection_e = self.db[self.collection_name_e]
@@ -37,8 +36,7 @@ class MongoDBPipeline:
         self.clean_cache()
         self.client.close()
 
-
-        def process_item(self, item, spider):
+    def process_item(self, item, spider):
         try:
             item['product_price'] = self.convert_price(item['product_price'])
             item['shipping_fee'] = self.convert_price(item['shipping_fee']) if item.get('shipping_fee') else 0.0
@@ -65,8 +63,7 @@ class MongoDBPipeline:
                 return float(price_str) / self.exchange_rate
         return float(price_str)
 
-
-            def calculate_and_send_email(self, item):
+    def calculate_and_send_email(self, item):
         try:
             asin = item['nkw']
             ebay_price = round(item['product_price'] + item['shipping_fee'], 2)
@@ -115,7 +112,6 @@ class MongoDBPipeline:
                 logging.info(f"Ganancia: {profit}")
                 logging.info(f"ROI: {roi}%")
 
-
                 ebay_url = f"https://www.ebay.co.uk/sch/i.html?_from=R40&_trksid=p2334524.m570.l1313&_nkw={asin}&_sacat=267&LH_TitleDesc=0&_odkw=1492086894&_osacat=267&LH_BIN=1&_sop=15&LH_PrefLoc=1&rt=nc&LH_ItemCondition=2750%7C4000%7C5000%7C6000%7C10"
 
                 if roi > 50:
@@ -135,7 +131,7 @@ class MongoDBPipeline:
         except Exception as e:
             logging.error(f"Error calculating ROI y sending email: {e}")
 
-        def send_email(self, item, ebay_image, ebay_url, ebay_price, amazon_image, amazon_url, amazon_price, roi, amazon_title):
+    def send_email(self, item, ebay_image, ebay_url, ebay_price, amazon_image, amazon_url, amazon_price, roi, amazon_title):
         while True:
             try:
                 account = self.gmail_accounts[self.current_account]
@@ -161,8 +157,7 @@ class MongoDBPipeline:
                 - ROI: {roi:.2f}%
                 """
 
-
-                               html = f"""\
+                html = f"""\
                 <html>
                   <body>
                     <h4>{amazon_title}</h4>
@@ -172,7 +167,7 @@ class MongoDBPipeline:
                     <div style="display: flex; justify-content: space-between; align-items: center;">
                       <a href="{ebay_url}" target="_blank">
                         <img src="{ebay_image}" width="250" height="375" alt="eBay Image">
-                      </a>
+                                           </a>
                       <a href="{amazon_url}" target="_blank">
                         <img src="{amazon_image}" width="250" height="375" alt="Amazon Image">
                       </a>
@@ -200,8 +195,7 @@ class MongoDBPipeline:
                     upsert=True
                 )
                 break
-
-                        except smtplib.SMTPException as e:
+            except smtplib.SMTPException as e:
                 logging.error(f"Error al enviar email con la cuenta {sender_email}: {e}")
                 if "Daily user sending limit exceeded" in str(e):
                     logging.info(f"Cambio de cuenta debido al límite diario alcanzado: {sender_email}")
@@ -210,4 +204,3 @@ class MongoDBPipeline:
                 else:
                     break
                 self.current_account = (self.current_account + 1) % len(self.gmail_accounts)
-
