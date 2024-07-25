@@ -158,12 +158,12 @@ class MongoDBPipeline:
                 """
 
                 html = f"""\
-                <html>
+<html>
   <head>
     <script>
-      function openInNewWindow(url) {
+      function openInNewWindow(url) {{
         window.open(url, '_blank', 'width=800,height=600');
-      }
+      }}
     </script>
   </head>
   <body>
@@ -181,8 +181,7 @@ class MongoDBPipeline:
     </div>
   </body>
 </html>
-                """
-
+"""
                 part1 = MIMEText(text, "plain")
                 part2 = MIMEText(html, "html")
 
