@@ -1,6 +1,7 @@
 import smtplib
 from email.mime.text import MIMEText
 from email.mime.multipart import MIMEMultipart
+from scrapy.utils.project import get_project_settings
 from pymongo import MongoClient
 import logging
 from datetime import datetime
@@ -35,27 +36,25 @@ class MongoDBPipeline:
         self.clean_cache()
         self.client.close()
 
+    def process_item(self, item, spider):
+        try:
+            item['product_price'] = self.convert_price(item['product_price'])
+            item['shipping_fee'] = self.convert_price(item['shipping_fee']) if item.get('shipping_fee') else 0.0
+        except Exception as e:
+            logging.error(f"Error converting prices: {e}")
+            item['product_price'] = 0.0
+            item['shipping_fee'] = 0.0
 
-        def process_item(self, item, spider):
-    try:
-        item['product_price'] = self.convert_price(item['product_price'])
-        item['shipping_fee'] = self.convert_price(item['shipping_fee']) if item.get('shipping_fee') else 0.0
-    except Exception as e:
-        logging.error(f"Error converting prices: {e}")
-        item['product_price'] = 0.0
-        item['shipping_fee'] = 0.0
+        if '_id' not in item:
+            logging.error("El item no tiene '_id'")
+            return item
 
-    if '_id' not in item:
-        logging.error("El item no tiene '_id'")
+        self.collection_e.update_one({'_id': item['_id']}, {'$set': item}, upsert=True)
+        
+        # Calculate and potentially send email
+        self.calculate_and_send_email(item)
+
         return item
-
-    # Update the item in the Search_uk_E collection
-    self.collection_e.update_one({'_id': item['_id']}, {'$set': item}, upsert=True)
-    
-    # Calculate and potentially send email
-    self.calculate_and_send_email(item)
-
-    return item
 
     def convert_price(self, price_str):
         if isinstance(price_str, str):
@@ -64,8 +63,7 @@ class MongoDBPipeline:
                 return float(price_str) / self.exchange_rate
         return float(price_str)
 
-
-        def calculate_and_send_email(self, item):
+    def calculate_and_send_email(self, item):
         try:
             asin = item['nkw']
             ebay_price = round(item['product_price'] + item['shipping_fee'], 2)
@@ -133,8 +131,7 @@ class MongoDBPipeline:
         except Exception as e:
             logging.error(f"Error calculating ROI y sending email: {e}")
 
-
-        def send_email(self, item, ebay_image, ebay_url, ebay_price, amazon_image, amazon_url, amazon_price, roi, amazon_title):
+    def send_email(self, item, ebay_image, ebay_url, ebay_price, amazon_image, amazon_url, amazon_price, roi, amazon_title):
         while True:
             try:
                 account = self.gmail_accounts[self.current_account]
@@ -170,7 +167,7 @@ class MongoDBPipeline:
                     <div style="display: flex; justify-content: space-between; align-items: center;">
                       <a href="{ebay_url}" target="_blank">
                         <img src="{ebay_image}" width="250" height="375" alt="eBay Image">
-                      </a>
+                                           </a>
                       <a href="{amazon_url}" target="_blank">
                         <img src="{amazon_image}" width="250" height="375" alt="Amazon Image">
                       </a>
