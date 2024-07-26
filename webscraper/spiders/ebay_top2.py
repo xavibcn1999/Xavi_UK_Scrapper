@@ -121,9 +121,9 @@ class EbayTop2Spider(scrapy.Spider):
             
             if not shipping_cost:
                 shipping_cost = '0.0'
-
+            
             try:
-                item_number = link.split('/itm/')[1].split('?')[0]
+                item_number = listing.xpath('.//a/@href').get('').split('/itm/')[1].split('?')[0]
             except:
                 item_number = ''
 
@@ -135,7 +135,7 @@ class EbayTop2Spider(scrapy.Spider):
                 'product_title': title,
                 'product_price': price,
                 'shipping_fee': shipping_cost,
-                'item_number': item_number,
+                'item_number': item_number,  # Add the item number here
                 '_id': _id
             }
 
