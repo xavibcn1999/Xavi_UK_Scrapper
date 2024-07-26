@@ -57,7 +57,6 @@ class MongoDBPipeline:
 
     return item
 
-
     def convert_price(self, price_str):
         if isinstance(price_str, str):
             price_str = price_str.replace('£', '').replace('US $', '').replace('+', '').replace(',', '').strip()
