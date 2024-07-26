@@ -116,11 +116,12 @@ class MongoDBPipeline:
 
                 if roi > 50:
                     # Check cache before sending email
-                    cached_item = self.collection_cache.find_one({'nkw': item['nkw'], 'product_title': item['product_title'], 'image_url': item['image_url']})
+                    cached_item = self.collection_cache.find_one({'item_number': item.get('item_number')})
+
                     if cached_item:
                         # Update timestamp to mark as relevant
                         self.collection_cache.update_one({'_id': cached_item['_id']}, {'$set': {'last_checked': datetime.utcnow()}})
-                        logging.info(f"Item already exists in cache: {item['nkw']} - {item['product_title']} - {item['image_url']}")
+                        logging.info(f"Item already exists in cache: {item['item_number']}")
                     else:
                         item['last_checked'] = datetime.utcnow()
                         self.send_email(
@@ -156,7 +157,6 @@ class MongoDBPipeline:
                 - Precio de Amazon: £{amazon_price:.2f}
                 - ROI: {roi:.2f}%
                 """
-
                 html = f"""\
                 <html>
                   <body>
@@ -175,7 +175,6 @@ class MongoDBPipeline:
                   </body>
                 </html>
                 """
-
                 part1 = MIMEText(text, "plain")
                 part2 = MIMEText(html, "html")
 
