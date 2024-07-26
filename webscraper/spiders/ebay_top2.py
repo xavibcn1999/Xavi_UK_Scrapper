@@ -106,7 +106,7 @@ class EbayTop2Spider(scrapy.Spider):
                 self.logger.info("Skipping listing with location info.")
                 continue
 
-            link = listing.xpath('.//a/@href').get('')
+            link = listing.xpath('.//a[@class="s-item__link"]/@href').get('')
             title = listing.xpath('.//span[@role="heading"]/text()').get('')
             price = listing.xpath('.//span[@class="s-item__price"]/text()').get('')
             if not price:
@@ -137,6 +137,7 @@ class EbayTop2Spider(scrapy.Spider):
                 'product_price': price,
                 'shipping_fee': shipping_cost,
                 'item_number': item_number,  # Add the item number here
+                'product_url': link,  # Add the product URL here
                 '_id': _id
             }
 
