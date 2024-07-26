@@ -37,7 +37,8 @@ class MongoDBPipeline:
         self.client.close()
 
     def process_item(self, item, spider):
-    try: item['product_price'] = self.convert_price(item['product_price'])
+    try:
+        item['product_price'] = self.convert_price(item['product_price'])
         item['shipping_fee'] = self.convert_price(item['shipping_fee']) if item.get('shipping_fee') else 0.0
     except Exception as e:
         logging.error(f"Error converting prices: {e}")
@@ -59,6 +60,7 @@ class MongoDBPipeline:
 
     # Calculate and potentially send email
     self.calculate_and_send_email(item)
+
     return item
     
     def convert_price(self, price_str):
