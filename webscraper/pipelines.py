@@ -51,8 +51,8 @@ class MongoDBPipeline:
 
     self.collection_e.update_one({'_id': item['_id']}, {'$set': item}, upsert=True)
     
-    # Add item number to the Search_uk_A collection
-    self.collection_a.update_one({'_id': item['_id']}, {'$set': {'item_number': item.get('item_number')}}, upsert=True)
+    # Add item number to the Search_uk_E collection
+    self.collection_e.update_one({'_id': item['_id']}, {'$set': {'item_number': item.get('item_number')}}, upsert=True)
 
     # Calculate and potentially send email
     self.calculate_and_send_email(item)
