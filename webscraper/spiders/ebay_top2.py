@@ -121,8 +121,13 @@ class EbayTop2Spider(scrapy.Spider):
             
             if not shipping_cost:
                 shipping_cost = '0.0'
-            
-            self.logger.info(f"Extracted data - Link: {link}, Title: {title}, Price: {price}, Image: {image}, Shipping Cost: {shipping_cost}")
+
+            try:
+                item_number = link.split('/itm/')[1].split('?')[0]
+            except:
+                item_number = ''
+
+            self.logger.info(f"Extracted data - Link: {link}, Title: {title}, Price: {price}, Image: {image}, Shipping Cost: {shipping_cost}, Item Number: {item_number}")
 
             item = {
                 'nkw': nkw,
@@ -130,6 +135,7 @@ class EbayTop2Spider(scrapy.Spider):
                 'product_title': title,
                 'product_price': price,
                 'shipping_fee': shipping_cost,
+                'item_number': item_number,
                 '_id': _id
             }
 
