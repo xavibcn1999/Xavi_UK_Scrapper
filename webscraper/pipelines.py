@@ -37,24 +37,27 @@ class MongoDBPipeline:
         self.client.close()
 
     def process_item(self, item, spider):
-        try:
-            item['product_price'] = self.convert_price(item['product_price'])
-            item['shipping_fee'] = self.convert_price(item['shipping_fee']) if item.get('shipping_fee') else 0.0
-        except Exception as e:
-            logging.error(f"Error converting prices: {e}")
-            item['product_price'] = 0.0
-            item['shipping_fee'] = 0.0
+    try:
+        item['product_price'] = self.convert_price(item['product_price'])
+        item['shipping_fee'] = self.convert_price(item['shipping_fee']) if item.get('shipping_fee') else 0.0
+    except Exception as e:
+        logging.error(f"Error converting prices: {e}")
+        item['product_price'] = 0.0
+        item['shipping_fee'] = 0.0
 
-        if '_id' not in item:
-            logging.error("El item no tiene '_id'")
-            return item
-
-        self.collection_e.update_one({'_id': item['_id']}, {'$set': item}, upsert=True)
-        
-        # Calculate and potentially send email
-        self.calculate_and_send_email(item)
-
+    if '_id' not in item:
+        logging.error("El item no tiene '_id'")
         return item
+
+    self.collection_e.update_one({'_id': item['_id']}, {'$set': item}, upsert=True)
+    
+    # Add item number to the Search_uk_A collection
+    self.collection_a.update_one({'_id': item['_id']}, {'$set': {'item_number': item.get('item_number')}}, upsert=True)
+
+    # Calculate and potentially send email
+    self.calculate_and_send_email(item)
+
+    return item
 
     def convert_price(self, price_str):
         if isinstance(price_str, str):
