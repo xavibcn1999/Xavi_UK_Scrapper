@@ -42,7 +42,7 @@ class MongoDBPipeline:
         self.collection_cache.delete_many({'expiry_date': {'$lt': current_date}})
         logging.info("Cache cleaned.")
 
-    def process_item(self, item, spider):
+   def process_item(self, item, spider):
         logging.info(f"Processing item with _id: {item.get('_id')} and reference_number: {item.get('reference_number')}")
         try:
             item['product_price'] = self.convert_price(item['product_price'])
@@ -63,7 +63,6 @@ class MongoDBPipeline:
             result = self.collection_e.update_one(
                 {'_id': item['_id']},
                 {'$set': {
-                    'nkw': item['nkw'],
                     'image_url': item['image_url'],
                     'product_title': item['product_title'],
                     'product_price': item['product_price'],
