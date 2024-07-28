@@ -36,7 +36,6 @@ class MongoDBPipeline:
     def close_spider(self, spider):
         self.clean_cache()
         self.client.close()
-
         
     def process_item(self, item, spider):
         try:
