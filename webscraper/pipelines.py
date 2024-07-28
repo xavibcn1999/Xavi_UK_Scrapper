@@ -1,3 +1,12 @@
+import smtplib
+from email.mime.text import MIMEText
+from email.mime.multipart import MIMEMultipart
+from scrapy.utils.project import get_project_settings
+from pymongo import MongoClient
+from bson import ObjectId  # Asegúrate de importar ObjectId
+import logging
+from datetime import datetime
+
 class MongoDBPipeline:
     def __init__(self):
         settings = get_project_settings()
