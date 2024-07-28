@@ -5,7 +5,7 @@ from scrapy.utils.project import get_project_settings
 from pymongo import MongoClient
 from bson import ObjectId
 import logging
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta  # Asegúrate de que timedelta esté importado
 
 class MongoDBPipeline:
     def __init__(self):
@@ -37,13 +37,7 @@ class MongoDBPipeline:
         self.clean_cache()
         self.client.close()
 
-    def clean_cache(self):
-        current_date = datetime.utcnow()
-        self.collection_cache.delete_many({'expiry_date': {'$lt': current_date}})
-        logging.info("Cache cleaned.")
-
     def process_item(self, item, spider):
-        logging.info(f"Processing item with _id: {item.get('_id')} and reference_number: {item.get('reference_number')}")
         try:
             item['product_price'] = self.convert_price(item['product_price'])
             item['shipping_fee'] = self.convert_price(item['shipping_fee']) if item.get('shipping_fee') else 0.0
@@ -56,27 +50,17 @@ class MongoDBPipeline:
             logging.error("El item no tiene '_id'")
             return item
 
+        # Ensure item_number and product_url are in item and not empty
         item['item_number'] = item.get('item_number', '')
         item['product_url'] = item.get('product_url', '')
 
-        try:
-            result = self.collection_e.update_one(
-                {'_id': item['_id']},
-                {'$set': {
-                    'image_url': item['image_url'],
-                    'product_title': item['product_title'],
-                    'product_price': item['product_price'],
-                    'shipping_fee': item['shipping_fee'],
-                    'item_number': item['item_number'],
-                    'product_url': item['product_url'],
-                    'reference_number': item['reference_number']
-                }},
-                upsert=True
-            )
-            logging.info(f"Updated {result.matched_count} document(s), Modified {result.modified_count} document(s)")
-        except Exception as e:
-            logging.error(f"Error updating MongoDB: {e}")
+        # Update item in the Search_uk_E collection
+        self.collection_e.update_one({'_id': item['_id']}, {'$set': item}, upsert=True)
 
+        # Add item number to the Search_uk_E collection
+        self.collection_e.update_one({'_id': item['_id']}, {'$set': {'item_number': item.get('item_number')}}, upsert=True)
+
+        # Calculate and potentially send email
         self.calculate_and_send_email(item)
 
         return item
@@ -140,6 +124,7 @@ class MongoDBPipeline:
                 ebay_url = item['product_url']
 
                 if roi > 50:
+                    # Check cache before sending email
                     current_date = datetime.utcnow()
                     cached_item = self.collection_cache.find_one({
                         'item_number': item.get('item_number'),
@@ -149,87 +134,88 @@ class MongoDBPipeline:
                         logging.info(f"Item already exists in cache and is not expired: {item['item_number']}")
                     else:
                         item['last_checked'] = datetime.utcnow()
-                        item['_id'] = ObjectId()
-                        item['expiry_date'] = current_date + timedelta(days=7)
+                        item['_id'] = ObjectId()  # Ensure a new _id is generated for the cache
+                        item['expiry_date'] = current_date + timedelta(days=7)  # Set expiry date to 7 days from now
                         self.collection_cache.insert_one(item)
                         self.send_email(
-                            item,
+                            item,  # Passing item to send_email method
                             item['image_url'], ebay_url, ebay_price,
                             amazon_item.get('Image', ''), amazon_item.get('URL: Amazon', ''), amazon_used_price, roi, amazon_title
                         )
         except Exception as e:
             logging.error(f"Error calculating ROI y sending email: {e}")
 
-def send_email(self, item, ebay_image, ebay_url, ebay_price, amazon_image, amazon_url, amazon_price, roi, amazon_title):
-    while True:
-        try:
-            account = self.gmail_accounts[self.current_account]
-            self.current_account = (self.current_account + 1) % len(self.gmail_accounts)
+    def send_email(self, item, ebay_image, ebay_url, ebay_price, amazon_image, amazon_url, amazon_price, roi, amazon_title):
+        while True:
+            try:
+                account = self.gmail_accounts[self.current_account]
+                self.current_account = (self.current_account + 1) % len(self.gmail_accounts)
 
-            sender_email = account["email"]
-            password = account["password"]
-            receiver_email = "xavialerts@gmail.com"
+                sender_email = account["email"]
+                password = account["password"]
+                receiver_email = "xavialerts@gmail.com"
 
-            message = MIMEMultipart("alternative")
-            message["Subject"] = amazon_title
-            message["From"] = sender_email
-            message["To"] = receiver_email
+                message = MIMEMultipart("alternative")
+                message["Subject"] = amazon_title
+                message["From"] = sender_email
+                message["To"] = receiver_email
 
-            text = f"""\
-            Alerta de ROI superior al 50%:
-            - Imagen de eBay: {ebay_image}
-            - URL de eBay: {ebay_url}
-            - Precio de eBay: £{ebay_price:.2f}
-            - Imagen de Amazon: {amazon_image}
-            - URL de Amazon: {amazon_url}
-            - Precio de Amazon: £{amazon_price:.2f}
-            - ROI: {roi:.2f}%
-            - Página del producto de eBay: {ebay_url}
-            """
-            html = f"""\
-            <html>
-            <body>
+                text = f"""\
+                Alerta de ROI superior al 50%:
+                - Imagen de eBay: {ebay_image}
+                - URL de eBay: {ebay_url}
+                - Precio de eBay: £{ebay_price:.2f}
+                - Imagen de Amazon: {amazon_image}
+                - URL de Amazon: {amazon_url}
+                - Precio de Amazon: £{amazon_price:.2f}
+                - ROI: {roi:.2f}%
+                - Página del producto de eBay: {ebay_url}
+                """
+                html = f"""\
+                <html>
+                            
+              <body>
                 <h4>{amazon_title}</h4>
                 <p><strong>Precio de Amazon:</strong> £{amazon_price:.2f}</p>
                 <p><strong>Precio de eBay:</strong> £{ebay_price:.2f}</p>
                 <p style="font-size: 1.5em;"><strong>ROI:</strong> {roi:.2f}%</p>
-                <p><strong>Página del producto de eBay:</strong> <a href="{ebay_url}" target="_blank">URL del producto</a></p>
+                <p><strong>Página del producto de eBay:</strong> <a href="{item['product_url']}" target="_blank">URL del producto</a></p>
                 <div style="display: flex; justify-content: space-between; align-items: center;">
-                <a href="{ebay_url}" target="_blank">
+                  <a href="{ebay_url}" target="_blank">
                     <img src="{ebay_image}" width="250" height="375" alt="eBay Image">
-                </a>
-                <a href="{amazon_url}" target="_blank">
+                  </a>
+                  <a href="{amazon_url}" target="_blank">
                     <img src="{amazon_image}" width="250" height="375" alt="Amazon Image">
-                </a>
+                  </a>
                 </div>
-            </body>
+              </body>
             </html>
-            """
-            part1 = MIMEText(text, "plain")
-            part2 = MIMEText(html, "html")
+                """
+                part1 = MIMEText(text, "plain")
+                part2 = MIMEText(html, "html")
 
-            message.attach(part1)
-            message.attach(part2)
+                message.attach(part1)
+                message.attach(part2)
 
-            with smtplib.SMTP_SSL("smtp.gmail.com", 465) as server:
-                server.login(sender_email, password)
-                server.sendmail(sender_email, receiver_email, message.as_string())
+                with smtplib.SMTP_SSL("smtp.gmail.com", 465) as server:
+                    server.login(sender_email, password)
+                    server.sendmail(sender_email, receiver_email, message.as_string())
 
-            logging.info(f"Email enviado exitosamente desde {sender_email}")
+                logging.info(f"Email enviado exitosamente desde {sender_email}")
 
-            # Update cache after successful email send
-            self.collection_cache.update_one(
-                {'_id': item['_id']},
-                {'$set': item},
-                upsert=True
-            )
-            break
-        except smtplib.SMTPException as e:
-            logging.error(f"Error al enviar email con la cuenta {sender_email}: {e}")
-            if "Daily user sending limit exceeded" in str(e):
-                logging.info(f"Cambio de cuenta debido al límite diario alcanzado: {sender_email}")
-            elif "Username and Password not accepted" in str(e):
-                logging.info(f"Cambio de cuenta debido a credenciales incorrectas: {sender_email}")
-            else:
+                # Update cache after successful email send
+                self.collection_cache.update_one(
+                    {'_id': item['_id']},
+                    {'$set': item},
+                    upsert=True
+                )
                 break
-            self.current_account = (self.current_account + 1) % len(self.gmail_accounts)
+            except smtplib.SMTPException as e:
+                logging.error(f"Error al enviar email con la cuenta {sender_email}: {e}")
+                if "Daily user sending limit exceeded" in str(e):
+                    logging.info(f"Cambio de cuenta debido al límite diario alcanzado: {sender_email}")
+                elif "Username and Password not accepted" in str(e):
+                    logging.info(f"Cambio de cuenta debido a credenciales incorrectas: {sender_email}")
+                else:
+                    break
+                self.current_account = (self.current_account + 1) % len(self.gmail_accounts)
