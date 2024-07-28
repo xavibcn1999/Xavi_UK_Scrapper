@@ -8,6 +8,7 @@ from twisted.internet.error import DNSLookupError, TimeoutError, TCPTimedOutErro
 
 header = Headers(browser="chrome", os="win", headers=True)
 
+
 class EbayTop2Spider(scrapy.Spider):
     name = 'ebay_top2'
     custom_settings = {
@@ -16,8 +17,12 @@ class EbayTop2Spider(scrapy.Spider):
         'RETRY_TIMES': 15,
         'COOKIES_ENABLED': True,
         'FEED_EXPORT_ENCODING': "utf-8",
-        'FEED_FORMAT': 'csv',
-        'FEED_URI': datetime.now().strftime('%Y_%m_%d__%H_%M') + '_ebay.csv',
+        'FEEDS': {
+            datetime.now().strftime('%Y_%m_%d__%H_%M') + '_ebay.csv': {
+                'format': 'csv',
+                'encoding': 'utf8',
+            }
+        },
         'DOWNLOADER_MIDDLEWARES': {
             'scrapy.downloadermiddlewares.httpproxy.HttpProxyMiddleware': 750,
             'scrapy.downloadermiddlewares.defaultheaders.DefaultHeadersMiddleware': None,
@@ -41,6 +46,7 @@ class EbayTop2Spider(scrapy.Spider):
 
     proxy = 'http://xavigv:e8qcHlJ5jdHxl7Xj_country-UnitedKingdom@proxy.packetstream.io:31112'
 
+
     def __init__(self, *args, **kwargs):
         super(EbayTop2Spider, self).__init__(*args, **kwargs)
         self.connect()
@@ -56,6 +62,7 @@ class EbayTop2Spider(scrapy.Spider):
             self.logger.info("Connected to MongoDB.")
         except Exception as e:
             self.logger.error(f"Error connecting to MongoDB: {e}")
+
 
     def start_requests(self):
         self.logger.info("Fetching URLs from the Search_uk_E collection...")
@@ -85,7 +92,6 @@ class EbayTop2Spider(scrapy.Spider):
                 )
             else:
                 self.logger.warning("Empty URL found in the Search_uk_E collection.")
-
 
     def parse(self, response):
         _id = response.meta.get('_id')
@@ -139,7 +145,7 @@ class EbayTop2Spider(scrapy.Spider):
                 'reference_number': reference_number
             }
 
-            self.logger.info(f"Yielding item: {item}")  # Log adicional para verificar el item yieldado
+            self.logger.info(f"Yielding item: {item}")
 
             yield item
 
@@ -163,6 +169,10 @@ class EbayTop2Spider(scrapy.Spider):
         elif failure.check(DNSLookupError):
             request = failure.request
             self.logger.error('DNSLookupError on %s', request.url)
+        elif failure.check(TimeoutError, TCPTimedOutError):
+            request = failure.request
+            self.logger.error('TimeoutError on %s', request.url)
+
         elif failure.check(TimeoutError, TCPTimedOutError):
             request = failure.request
             self.logger.error('TimeoutError on %s', request.url)
