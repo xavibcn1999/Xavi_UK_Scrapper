@@ -57,6 +57,65 @@ class EbayTop2Spider(scrapy.Spider):
         except Exception as e:
             self.logger.error(f"Error connecting to MongoDB: {e}")
 
+import re
+import scrapy
+from datetime import datetime, timedelta
+from pymongo import MongoClient
+from fake_headers import Headers
+from scrapy.spidermiddlewares.httperror import HttpError
+from twisted.internet.error import DNSLookupError, TimeoutError, TCPTimedOutError
+
+header = Headers(browser="chrome", os="win", headers=True)
+
+class EbayTop2Spider(scrapy.Spider):
+    name = 'ebay_top2'
+    custom_settings = {
+        'CONCURRENT_REQUESTS': 16,
+        'DOWNLOAD_DELAY': 0,
+        'RETRY_TIMES': 15,
+        'COOKIES_ENABLED': True,
+        'FEED_EXPORT_ENCODING': "utf-8",
+        'FEED_FORMAT': 'csv',
+        'FEED_URI': datetime.now().strftime('%Y_%m_%d__%H_%M') + '_ebay.csv',
+        'DOWNLOADER_MIDDLEWARES': {
+            'scrapy.downloadermiddlewares.httpproxy.HttpProxyMiddleware': 750,
+            'scrapy.downloadermiddlewares.defaultheaders.DefaultHeadersMiddleware': None,
+            'webscraper.middlewares.CustomRetryMiddleware': 550,
+        },
+        'AUTOTHROTTLE_ENABLED': False,
+        'ITEM_PIPELINES': {
+            'webscraper.pipelines.MongoDBPipeline': 300,
+        }
+    }
+
+    headers = {
+        'User-Agent': header.generate()['User-Agent'],
+        'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,image/webp,*/*;q=0.8',
+        'Accept-Language': 'en-US,en;q=0.5',
+        'Accept-Encoding': 'gzip, deflate, br',
+        'Connection': 'keep-alive',
+        'Upgrade-Insecure-Requests': '1',
+        'Cache-Control': 'max-age=0',
+    }
+
+    proxy = 'http://xavigv:e8qcHlJ5jdHxl7Xj_country-UnitedKingdom@proxy.packetstream.io:31112'
+
+    def __init__(self, *args, **kwargs):
+        super(EbayTop2Spider, self).__init__(*args, **kwargs)
+        self.connect()
+
+    def connect(self):
+        try:
+            self.logger.info("Attempting to connect to MongoDB...")
+            client = MongoClient('mongodb+srv://xavidb:superman123@serverlessinstance0.lih2lnk.mongodb.net/Xavi_UK?retryWrites=true&w=majority')
+            self.db = client["Xavi_UK"]
+            self.collection_E = self.db['Search_uk_E']
+            self.collection_A = self.db['Search_uk_A']
+            self.collection_cache = self.db['Search_uk_Cache']
+            self.logger.info("Connected to MongoDB.")
+        except Exception as e:
+            self.logger.error(f"Error connecting to MongoDB: {e}")
+
     def start_requests(self):
         self.logger.info("Fetching URLs from the Search_uk_E collection...")
         try:
@@ -75,20 +134,17 @@ class EbayTop2Spider(scrapy.Spider):
             reference_number = data_urls_loop.get('reference_number', '')
 
             if url:
-                # Extract the value of `nkw` from the URL
-                nkw_match = re.search(r'_nkw=([^&]+)', url)
-                nkw = nkw_match.group(1) if nkw_match else 'N/A'
-
-                self.logger.info(f"Creating request for URL: {url} and nkw: {nkw}")
+                self.logger.info(f"Creating request for URL: {url}")
                 yield scrapy.Request(
                     url=url,
                     callback=self.parse,
                     headers=self.headers,
-                    meta={'nkw': nkw, '_id': data_urls_loop['_id'], 'proxy': self.proxy, 'reference_number': reference_number},
+                    meta={'_id': data_urls_loop['_id'], 'proxy': self.proxy, 'reference_number': reference_number},
                     errback=self.errback_httpbin
                 )
             else:
                 self.logger.warning("Empty URL found in the Search_uk_E collection.")
+
 
     def errback_httpbin(self, failure):
         self.logger.error(repr(failure))
