@@ -52,7 +52,7 @@ class EbayTop2Spider(scrapy.Spider):
             self.db = client["Xavi_UK"]
             self.collection_E = self.db['Search_uk_E']
             self.collection_A = self.db['Search_uk_A']
-            self.collection_cache = self.db['Search_uk_Cache']  # New collection for caching
+            self.collection_cache = self.db['Search_uk_Cache']
             self.logger.info("Connected to MongoDB.")
         except Exception as e:
             self.logger.error(f"Error connecting to MongoDB: {e}")
