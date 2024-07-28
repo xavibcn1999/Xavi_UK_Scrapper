@@ -1,12 +1,3 @@
-import smtplib
-from email.mime.text import MIMEText
-from email.mime.multipart import MIMEMultipart
-from scrapy.utils.project import get_project_settings
-from pymongo import MongoClient
-from bson import ObjectId  # Asegúrate de importar ObjectId
-import logging
-from datetime import datetime
-
 class MongoDBPipeline:
     def __init__(self):
         settings = get_project_settings()
@@ -50,10 +41,9 @@ class MongoDBPipeline:
             logging.error("El item no tiene '_id'")
             return item
 
-        # Ensure item_number, product_url, and reference_number are in item and not empty
+        # Ensure item_number and product_url are in item and not empty
         item['item_number'] = item.get('item_number', '')
         item['product_url'] = item.get('product_url', '')
-        item['reference_number'] = item.get('reference_number', '')
 
         # Update item in the Search_uk_E collection
         self.collection_e.update_one({'_id': item['_id']}, {'$set': item}, upsert=True)
@@ -73,93 +63,78 @@ class MongoDBPipeline:
                 return float(price_str) / self.exchange_rate
         return float(price_str)
 
-def calculate_and_send_email(self, item):
-    try:
-        ref_number = item['reference_number']
-        ebay_price = round(item['product_price'] + item['shipping_fee'], 2)
-        logging.info(f"Calculando ROI para número de referencia: {ref_number}")
-        logging.info(f"Precio del producto en eBay: {item['product_price']}")
-        logging.info(f"Costo de envío en eBay: {item['shipping_fee']}")
-        logging.info(f"Precio de eBay (producto + envío): {ebay_price}")
+    def calculate_and_send_email(self, item):
+        try:
+            ref_number = item['reference_number']
+            ebay_price = round(item['product_price'] + item['shipping_fee'], 2)
+            logging.info(f"Calculando ROI para número de referencia: {ref_number}")
+            logging.info(f"Precio del producto en eBay: {item['product_price']}")
+            logging.info(f"Costo de envío en eBay: {item['shipping_fee']}")
+            logging.info(f"Precio de eBay (producto + envío): {ebay_price}")
 
-        amazon_item = self.collection_a.find_one({'ReferenceNumber': ref_number})
-        if amazon_item:
-            logging.info(f"Documento de Amazon recuperado: {amazon_item}")
+            amazon_item = self.collection_a.find_one({'ReferenceNumber': ref_number})
+            if amazon_item:
+                logging.info(f"Documento de Amazon recuperado: {amazon_item}")
 
-            amazon_title = amazon_item.get('Title', 'Título no disponible')
-            amazon_used_price_str = amazon_item.get('Buy Box Used: 180 days avg.', 0)
-            logging.info(f"Valor extraído de 'Buy Box Used: 180 days avg': {amazon_used_price_str}")
+                amazon_title = amazon_item.get('Title', 'Título no disponible')
+                amazon_used_price_str = amazon_item.get('Buy Box Used: 180 days avg.', 0)
+                logging.info(f"Valor extraído de 'Buy Box Used: 180 days avg': {amazon_used_price_str}")
 
-            if isinstance(amazon_used_price_str, str):
-                try:
-                    amazon_used_price = self.convert_price(amazon_used_price_str)
-                except ValueError as e:
-                    logging.error(f"Error al convertir 'Buy Box Used: 180 days avg' a float: {e}")
-                    amazon_used_price = 0.0
-            else:
-                amazon_used_price = float(amazon_used_price_str)
+                if isinstance(amazon_used_price_str, str):
+                    try:
+                        amazon_used_price = self.convert_price(amazon_used_price_str)
+                    except ValueError as e:
+                        logging.error(f"Error al convertir 'Buy Box Used: 180 days avg' a float: {e}")
+                        amazon_used_price = 0.0
+                else:
+                    amazon_used_price = float(amazon_used_price_str)
 
-            fba_fee_str = amazon_item.get('FBA Fees', 0)
-            if isinstance(fba_fee_str, str):
-                try:
-                    fba_fee = self.convert_price(fba_fee_str)
-                except ValueError as e:
-                    logging.error(f"Error al convertir 'FBA Fees' a float: {e}")
-                    fba_fee = 0.0
-            else:
-                fba_fee = float(fba_fee_str)
+                fba_fee_str = amazon_item.get('FBA Fees', 0)
+                if isinstance(fba_fee_str, str):
+                    try:
+                        fba_fee = self.convert_price(fba_fee_str)
+                    except ValueError as e:
+                        logging.error(f"Error al convertir 'FBA Fees' a float: {e}")
+                        fba_fee = 0.0
+                else:
+                    fba_fee = float(fba_fee_str)
 
-            referral_fee_percentage = 0.153 if amazon_used_price > 5 else 0.051
-            referral_fee = round(amazon_used_price * referral_fee_percentage, 2)
+                referral_fee_percentage = 0.153 if amazon_used_price > 5 else 0.051
+                referral_fee = round(amazon_used_price * referral_fee_percentage, 2)
 
-            total_cost = round(ebay_price + fba_fee + referral_fee, 2)
-            profit = round(amazon_used_price - total_cost, 2)
-            roi = round((profit / total_cost) * 100, 2) if total_cost else 0
+                total_cost = round(ebay_price + fba_fee + referral_fee, 2)
+                profit = round(amazon_used_price - total_cost, 2)
+                roi = round((profit / total_cost) * 100, 2) if total_cost else 0
 
-            logging.info(f"Precio de venta en Amazon (Buy Box Used): {amazon_used_price}")
-            logging.info(f"Tarifa de FBA: {fba_fee}")
-            logging.info(f"Tarifa de referencia: {referral_fee}")
-            logging.info(f"Ganancia: {profit}")
-            logging.info(f"ROI: {roi}%")
+                logging.info(f"Precio de venta en Amazon (Buy Box Used): {amazon_used_price}")
+                logging.info(f"Tarifa de FBA: {fba_fee}")
+                logging.info(f"Tarifa de referencia: {referral_fee}")
+                logging.info(f"Ganancia: {profit}")
+                logging.info(f"ROI: {roi}%")
 
-            ebay_url = item['product_url']
+                ebay_url = item['product_url']
 
-            if roi > 50:
-                # Check cache before sending email
-                current_date = datetime.utcnow()
-                cached_item = self.collection_cache.find_one({
-                    'item_number': item.get('item_number')
-                })
-                if cached_item:
-                    if cached_item.get('expiry_date', current_date) > current_date:
+                if roi > 50:
+                    # Check cache before sending email
+                    current_date = datetime.utcnow()
+                    cached_item = self.collection_cache.find_one({
+                        'item_number': item.get('item_number'),
+                        'expiry_date': {'$gt': current_date}
+                    })
+                    if cached_item:
                         logging.info(f"Item already exists in cache and is not expired: {item['item_number']}")
                     else:
-                        self.collection_cache.update_one(
-                            {'_id': cached_item['_id']},
-                            {'$set': {
-                                'last_checked': datetime.utcnow(),
-                                'expiry_date': current_date + timedelta(days=7)
-                            }}
-                        )
+                        item['last_checked'] = datetime.utcnow()
+                        item['_id'] = ObjectId()  # Ensure a new _id is generated for the cache
+                        item['expiry_date'] = current_date + timedelta(days=7)  # Set expiry date to 7 days from now
+                        self.collection_cache.insert_one(item)
                         self.send_email(
                             item,  # Passing item to send_email method
                             item['image_url'], ebay_url, ebay_price,
                             amazon_item.get('Image', ''), amazon_item.get('URL: Amazon', ''), amazon_used_price, roi, amazon_title
                         )
-                else:
-                    item['last_checked'] = datetime.utcnow()
-                    item['_id'] = ObjectId()  # Ensure a new _id is generated for the cache
-                    item['expiry_date'] = current_date + timedelta(days=7)  # Set expiry date to 7 days from now
-                    self.collection_cache.insert_one(item)
-                    self.send_email(
-                        item,  # Passing item to send_email method
-                        item['image_url'], ebay_url, ebay_price,
-                        amazon_item.get('Image', ''), amazon_item.get('URL: Amazon', ''), amazon_used_price, roi, amazon_title
-                    )
-    except Exception as e:
-        logging.error(f"Error calculating ROI y sending email: {e}")
-
-
+        except Exception as e:
+            logging.error(f"Error calculating ROI y sending email: {e}")
 
     def send_email(self, item, ebay_image, ebay_url, ebay_price, amazon_image, amazon_url, amazon_price, roi, amazon_title):
         while True:
@@ -189,6 +164,7 @@ def calculate_and_send_email(self, item):
                 """
                 html = f"""\
                 <html>
+              
               <body>
                 <h4>{amazon_title}</h4>
                 <p><strong>Precio de Amazon:</strong> £{amazon_price:.2f}</p>
