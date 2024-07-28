@@ -57,9 +57,6 @@ class MongoDBPipeline:
         # Update item in the Search_uk_E collection
         self.collection_e.update_one({'_id': item['_id']}, {'$set': item}, upsert=True)
 
-        # Add item number to the Search_uk_E collection
-        self.collection_e.update_one({'_id': item['_id']}, {'$set': {'item_number': item.get('item_number')}}, upsert=True)
-
         # Calculate and potentially send email
         self.calculate_and_send_email(item)
 
@@ -74,7 +71,8 @@ class MongoDBPipeline:
 
     def calculate_and_send_email(self, item):
         try:
-            ref_number = item['reference_number']
+            # Extract the main reference number
+            ref_number = item['reference_number'].split('-')[0]
             ebay_price = round(item['product_price'] + item['shipping_fee'], 2)
             logging.info(f"Calculando ROI para número de referencia: {ref_number}")
             logging.info(f"Precio del producto en eBay: {item['product_price']}")
@@ -145,6 +143,7 @@ class MongoDBPipeline:
         except Exception as e:
             logging.error(f"Error calculating ROI y sending email: {e}")
 
+
     def send_email(self, item, ebay_image, ebay_url, ebay_price, amazon_image, amazon_url, amazon_price, roi, amazon_title):
         while True:
             try:
@@ -173,22 +172,22 @@ class MongoDBPipeline:
                 """
                 html = f"""\
                 <html>
-              <body>
-                <h4>{amazon_title}</h4>
-                <p><strong>Precio de Amazon:</strong> £{amazon_price:.2f}</p>
-                <p><strong>Precio de eBay:</strong> £{ebay_price:.2f}</p>
-                <p style="font-size: 1.5em;"><strong>ROI:</strong> {roi:.2f}%</p>
-                <p><strong>Página del producto de eBay:</strong> <a href="{item['product_url']}" target="_blank">URL del producto</a></p>
-                <div style="display: flex; justify-content: space-between; align-items: center;">
-                  <a href="{ebay_url}" target="_blank">
-                    <img src="{ebay_image}" width="250" height="375" alt="eBay Image">
-                  </a>
-                  <a href="{amazon_url}" target="_blank">
-                    <img src="{amazon_image}" width="250" height="375" alt="Amazon Image">
-                  </a>
-                </div>
-              </body>
-            </html>
+                  <body>
+                    <h4>{amazon_title}</h4>
+                    <p><strong>Precio de Amazon:</strong> £{amazon_price:.2f}</p>
+                    <p><strong>Precio de eBay:</strong> £{ebay_price:.2f}</p>
+                    <p style="font-size: 1.5em;"><strong>ROI:</strong> {roi:.2f}%</p>
+                    <p><strong>Página del producto de eBay:</strong> <a href="{ebay_url}" target="_blank">URL del producto</a></p>
+                    <div style="display: flex; justify-content: space-between; align-items: center;">
+                      <a href="{ebay_url}" target="_blank">
+                        <img src="{ebay_image}" width="250" height="375" alt="eBay Image">
+                      </a>
+                      <a href="{amazon_url}" target="_blank">
+                        <img src="{amazon_image}" width="250" height="375" alt="Amazon Image">
+                      </a>
+                    </div>
+                  </body>
+                </html>
                 """
                 part1 = MIMEText(text, "plain")
                 part2 = MIMEText(html, "html")
