@@ -163,10 +163,9 @@ class EbayTop2Spider(scrapy.Spider):
             self.logger.error('TimeoutError on %s', request.url)
 
     def parse(self, response):
-        nkw = response.meta.get('nkw', 'N/A')
         _id = response.meta.get('_id')
         reference_number = response.meta.get('reference_number')
-        self.logger.info(f"Processing response for nkw: {nkw} with _id: {_id} and reference_number: {reference_number}")
+        self.logger.info(f"Processing response for _id: {_id} and reference_number: {reference_number}")
         listings = response.xpath('//ul//div[@class="s-item__wrapper clearfix"]')
 
         count = 0
@@ -205,7 +204,6 @@ class EbayTop2Spider(scrapy.Spider):
             self.logger.info(f"Extracted data - Link: {link}, Title: {title}, Price: {price}, Image: {image}, Shipping Cost: {shipping_cost}, Item Number: {item_number}")
 
             item = {
-                'nkw': nkw,
                 'image_url': image,
                 'product_title': title,
                 'product_price': price,
@@ -229,7 +227,7 @@ class EbayTop2Spider(scrapy.Spider):
                 break
 
         if count == 0:
-            self.logger.warning(f"No valid listings found for nkw: {nkw}")
+            self.logger.warning(f"No valid listings found for _id: {_id}")
 
         def errback_httpbin(self, failure):
             self.logger.error(repr(failure))
