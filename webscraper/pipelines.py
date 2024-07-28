@@ -5,7 +5,7 @@ from scrapy.utils.project import get_project_settings
 from pymongo import MongoClient
 from bson import ObjectId
 import logging
-from datetime import datetime, timedelta  # Asegúrate de que timedelta esté importado
+from datetime import datetime, timedelta
 
 class MongoDBPipeline:
     def __init__(self):
@@ -39,36 +39,46 @@ class MongoDBPipeline:
         self.collection_cache.delete_many({'expiry_date': {'$lt': current_date}})
         logging.info("Cache cleaned.")
 
-def process_item(self, item, spider):
-    try:
-        item['product_price'] = self.convert_price(item['product_price'])
-        item['shipping_fee'] = self.convert_price(item['shipping_fee']) if item.get('shipping_fee') else 0.0
-    except Exception as e:
-        logging.error(f"Error converting prices: {e}")
-        item['product_price'] = 0.0
-        item['shipping_fee'] = 0.0
+    def process_item(self, item, spider):
+        self.logger.info(f"Processing item with _id: {item.get('_id')} and reference_number: {item.get('reference_number')}")
+        try:
+            item['product_price'] = self.convert_price(item['product_price'])
+            item['shipping_fee'] = self.convert_price(item['shipping_fee']) if item.get('shipping_fee') else 0.0
+        except Exception as e:
+            logging.error(f"Error converting prices: {e}")
+            item['product_price'] = 0.0
+            item['shipping_fee'] = 0.0
 
-    if '_id' not in item:
-        logging.error("El item no tiene '_id'")
+        if '_id' not in item:
+            logging.error("El item no tiene '_id'")
+            return item
+
+        # Ensure item_number and product_url are in item and not empty
+        item['item_number'] = item.get('item_number', '')
+        item['product_url'] = item.get('product_url', '')
+
+        # Update item in the Search_uk_E collection
+        result = self.collection_e.update_one(
+            {'_id': item['_id']},
+            {'$set': {
+                'nkw': item['nkw'],
+                'image_url': item['image_url'],
+                'product_title': item['product_title'],
+                'product_price': item['product_price'],
+                'shipping_fee': item['shipping_fee'],
+                'item_number': item['item_number'],
+                'product_url': item['product_url'],
+                'reference_number': item['reference_number']
+            }}
+        )
+
+        # Log update result
+        logging.info(f"Updated {result.matched_count} document(s), Modified {result.modified_count} document(s)")
+
+        # Calculate and potentially send email
+        self.calculate_and_send_email(item)
+
         return item
-
-    # Ensure item_number and product_url are in item and not empty
-    item['item_number'] = item.get('item_number', '')
-    item['product_url'] = item.get('product_url', '')
-
-    # Update item in the Search_uk_E collection
-    result = self.collection_e.update_one(
-        {'_id': item['_id'], 'reference_number': item['reference_number']},
-        {'$set': item}
-    )
-
-    # Log update result
-    logging.info(f"Updated {result.matched_count} document(s), Modified {result.modified_count} document(s)")
-
-    # Calculate and potentially send email
-    self.calculate_and_send_email(item)
-
-    return item
 
     def convert_price(self, price_str):
         if isinstance(price_str, str):
@@ -177,8 +187,8 @@ def process_item(self, item, spider):
                 - Página del producto de eBay: {ebay_url}
                 """
                 html = f"""\
-                <html>
-                            
+                <html>                            
+                      
               <body>
                 <h4>{amazon_title}</h4>
                 <p><strong>Precio de Amazon:</strong> £{amazon_price:.2f}</p>
