@@ -57,38 +57,39 @@ class EbayTop2Spider(scrapy.Spider):
         except Exception as e:
             self.logger.error(f"Error connecting to MongoDB: {e}")
 
-    def start_requests(self):
-        self.logger.info("Fetching URLs from the Search_uk_E collection...")
-        try:
-            data_urls = list(self.collection_E.find({'url': {'$ne': ''}}))
-            self.logger.info(f"Found {len(data_urls)} URLs to process.")
-        except Exception as e:
-            self.logger.error(f"Error fetching URLs from MongoDB: {e}")
-            data_urls = []
+def start_requests(self):
+    self.logger.info("Fetching URLs from the Search_uk_E collection...")
+    try:
+        data_urls = list(self.collection_E.find({'url': {'$ne': ''}}))
+        self.logger.info(f"Found {len(data_urls)} URLs to process.")
+    except Exception as e:
+        self.logger.error(f"Error fetching URLs from MongoDB: {e}")
+        data_urls = []
 
-        if not data_urls:
-            self.logger.warning("No URLs found in the Search_uk_E collection.")
-            return
+    if not data_urls:
+        self.logger.warning("No URLs found in the Search_uk_E collection.")
+        return
 
-        for data_urls_loop in data_urls:
-            url = data_urls_loop.get('url', '').strip()
-            reference_number = data_urls_loop.get('reference_number', '')
+    for data_urls_loop in data_urls:
+        url = data_urls_loop.get('url', '').strip()
+        reference_number = data_urls_loop.get('reference_number', '')
 
-            if url:
-                # Extract the value of `nkw` from the URL
-                nkw_match = re.search(r'_nkw=([^&]+)', url)
-                nkw = nkw_match.group(1) if nkw_match else 'N/A'
+        if url:
+            # Extract the value of `nkw` from the URL
+            nkw_match = re.search(r'_nkw=([^&]+)', url)
+            nkw = nkw_match.group(1) if nkw_match else 'N/A'
 
-                self.logger.info(f"Creating request for URL: {url} and nkw: {nkw}")
-                yield scrapy.Request(
-                    url=url,
-                    callback=self.parse,
-                    headers=self.headers,
-                    meta={'nkw': nkw, '_id': data_urls_loop['_id'], 'proxy': self.proxy, 'reference_number': reference_number},
-                    errback=self.errback_httpbin
-                )
-            else:
-                self.logger.warning("Empty URL found in the Search_uk_E collection.")
+            self.logger.info(f"Creating request for URL: {url} and nkw: {nkw}")
+            yield scrapy.Request(
+                url=url,
+                callback=self.parse,
+                headers=self.headers,
+                meta={'nkw': nkw, '_id': data_urls_loop['_id'], 'proxy': self.proxy, 'reference_number': reference_number},
+                errback=self.errback_httpbin
+            )
+        else:
+            self.logger.warning("Empty URL found in the Search_uk_E collection.")
+
 
     def errback_httpbin(self, failure):
     self.logger.error(repr(failure))
