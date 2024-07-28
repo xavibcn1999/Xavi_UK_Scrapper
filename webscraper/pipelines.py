@@ -33,6 +33,15 @@ class MongoDBPipeline:
         self.collection_a = self.db[self.collection_name_a]
         self.collection_cache = self.db[self.collection_name_cache]
 
+    def clean_cache(self):
+        try:
+            # Implementa la lógica de limpieza de cache aquí
+            # Por ejemplo, limpiar un diccionario de caché
+            self.cache = {}
+            logging.info("Cache cleaned successfully.")
+        except Exception as e:
+            logging.error(f"Error during cache cleaning: {e}")
+
     def close_spider(self, spider):
         self.clean_cache()
         self.client.close()
