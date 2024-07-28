@@ -41,12 +41,11 @@ class EbayTop2Spider(scrapy.Spider):
 
     proxy = 'http://xavigv:e8qcHlJ5jdHxl7Xj_country-UnitedKingdom@proxy.packetstream.io:31112'
 
-
-        def __init__(self, *args, **kwargs):
+    def __init__(self, *args, **kwargs):
         super(EbayTop2Spider, self).__init__(*args, **kwargs)
         self.connect()
 
-    def connect(self):
+     def connect(self):
         try:
             self.logger.info("Attempting to connect to MongoDB...")
             client = MongoClient('mongodb+srv://xavidb:superman123@serverlessinstance0.lih2lnk.mongodb.net/Xavi_UK?retryWrites=true&w=majority')
@@ -57,7 +56,6 @@ class EbayTop2Spider(scrapy.Spider):
             self.logger.info("Connected to MongoDB.")
         except Exception as e:
             self.logger.error(f"Error connecting to MongoDB: {e}")
-
 
     def start_requests(self):
         self.logger.info("Fetching URLs from the Search_uk_E collection...")
@@ -141,6 +139,8 @@ class EbayTop2Spider(scrapy.Spider):
                 'reference_number': reference_number
             }
 
+            self.logger.info(f"Yielding item: {item}")  # Log adicional para verificar el item yieldado
+
             yield item
 
             count += 1
@@ -166,4 +166,3 @@ class EbayTop2Spider(scrapy.Spider):
         elif failure.check(TimeoutError, TCPTimedOutError):
             request = failure.request
             self.logger.error('TimeoutError on %s', request.url)
-
