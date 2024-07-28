@@ -174,10 +174,10 @@ def errback_httpbin(self, failure):
         request = failure.request
         self.logger.error('TimeoutError on %s', request.url)
 
-        elif failure.check(TimeoutError, TCPTimedOutError):
+    elif failure.check(TimeoutError, TCPTimedOutError):
             request = failure.request
             self.logger.error('TimeoutError on %s', request.url)
 
-        elif failure.check(TimeoutError, TCPTimedOutError):
+    elif failure.check(TimeoutError, TCPTimedOutError):
             request = failure.request
             self.logger.error('TimeoutError on %s', request.url)
