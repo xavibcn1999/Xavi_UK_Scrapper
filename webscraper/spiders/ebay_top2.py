@@ -138,10 +138,10 @@ class EbayTop2Spider(scrapy.Spider):
                 'product_title': title,
                 'product_price': price,
                 'shipping_fee': shipping_cost,
-                'item_number': item_number,  # Add the item number here
-                'product_url': link,  # Add the product URL here
+                'item_number': item_number,
+                'product_url': link,
                 '_id': _id,
-                'reference_number': reference_number  # Add the reference number here
+                'reference_number': reference_number
             }
 
             yield item
@@ -169,3 +169,4 @@ class EbayTop2Spider(scrapy.Spider):
         elif failure.check(TimeoutError, TCPTimedOutError):
             request = failure.request
             self.logger.error('TimeoutError on %s', request.url)
+
