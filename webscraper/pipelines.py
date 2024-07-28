@@ -32,20 +32,13 @@ class MongoDBPipeline:
         self.collection_e = self.db[self.collection_name_e]
         self.collection_a = self.db[self.collection_name_a]
         self.collection_cache = self.db[self.collection_name_cache]
-        self.cache = {}
-        
-    def clean_cache(self):
-        try:
-            self.cache.clear()
-            logging.info("Cache cleaned successfully.")
-        except Exception as e:
-            logging.error(f"Error during cache cleaning: {e}")
 
     def close_spider(self, spider):
         self.clean_cache()
         self.client.close()
+
         
-    def process_item(self, item, spider):
+        def process_item(self, item, spider):
         try:
             item['product_price'] = self.convert_price(item['product_price'])
             item['shipping_fee'] = self.convert_price(item['shipping_fee']) if item.get('shipping_fee') else 0.0
@@ -76,6 +69,7 @@ class MongoDBPipeline:
             if 'US' in price_str:
                 return float(price_str) / self.exchange_rate
         return float(price_str)
+
 
     def calculate_and_send_email(self, item):
         try:
@@ -179,7 +173,7 @@ class MongoDBPipeline:
                 """
                 html = f"""\
                 <html>
-                  
+                                 
                   <body>
                     <h4>{amazon_title}</h4>
                     <p><strong>Precio de Amazon:</strong> £{amazon_price:.2f}</p>
