@@ -91,73 +91,71 @@ class EbayTop2Spider(scrapy.Spider):
             else:
                 self.logger.warning("Empty URL found in the Search_uk_E collection.")
 
-    def parse(self, response):
-        nkw = response.meta.get('nkw', 'N/A')
-        reference_number = response.meta.get('reference_number')
-        self.logger.info(f"Processing response for nkw: {nkw}")
-        listings = response.xpath('//ul//div[@class="s-item__wrapper clearfix"]')
+def parse(self, response):
+    nkw = response.meta.get('nkw', 'N/A')
+    _id = response.meta.get('_id')
+    reference_number = response.meta.get('reference_number')
+    self.logger.info(f"Processing response for nkw: {nkw}")
+    listings = response.xpath('//ul//div[@class="s-item__wrapper clearfix"]')
 
-        self.logger.info(f"Found {len(listings)} listings on the page.")
+    count = 0
 
-        count = 0
+    for listing in listings:
+        if listing.xpath('.//li[contains(@class,"srp-river-answer--REWRITE_START")]').get():
+            self.logger.info("Found international sellers separator. Stopping extraction for this URL.")
+            break
 
-        for listing in listings:
-            self.logger.info(f"Processing listing {count + 1}...")
-            if listing.xpath('.//li[contains(@class,"srp-river-answer--REWRITE_START")]').get():
-                self.logger.info("Found international sellers separator. Stopping extraction for this URL.")
-                break
+        if listing.xpath('.//span[@class="s-item__location s-item__itemLocation"]').get():
+            self.logger.info("Skipping listing with location info.")
+            continue
 
-            if listing.xpath('.//span[@class="s-item__location s-item__itemLocation"]').get():
-                self.logger.info("Skipping listing with location info.")
-                continue
+        link = listing.xpath('.//a[@class="s-item__link"]/@href').get('')
+        title = listing.xpath('.//span[@role="heading"]/text()').get('')
+        price = listing.xpath('.//span[@class="s-item__price"]/text()').get('')
+        if not price:
+            price = listing.xpath('.//span[@class="s-item__price"]/span/text()').get('')
 
-            link = listing.xpath('.//a[@class="s-item__link"]/@href').get('')
-            title = listing.xpath('.//span[@role="heading"]/text()').get('')
-            price = listing.xpath('.//span[@class="s-item__price"]/text()').get('')
-            if not price:
-                price = listing.xpath('.//span[@class="s-item__price"]/span/text()').get('')
+        image = listing.xpath('.//div[contains(@class,"s-item__image")]//img/@src').get('')
+        image = image.replace('s-l225.webp', 's-l500.jpg')
 
-            image = listing.xpath('.//div[contains(@class,"s-item__image")]//img/@src').get('')
-            image = image.replace('s-l225.webp', 's-l500.jpg')
+        shipping_cost = listing.xpath('.//span[contains(text(),"postage") or contains(text(),"shipping")]/text()').re_first(r'\+\s?[£$€][\d,.]+')
+        if not shipping_cost:
+            shipping_cost = listing.xpath('.//span[contains(@class,"s-item__shipping") or contains(@class,"s-item__logisticsCost") or contains(@class,"s-item__freeXDays")]/text()').re_first(r'\+\s?[£$€][\d,.]+')
 
-            shipping_cost = listing.xpath('.//span[contains(text(),"postage") or contains(text(),"shipping")]/text()').re_first(r'\+\s?[£$€][\d,.]+')
-            if not shipping_cost:
-                shipping_cost = listing.xpath('.//span[contains(@class,"s-item__shipping") or contains(@class,"s-item__logisticsCost") or contains(@class,"s-item__freeXDays")]/text()').re_first(r'\+\s?[£$€][\d,.]+')
+        if not shipping_cost:
+            shipping_cost = '0.0'
 
-            if not shipping_cost:
-                shipping_cost = '0.0'
+        # Extract the item number
+        try:
+            item_number = link.split('/itm/')[1].split('?')[0]
+        except:
+            item_number = ''
 
-            # Extract the item number
-            try:
-                item_number = link.split('/itm/')[1].split('?')[0]
-            except:
-                item_number = ''
+        self.logger.info(f"Extracted data - Link: {link}, Title: {title}, Price: {price}, Image: {image}, Shipping Cost: {shipping_cost}, Item Number: {item_number}")
 
-            self.logger.info(f"Extracted data - Link: {link}, Title: {title}, Price: {price}, Image: {image}, Shipping Cost: {shipping_cost}, Item Number: {item_number}")
+        item = {
+            'nkw': nkw,
+            'image_url': image,
+            'product_title': title,
+            'product_price': price,
+            'shipping_fee': shipping_cost,
+            'item_number': item_number,
+            'product_url': link,
+            '_id': _id,
+            'reference_number': reference_number
+        }
 
-            item = {
-                'nkw': nkw,
-                'image_url': image,
-                'product_title': title,
-                'product_price': price,
-                'shipping_fee': shipping_cost,
-                'item_number': item_number,
-                'product_url': link,
-                '_id': ObjectId(),  # Generate a new ObjectId for each item
-                'reference_number': reference_number
-            }
+        self.logger.info(f"Inserting item {count + 1} into MongoDB: {item}")
+        yield item
 
-            self.logger.info(f"Inserting item {count + 1} into MongoDB: {item}")
-            yield item
+        count += 1
 
-            count += 1
+        if count >= 2:
+            self.logger.info("Extracted 2 items, stopping extraction for this URL.")
+            break
 
-            if count >= 2:
-                self.logger.info(f"Extracted {count} items, stopping extraction for this URL.")
-                break
-
-        if count == 0:
-            self.logger.warning(f"No valid listings found for nkw: {nkw}")
+    if count == 0:
+        self.logger.warning(f"No valid listings found for nkw: {nkw}")
 
     def errback_httpbin(self, failure):
         self.logger.error(repr(failure))
