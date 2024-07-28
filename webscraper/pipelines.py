@@ -33,9 +33,11 @@ class MongoDBPipeline:
         self.collection_a = self.db[self.collection_name_a]
         self.collection_cache = self.db[self.collection_name_cache]
 
-    def close_spider(self, spider):
-        self.clean_cache()
-        self.client.close()
+    def clean_cache(self):
+        current_date = datetime.utcnow()
+        # Remove items from the cache that have expired
+        self.collection_cache.delete_many({'expiry_date': {'$lt': current_date}})
+        logging.info("Cache cleaned.")
 
 def process_item(self, item, spider):
     try:
