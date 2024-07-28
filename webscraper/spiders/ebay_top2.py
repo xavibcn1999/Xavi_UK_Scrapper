@@ -97,9 +97,12 @@ class EbayTop2Spider(scrapy.Spider):
         self.logger.info(f"Processing response for nkw: {nkw}")
         listings = response.xpath('//ul//div[@class="s-item__wrapper clearfix"]')
 
+        self.logger.info(f"Found {len(listings)} listings on the page.")
+
         count = 0
 
         for listing in listings:
+            self.logger.info(f"Processing listing {count + 1}...")
             if listing.xpath('.//li[contains(@class,"srp-river-answer--REWRITE_START")]').get():
                 self.logger.info("Found international sellers separator. Stopping extraction for this URL.")
                 break
@@ -148,6 +151,7 @@ class EbayTop2Spider(scrapy.Spider):
             yield item
 
             if count >= 2:
+                self.logger.info(f"Extracted {count} items, stopping extraction for this URL.")
                 break
 
         if count == 0:
