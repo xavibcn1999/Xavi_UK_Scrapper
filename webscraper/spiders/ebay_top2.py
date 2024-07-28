@@ -45,7 +45,7 @@ class EbayTop2Spider(scrapy.Spider):
         super(EbayTop2Spider, self).__init__(*args, **kwargs)
         self.connect()
 
-     def connect(self):
+    def connect(self):
         try:
             self.logger.info("Attempting to connect to MongoDB...")
             client = MongoClient('mongodb+srv://xavidb:superman123@serverlessinstance0.lih2lnk.mongodb.net/Xavi_UK?retryWrites=true&w=majority')
