@@ -1,6 +1,6 @@
 import re
 import scrapy
-from datetime import datetime, timedelta
+from datetime import datetime
 from pymongo import MongoClient
 from fake_headers import Headers
 from scrapy.spidermiddlewares.httperror import HttpError
@@ -16,8 +16,12 @@ class EbayTop2Spider(scrapy.Spider):
         'RETRY_TIMES': 15,
         'COOKIES_ENABLED': True,
         'FEED_EXPORT_ENCODING': "utf-8",
-        'FEED_FORMAT': 'csv',
-        'FEED_URI': datetime.now().strftime('%Y_%m_%d__%H_%M') + '_ebay.csv',
+        'FEEDS': {
+            datetime.now().strftime('%Y_%m_%d__%H_%M') + '_ebay.csv': {
+                'format': 'csv',
+                'encoding': 'utf8',
+            },
+        },
         'DOWNLOADER_MIDDLEWARES': {
             'scrapy.downloadermiddlewares.httpproxy.HttpProxyMiddleware': 750,
             'scrapy.downloadermiddlewares.defaultheaders.DefaultHeadersMiddleware': None,
@@ -155,8 +159,7 @@ class EbayTop2Spider(scrapy.Spider):
             self.logger.error('HttpError on %s', response.url)
             if response.status == 503:
                 self.logger.warning('503 Service Unavailable on %s', response.url)
-                time.sleep(60)  # Wait for 60 seconds before retrying
-                return scrapy.Request(response.url, callback=self.parse, dont_filter=True, headers=self.headers, meta={'proxy': self.proxy})
+                yield scrapy.Request(response.url, callback=self.parse, dont_filter=True, headers=self.headers, meta={'proxy': self.proxy})
         elif failure.check(DNSLookupError):
             request = failure.request
             self.logger.error('DNSLookupError on %s', request.url)
