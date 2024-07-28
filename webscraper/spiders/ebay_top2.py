@@ -2,6 +2,7 @@ import re
 import scrapy
 from datetime import datetime, timedelta
 from pymongo import MongoClient
+from bson import ObjectId  # Asegúrate de importar ObjectId
 from fake_headers import Headers
 from scrapy.spidermiddlewares.httperror import HttpError
 from twisted.internet.error import DNSLookupError, TimeoutError, TCPTimedOutError
@@ -92,7 +93,6 @@ class EbayTop2Spider(scrapy.Spider):
 
     def parse(self, response):
         nkw = response.meta.get('nkw', 'N/A')
-        _id = response.meta.get('_id')
         reference_number = response.meta.get('reference_number')
         self.logger.info(f"Processing response for nkw: {nkw}")
         listings = response.xpath('//ul//div[@class="s-item__wrapper clearfix"]')
@@ -143,7 +143,7 @@ class EbayTop2Spider(scrapy.Spider):
                 'shipping_fee': shipping_cost,
                 'item_number': item_number,
                 'product_url': link,
-                '_id': _id,
+                '_id': ObjectId(),  # Generate a new ObjectId for each item
                 'reference_number': reference_number
             }
 
