@@ -143,7 +143,6 @@ class MongoDBPipeline:
         except Exception as e:
             logging.error(f"Error calculating ROI y sending email: {e}")
 
-
     def send_email(self, item, ebay_image, ebay_url, ebay_price, amazon_image, amazon_url, amazon_price, roi, amazon_title):
         while True:
             try:
