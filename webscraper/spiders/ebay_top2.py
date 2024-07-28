@@ -72,6 +72,7 @@ class EbayTop2Spider(scrapy.Spider):
 
         for data_urls_loop in data_urls:
             url = data_urls_loop.get('url', '').strip()
+            reference_number = data_urls_loop.get('reference_number', '')
 
             if url:
                 # Extract the value of `nkw` from the URL
@@ -80,10 +81,10 @@ class EbayTop2Spider(scrapy.Spider):
 
                 self.logger.info(f"Creating request for URL: {url} and nkw: {nkw}")
                 yield scrapy.Request(
-                    url=url, 
-                    callback=self.parse, 
+                    url=url,
+                    callback=self.parse,
                     headers=self.headers,
-                    meta={'nkw': nkw, '_id': data_urls_loop['_id'], 'proxy': self.proxy},
+                    meta={'nkw': nkw, '_id': data_urls_loop['_id'], 'proxy': self.proxy, 'reference_number': reference_number},
                     errback=self.errback_httpbin
                 )
             else:
@@ -92,6 +93,7 @@ class EbayTop2Spider(scrapy.Spider):
     def parse(self, response):
         nkw = response.meta.get('nkw', 'N/A')
         _id = response.meta.get('_id')
+        reference_number = response.meta.get('reference_number')
         self.logger.info(f"Processing response for nkw: {nkw}")
         listings = response.xpath('//ul//div[@class="s-item__wrapper clearfix"]')
 
@@ -118,16 +120,16 @@ class EbayTop2Spider(scrapy.Spider):
             shipping_cost = listing.xpath('.//span[contains(text(),"postage") or contains(text(),"shipping")]/text()').re_first(r'\+\s?[£$€][\d,.]+')
             if not shipping_cost:
                 shipping_cost = listing.xpath('.//span[contains(@class,"s-item__shipping") or contains(@class,"s-item__logisticsCost") or contains(@class,"s-item__freeXDays")]/text()').re_first(r'\+\s?[£$€][\d,.]+')
-            
+
             if not shipping_cost:
                 shipping_cost = '0.0'
-            
+
             # Extract the item number
             try:
                 item_number = link.split('/itm/')[1].split('?')[0]
             except:
                 item_number = ''
-            
+
             self.logger.info(f"Extracted data - Link: {link}, Title: {title}, Price: {price}, Image: {image}, Shipping Cost: {shipping_cost}, Item Number: {item_number}")
 
             item = {
@@ -138,7 +140,8 @@ class EbayTop2Spider(scrapy.Spider):
                 'shipping_fee': shipping_cost,
                 'item_number': item_number,  # Add the item number here
                 'product_url': link,  # Add the product URL here
-                '_id': _id
+                '_id': _id,
+                'reference_number': reference_number  # Add the reference number here
             }
 
             yield item
