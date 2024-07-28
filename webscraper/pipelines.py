@@ -50,9 +50,10 @@ class MongoDBPipeline:
             logging.error("El item no tiene '_id'")
             return item
 
-        # Ensure item_number and product_url are in item and not empty
+        # Ensure item_number, product_url, and reference_number are in item and not empty
         item['item_number'] = item.get('item_number', '')
         item['product_url'] = item.get('product_url', '')
+        item['reference_number'] = item.get('reference_number', '')
 
         # Update item in the Search_uk_E collection
         self.collection_e.update_one({'_id': item['_id']}, {'$set': item}, upsert=True)
@@ -74,14 +75,14 @@ class MongoDBPipeline:
 
     def calculate_and_send_email(self, item):
         try:
-            asin = item['nkw']
+            ref_number = item['reference_number']
             ebay_price = round(item['product_price'] + item['shipping_fee'], 2)
-            logging.info(f"Calculando ROI para ASIN: {asin}")
+            logging.info(f"Calculando ROI para número de referencia: {ref_number}")
             logging.info(f"Precio del producto en eBay: {item['product_price']}")
             logging.info(f"Costo de envío en eBay: {item['shipping_fee']}")
             logging.info(f"Precio de eBay (producto + envío): {ebay_price}")
 
-            amazon_item = self.collection_a.find_one({'ASIN': asin})
+            amazon_item = self.collection_a.find_one({'ReferenceNumber': ref_number})
             if amazon_item:
                 logging.info(f"Documento de Amazon recuperado: {amazon_item}")
 
@@ -121,26 +122,30 @@ class MongoDBPipeline:
                 logging.info(f"Ganancia: {profit}")
                 logging.info(f"ROI: {roi}%")
 
-                ebay_url = f"https://www.ebay.co.uk/sch/i.html?_from=R40&_trksid=p2334524.m570.l1313&_nkw={asin}&_sacat=267&LH_TitleDesc=0&_odkw=1492086894&_osacat=267&LH_BIN=1&_sop=15&LH_PrefLoc=1&rt=nc&LH_ItemCondition=2750%7C4000%7C5000%7C6000%7C10"
+                ebay_url = item['product_url']
 
                 if roi > 50:
                     # Check cache before sending email
-                    cached_item = self.collection_cache.find_one({'item_number': item.get('item_number')})
+                    current_date = datetime.utcnow()
+                    cached_item = self.collection_cache.find_one({
+                        'item_number': item.get('item_number'),
+                        'expiry_date': {'$gt': current_date}
+                    })
                     if cached_item:
-                        # Update timestamp to mark as relevant
-                        self.collection_cache.update_one({'_id': cached_item['_id']}, {'$set': {'last_checked': datetime.utcnow()}})
-                        logging.info(f"Item already exists in cache: {item['item_number']}")
+                        logging.info(f"Item already exists in cache and is not expired: {item['item_number']}")
                     else:
                         item['last_checked'] = datetime.utcnow()
                         item['_id'] = ObjectId()  # Ensure a new _id is generated for the cache
+                        item['expiry_date'] = current_date + timedelta(days=7)  # Set expiry date to 7 days from now
                         self.collection_cache.insert_one(item)
                         self.send_email(
                             item,  # Passing item to send_email method
                             item['image_url'], ebay_url, ebay_price,
                             amazon_item.get('Image', ''), amazon_item.get('URL: Amazon', ''), amazon_used_price, roi, amazon_title
-                        )
+                    )
         except Exception as e:
             logging.error(f"Error calculating ROI y sending email: {e}")
+
 
     def send_email(self, item, ebay_image, ebay_url, ebay_price, amazon_image, amazon_url, amazon_price, roi, amazon_title):
         while True:
