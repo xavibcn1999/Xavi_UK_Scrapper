@@ -52,7 +52,7 @@ class EbayTop2Spider(scrapy.Spider):
             self.db = client["Xavi_UK"]
             self.collection_E = self.db['Search_uk_E']
             self.collection_A = self.db['Search_uk_A']
-            self.collection_cache = self.db['Search_uk_Cache']  # New collection for caching
+            self.collection_cache = self.db['Search_uk_Cache']
             self.logger.info("Connected to MongoDB.")
         except Exception as e:
             self.logger.error(f"Error connecting to MongoDB: {e}")
@@ -75,26 +75,21 @@ class EbayTop2Spider(scrapy.Spider):
             reference_number = data_urls_loop.get('reference_number', '')
 
             if url:
-                # Extract the value of nkw from the URL
-                nkw_match = re.search(r'_nkw=([^&]+)', url)
-                nkw = nkw_match.group(1) if nkw_match else 'N/A'
-
-                self.logger.info(f"Creating request for URL: {url} and nkw: {nkw}")
+                self.logger.info(f"Creating request for URL: {url}")
                 yield scrapy.Request(
                     url=url,
                     callback=self.parse,
                     headers=self.headers,
-                    meta={'nkw': nkw, '_id': data_urls_loop['_id'], 'proxy': self.proxy, 'reference_number': reference_number},
+                    meta={'_id': data_urls_loop['_id'], 'proxy': self.proxy, 'reference_number': reference_number},
                     errback=self.errback_httpbin
                 )
             else:
                 self.logger.warning("Empty URL found in the Search_uk_E collection.")
 
     def parse(self, response):
-        nkw = response.meta.get('nkw', 'N/A')
         _id = response.meta.get('_id')
         reference_number = response.meta.get('reference_number')
-        self.logger.info(f"Processing response for nkw: {nkw}")
+        self.logger.info(f"Processing response for _id: {_id} and reference_number: {reference_number}")
         listings = response.xpath('//ul//div[@class="s-item__wrapper clearfix"]')
 
         count = 0
@@ -133,7 +128,6 @@ class EbayTop2Spider(scrapy.Spider):
             self.logger.info(f"Extracted data - Link: {link}, Title: {title}, Price: {price}, Image: {image}, Shipping Cost: {shipping_cost}, Item Number: {item_number}")
 
             item = {
-                'nkw': nkw,
                 'image_url': image,
                 'product_title': title,
                 'product_price': price,
@@ -152,7 +146,7 @@ class EbayTop2Spider(scrapy.Spider):
                 break
 
         if count == 0:
-            self.logger.warning(f"No valid listings found for nkw: {nkw}")
+            self.logger.warning(f"No valid listings found for _id: {_id}")
 
     def errback_httpbin(self, failure):
         self.logger.error(repr(failure))
