@@ -58,17 +58,8 @@ def process_item(self, item, spider):
 
     # Update item in the Search_uk_E collection
     result = self.collection_e.update_one(
-        {'_id': item['_id']},
-        {'$set': {
-            'nkw': item['nkw'],
-            'image_url': item['image_url'],
-            'product_title': item['product_title'],
-            'product_price': item['product_price'],
-            'shipping_fee': item['shipping_fee'],
-            'item_number': item['item_number'],
-            'product_url': item['product_url'],
-            'reference_number': item['reference_number']
-        }}
+        {'_id': item['_id'], 'reference_number': item['reference_number']},
+        {'$set': item}
     )
 
     # Log update result
@@ -78,7 +69,6 @@ def process_item(self, item, spider):
     self.calculate_and_send_email(item)
 
     return item
-
 
     def convert_price(self, price_str):
         if isinstance(price_str, str):
