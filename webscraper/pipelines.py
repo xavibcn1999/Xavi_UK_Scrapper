@@ -35,10 +35,7 @@ class MongoDBPipeline:
 
     def close_spider(self, spider):
         self.clean_cache()
-
-    def clean_cache(self):
-        # Implementa la lógica de limpieza de la caché aquí
-        pass
+        self.client.close()
         
     def process_item(self, item, spider):
         try:
