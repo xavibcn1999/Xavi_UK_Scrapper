@@ -146,7 +146,7 @@ class EbayTop2Spider(scrapy.Spider):
 
             self.logger.info(f"Inserting item {count + 1} into MongoDB: {item}")
             self.collection_E.update_one(
-                {'_id': _id},
+                {'_id': _id, 'item_number': None},
                 {'$set': item},
                 upsert=True
             )
