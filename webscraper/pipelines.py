@@ -55,8 +55,8 @@ def process_item(self, item, spider):
     item['product_url'] = item.get('product_url', '')
 
     # Update item in the Search_uk_E collection
-    self.collection_e.update_one(
-        {'_id': item['_id']}, 
+    result = self.collection_e.update_one(
+        {'_id': item['_id']},
         {'$set': {
             'nkw': item['nkw'],
             'image_url': item['image_url'],
@@ -66,14 +66,17 @@ def process_item(self, item, spider):
             'item_number': item['item_number'],
             'product_url': item['product_url'],
             'reference_number': item['reference_number']
-        }},
-        upsert=True
+        }}
     )
+
+    # Log update result
+    logging.info(f"Updated {result.matched_count} document(s), Modified {result.modified_count} document(s)")
 
     # Calculate and potentially send email
     self.calculate_and_send_email(item)
 
     return item
+
 
     def convert_price(self, price_str):
         if isinstance(price_str, str):
