@@ -45,7 +45,7 @@ class EbayTop2Spider(scrapy.Spider):
 
     proxy = 'http://xavigv:e8qcHlJ5jdHxl7Xj_country-UnitedKingdom@proxy.packetstream.io:31112'
 
-        def __init__(self, *args, **kwargs):
+    def __init__(self, *args, **kwargs):
         super(EbayTop2Spider, self).__init__(*args, **kwargs)
         self.connect()
 
