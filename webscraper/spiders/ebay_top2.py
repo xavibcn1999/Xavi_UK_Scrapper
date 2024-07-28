@@ -1,5 +1,3 @@
-pasamelo por partes basandote en esta version:
-
 import re
 import scrapy
 from datetime import datetime, timedelta
