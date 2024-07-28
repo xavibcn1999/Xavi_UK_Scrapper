@@ -171,6 +171,7 @@ class MongoDBPipeline:
                 """
                 html = f"""\
                 <html>
+                  
                   <body>
                     <h4>{amazon_title}</h4>
                     <p><strong>Precio de Amazon:</strong> £{amazon_price:.2f}</p>
