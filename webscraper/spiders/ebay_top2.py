@@ -90,7 +90,23 @@ class EbayTop2Spider(scrapy.Spider):
             else:
                 self.logger.warning("Empty URL found in the Search_uk_E collection.")
 
-   def parse(self, response):
+    def errback_httpbin(self, failure):
+        self.logger.error(repr(failure))
+        if failure.check(HttpError):
+            response = failure.value.response
+            self.logger.error('HttpError on %s', response.url)
+            if response.status == 503:
+                self.logger.warning('503 Service Unavailable on %s', response.url)
+                time.sleep(60)  # Wait for 60 seconds before retrying
+                return scrapy.Request(response.url, callback=self.parse, dont_filter=True, headers=self.headers, meta={'proxy': self.proxy})
+        elif failure.check(DNSLookupError):
+            request = failure.request
+            self.logger.error('DNSLookupError on %s', request.url)
+        elif failure.check(TimeoutError, TCPTimedOutError):
+            request = failure.request
+            self.logger.error('TimeoutError on %s', request.url)
+
+    def parse(self, response):
         nkw = response.meta.get('nkw', 'N/A')
         _id = response.meta.get('_id')
         reference_number = response.meta.get('reference_number')
@@ -141,23 +157,19 @@ class EbayTop2Spider(scrapy.Spider):
                 'item_number': item_number,
                 'product_url': link,
                 '_id': _id,
-                'reference_number': reference_number
+                'reference_number': reference_number,
             }
 
-            self.logger.info(f"Inserting item {count + 1} into MongoDB: {item}")
-            try:
-                self.collection_E.update_one(
-                    {'_id': _id},
-                    {'$set': item},
-                    upsert=True
-                )
-            except pymongo.errors.DuplicateKeyError as e:
-                self.logger.error(f"DuplicateKeyError: {e}")
-
             count += 1
+            self.logger.info(f"Inserting item {count} into MongoDB: {item}")
+            self.collection_cache.update_one(
+                {'_id': _id},
+                {'$set': item},
+                upsert=True
+            )
 
-            if count >= 2:
-                self.logger.info("Extracted 2 items, stopping extraction for this URL.")
+            if count == 2:
+                self.logger.info(f"Extracted {count} items, stopping extraction for this URL.")
                 break
 
         if count == 0:
