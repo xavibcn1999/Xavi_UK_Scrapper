@@ -52,7 +52,7 @@ class EbayTop2Spider(scrapy.Spider):
             self.db = client["Xavi_UK"]
             self.collection_E = self.db['Search_uk_E']
             self.collection_A = self.db['Search_uk_A']
-            self.collection_cache = self.db['Search_uk_Cache']
+            self.collection_cache = self.db['Search_uk_Cache']  # New collection for caching
             self.logger.info("Connected to MongoDB.")
         except Exception as e:
             self.logger.error(f"Error connecting to MongoDB: {e}")
@@ -147,8 +147,10 @@ class EbayTop2Spider(scrapy.Spider):
                 'reference_number': reference_number
             }
 
-            count += 1
+            self.logger.info(f"Inserting item {count + 1} into MongoDB: {item}")
             yield item
+
+            count += 1
 
             if count >= 2:
                 self.logger.info(f"Extracted {count} items, stopping extraction for this URL.")
