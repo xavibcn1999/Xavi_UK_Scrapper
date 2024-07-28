@@ -5,7 +5,7 @@ from scrapy.utils.project import get_project_settings
 from pymongo import MongoClient
 from bson import ObjectId
 import logging
-from datetime import datetime, timedelta  # Asegúrate de que timedelta esté importado
+from datetime import datetime, timedelta
 
 class MongoDBPipeline:
     def __init__(self):
@@ -173,7 +173,6 @@ class MongoDBPipeline:
                 """
                 html = f"""\
                 <html>
-                            
               <body>
                 <h4>{amazon_title}</h4>
                 <p><strong>Precio de Amazon:</strong> £{amazon_price:.2f}</p>
