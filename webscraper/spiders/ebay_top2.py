@@ -8,7 +8,6 @@ from twisted.internet.error import DNSLookupError, TimeoutError, TCPTimedOutErro
 
 header = Headers(browser="chrome", os="win", headers=True)
 
-
 class EbayTop2Spider(scrapy.Spider):
     name = 'ebay_top2'
     custom_settings = {
@@ -46,8 +45,7 @@ class EbayTop2Spider(scrapy.Spider):
 
     proxy = 'http://xavigv:e8qcHlJ5jdHxl7Xj_country-UnitedKingdom@proxy.packetstream.io:31112'
 
-
-    def __init__(self, *args, **kwargs):
+        def __init__(self, *args, **kwargs):
         super(EbayTop2Spider, self).__init__(*args, **kwargs)
         self.connect()
 
@@ -92,6 +90,7 @@ class EbayTop2Spider(scrapy.Spider):
                 )
             else:
                 self.logger.warning("Empty URL found in the Search_uk_E collection.")
+
 
     def parse(self, response):
         _id = response.meta.get('_id')
@@ -169,6 +168,10 @@ class EbayTop2Spider(scrapy.Spider):
         elif failure.check(DNSLookupError):
             request = failure.request
             self.logger.error('DNSLookupError on %s', request.url)
+        elif failure.check(TimeoutError, TCPTimedOutError):
+            request = failure.request
+            self.logger.error('TimeoutError on %s', request.url)
+
         elif failure.check(TimeoutError, TCPTimedOutError):
             request = failure.request
             self.logger.error('TimeoutError on %s', request.url)
