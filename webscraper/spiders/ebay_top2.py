@@ -144,9 +144,8 @@ class EbayTop2Spider(scrapy.Spider):
                 'reference_number': reference_number
             }
 
-            yield item
-
             count += 1
+            yield item
 
             if count >= 2:
                 break
