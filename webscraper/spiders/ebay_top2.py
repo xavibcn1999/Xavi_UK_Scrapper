@@ -1,4 +1,4 @@
-import re
+bayimport re
 import scrapy
 from datetime import datetime
 from pymongo import MongoClient
@@ -78,7 +78,7 @@ class EbayTop2Spider(scrapy.Spider):
             return
 
         for data_urls_loop in data_urls:
-            url = data_urls_loop.get('url', '').strip()
+            url = data_urls_loop.get('ebay_url', '').strip()
 
             if url:
                 self.logger.info(f"Creating request for URL: {url}")
