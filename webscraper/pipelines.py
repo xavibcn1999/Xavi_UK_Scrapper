@@ -73,7 +73,7 @@ class MongoDBPipeline:
             logging.info(f"Costo de envío en eBay: {item['shipping_fee']}")
             logging.info(f"Precio de eBay (producto + envío): {ebay_price}")
 
-            amazon_item = self.collection_a.find_one({'URL: Amazon': item['product_url']})
+            amazon_item = self.collection_a.find_one({'ASIN': item.get('asin')})
             if amazon_item:
                 logging.info(f"Documento de Amazon recuperado: {amazon_item}")
 
