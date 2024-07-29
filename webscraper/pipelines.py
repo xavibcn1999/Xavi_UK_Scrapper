@@ -13,7 +13,7 @@ class MongoDBPipeline:
         self.mongo_uri = settings.get('MONGO_URI')
         self.mongo_db = settings.get('MONGO_DATABASE')
         self.collection_name_e = 'ebay_items'  # Cambiamos la colección a ebay_items
-        self.collection_a = 'Search_uk_A'  # Colección de Amazon
+        self.collection_name_a = 'Search_uk_A'  # Colección de Amazon
         self.collection_name_cache = 'Search_uk_Cache'
         self.gmail_accounts = [
             {"email": "xavusiness@gmail.com", "password": "tnthxazpsezagjdc"},
