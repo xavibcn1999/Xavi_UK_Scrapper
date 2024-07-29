@@ -12,8 +12,8 @@ class MongoDBPipeline:
         settings = get_project_settings()
         self.mongo_uri = settings.get('MONGO_URI')
         self.mongo_db = settings.get('MONGO_DATABASE')
-        self.collection_name_e = 'ebay_items'  # Cambiamos la colección a ebay_items
-        self.collection_name_a = 'Search_uk_A'  # Colección de Amazon
+        self.collection_name_e = 'ebay_items'
+        self.collection_name_a = 'Search_uk_A'
         self.collection_name_cache = 'Search_uk_Cache'
         self.gmail_accounts = [
             {"email": "xavusiness@gmail.com", "password": "tnthxazpsezagjdc"},
@@ -24,19 +24,19 @@ class MongoDBPipeline:
             {"email": "xavibcn1999@gmail.com", "password": "vcjlpcfemckrpsvm"}
         ]
         self.current_account = 0
-        self.exchange_rate = 1.29  # 1 GBP = 1.29 USD
+        self.exchange_rate = 1.29
 
     def open_spider(self, spider):
         self.client = MongoClient(self.mongo_uri)
         self.db = self.client[self.mongo_db]
-        self.collection_ebay = self.db[self.collection_name_e]  # Asegúrate de que esta línea esté presente
+        self.collection_ebay = self.db[self.collection_name_e]
         self.collection_a = self.db[self.collection_name_a]
         self.collection_cache = self.db[self.collection_name_cache]
 
     def close_spider(self, spider):
         self.clean_cache()
         self.client.close()
-        
+
     def process_item(self, item, spider):
         try:
             item['product_price'] = self.convert_price(item['product_price'])
@@ -50,14 +50,11 @@ class MongoDBPipeline:
             logging.error("El item no tiene '_id'")
             return item
 
-        # Ensure item_number and product_url are in item and not empty
         item['item_number'] = item.get('item_number', '')
         item['product_url'] = item.get('product_url', '')
 
-        # Update item in the ebay_items collection
         self.collection_ebay.update_one({'_id': item['_id']}, {'$set': item}, upsert=True)
 
-        # Calculate and potentially send email
         self.calculate_and_send_email(item)
 
         return item
@@ -84,24 +81,9 @@ class MongoDBPipeline:
                 amazon_used_price_str = amazon_item.get('Buy Box Used: 180 days avg.', 0)
                 logging.info(f"Valor extraído de 'Buy Box Used: 180 days avg': {amazon_used_price_str}")
 
-                if isinstance(amazon_used_price_str, str):
-                    try:
-                        amazon_used_price = self.convert_price(amazon_used_price_str)
-                    except ValueError as e:
-                        logging.error(f"Error al convertir 'Buy Box Used: 180 days avg' a float: {e}")
-                        amazon_used_price = 0.0
-                else:
-                    amazon_used_price = float(amazon_used_price_str)
-
+                amazon_used_price = self.convert_price(amazon_used_price_str)
                 fba_fee_str = amazon_item.get('FBA Fees', 0)
-                if isinstance(fba_fee_str, str):
-                    try:
-                        fba_fee = self.convert_price(fba_fee_str)
-                    except ValueError as e:
-                        logging.error(f"Error al convertir 'FBA Fees' a float: {e}")
-                        fba_fee = 0.0
-                else:
-                    fba_fee = float(fba_fee_str)
+                fba_fee = self.convert_price(fba_fee_str)
 
                 referral_fee_percentage = 0.153 if amazon_used_price > 5 else 0.051
                 referral_fee = round(amazon_used_price * referral_fee_percentage, 2)
@@ -115,8 +97,6 @@ class MongoDBPipeline:
                 logging.info(f"Tarifa de referencia: {referral_fee}")
                 logging.info(f"Ganancia: {profit}")
                 logging.info(f"ROI: {roi}%")
-
-                ebay_url = item['product_url']
 
                 if roi > 50:
                     current_date = datetime.utcnow()
@@ -133,14 +113,13 @@ class MongoDBPipeline:
                         self.collection_cache.insert_one(item)
                         self.send_email(
                             item,
-                            item['image_url'], ebay_url, ebay_price,
+                            item['image_url'], item['product_url'], ebay_price,
                             amazon_item.get('Image', ''), amazon_item.get('URL: Amazon', ''), amazon_used_price, roi, amazon_title
                         )
         except Exception as e:
             logging.error(f"Error calculating ROI y sending email: {e}")
             logging.debug(f"Detalles del error: {e}")
             logging.debug(f"Item: {item}")
-            logging.debug(f"Amazon Item: {amazon_item}")
 
     def send_email(self, item, ebay_image, ebay_url, ebay_price, amazon_image, amazon_url, amazon_price, roi, amazon_title):
         while True:
@@ -191,8 +170,8 @@ class MongoDBPipeline:
                 part2 = MIMEText(html, "html")
 
                 message.attach(part1)
-                message.attach(part2)
-                                   
+                message.attach(part2)                                   
+              
                 with smtplib.SMTP_SSL("smtp.gmail.com", 465) as server:
                     server.login(sender_email, password)
                     server.sendmail(sender_email, receiver_email, message.as_string())
