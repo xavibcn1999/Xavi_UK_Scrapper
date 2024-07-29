@@ -29,10 +29,8 @@ class MongoDBPipeline:
     def open_spider(self, spider):
         self.client = MongoClient(self.mongo_uri)
         self.db = self.client[self.mongo_db]
-        self.collection_e = self.db[self.collection_name_e]
-        self.collection_a = self.db[self.collection_name_a]
-        self.collection_cache = self.db[self.collection_name_cache]
-
+        self.collection_ebay = self.db['ebay_collection']  # Asegúrate de que esta línea esté presente
+        
     def close_spider(self, spider):
         self.clean_cache()
         self.client.close()
