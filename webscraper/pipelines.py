@@ -37,6 +37,11 @@ class MongoDBPipeline:
         self.clean_cache()
         self.client.close()
 
+    def clean_cache(self):
+        current_date = datetime.utcnow()
+        result = self.collection_cache.delete_many({'expiry_date': {'$lt': current_date}})
+        logging.info(f"Cache cleaned, {result.deleted_count} expired items removed.")
+
     def process_item(self, item, spider):
         try:
             item['product_price'] = self.convert_price(item['product_price'])
