@@ -1,4 +1,4 @@
-bayimport re
+import re
 import scrapy
 from datetime import datetime
 from pymongo import MongoClient
