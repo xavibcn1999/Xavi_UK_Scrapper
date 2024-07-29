@@ -93,6 +93,10 @@ class MongoDBPipeline:
             # Depuración: Verificar valor de ebay_price
             logging.debug(f"ebay_price calculado: {ebay_price}")
 
+
+            # Depuración: Verificar valor de ebay_price
+            logging.debug(f"ebay_price calculado: {ebay_price}")
+
             search_param = item.get('search_param')
             amazon_item = None
             if search_param:
