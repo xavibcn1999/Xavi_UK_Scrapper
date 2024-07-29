@@ -53,6 +53,10 @@ class MongoDBPipeline:
         item['item_number'] = item.get('item_number', '')
         item['product_url'] = item.get('product_url', '')
 
+        # Extraer valor de la URL de búsqueda
+        search_param = self.extract_search_param(item['product_url'])
+        item['search_param'] = search_param
+
         self.collection_ebay.update_one({'_id': item['_id']}, {'$set': item}, upsert=True)
 
         self.calculate_and_send_email(item)
@@ -66,6 +70,14 @@ class MongoDBPipeline:
                 return float(price_str) / self.exchange_rate
         return float(price_str)
 
+    def extract_search_param(self, url):
+        import urllib.parse as urlparse
+        from urllib.parse import parse_qs
+
+        parsed_url = urlparse.urlparse(url)
+        search_param = parse_qs(parsed_url.query).get('nkw', [''])[0]
+        return search_param
+
     def calculate_and_send_email(self, item):
         try:
             ebay_price = round(item['product_price'] + item['shipping_fee'], 2)
@@ -73,7 +85,19 @@ class MongoDBPipeline:
             logging.info(f"Costo de envío en eBay: {item['shipping_fee']}")
             logging.info(f"Precio de eBay (producto + envío): {ebay_price}")
 
-            amazon_item = self.collection_a.find_one({'ASIN': item.get('asin')})
+            search_param = item.get('search_param')
+            amazon_item = None
+            if search_param:
+                if search_param.isdigit() and len(search_param) == 10:
+                    # Buscar por ASIN
+                    amazon_item = self.collection_a.find_one({'ASIN': search_param})
+                elif len(search_param) == 13 and search_param.isdigit():
+                    # Buscar por ISBN13
+                    amazon_item = self.collection_a.find_one({'ISBN13': search_param})
+                else:
+                    # Buscar por título
+                    amazon_item = self.collection_a.find_one({'Title': search_param.replace('+', ' ')})
+
             if amazon_item:
                 logging.info(f"Documento de Amazon recuperado: {amazon_item}")
 
@@ -150,6 +174,7 @@ class MongoDBPipeline:
                 html = f"""\
                 <html>
                   <body>
+                
                     <h4>{amazon_title}</h4>
                     <p><strong>Precio de Amazon:</strong> £{amazon_price:.2f}</p>
                     <p><strong>Precio de eBay:</strong> £{ebay_price:.2f}</p>
