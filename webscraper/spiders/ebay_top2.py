@@ -55,8 +55,6 @@ class EbayTop2Spider(scrapy.Spider):
             client = MongoClient('mongodb+srv://xavidb:superman123@serverlessinstance0.lih2lnk.mongodb.net/Xavi_UK?retryWrites=true&w=majority')
             self.db = client["Xavi_UK"]
             self.collection_E = self.db['Search_uk_E']
-            self.collection_A = self.db['Search_uk_A']
-            self.collection_cache = self.db['Search_uk_Cache']
             self.logger.info("Connected to MongoDB.")
         except Exception as e:
             self.logger.error(f"Error connecting to MongoDB: {e}")
@@ -142,6 +140,8 @@ class EbayTop2Spider(scrapy.Spider):
                 'reference_number': reference_number
             }
 
+            self.update_mongodb(item)
+
             yield item
 
             count += 1
@@ -151,6 +151,23 @@ class EbayTop2Spider(scrapy.Spider):
 
         if count == 0:
             self.logger.warning(f"No valid listings found for _id: {_id}")
+
+    def update_mongodb(self, item):
+        try:
+            self.collection_E.update_one(
+                {'_id': item['_id']},
+                {'$set': {
+                    'image_url': item['image_url'],
+                    'product_title': item['product_title'],
+                    'product_price': item['product_price'],
+                    'shipping_fee': item['shipping_fee'],
+                    'item_number': item['item_number'],
+                    'product_url': item['product_url'],
+                }}
+            )
+            self.logger.info(f"Updated MongoDB for _id: {item['_id']} with reference_number: {item['reference_number']}")
+        except Exception as e:
+            self.logger.error(f"Error updating MongoDB for _id: {item['_id']} with reference_number: {item['reference_number']}: {e}")
 
     def errback_httpbin(self, failure):
         self.logger.error(repr(failure))
