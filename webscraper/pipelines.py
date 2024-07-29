@@ -29,7 +29,7 @@ class MongoDBPipeline:
     def open_spider(self, spider):
         self.client = MongoClient(self.mongo_uri)
         self.db = self.client[self.mongo_db]
-        self.collection_ebay = self.db['ebay_collection']  # Asegúrate de que esta línea esté presente
+        self.collection_ebay = self.db[self.collection_name_e]  # Asegúrate de que esta línea esté presente
         
     def close_spider(self, spider):
         self.clean_cache()
@@ -60,7 +60,6 @@ class MongoDBPipeline:
 
         return item
 
-
     def convert_price(self, price_str):
         if isinstance(price_str, str):
             price_str = price_str.replace('£', '').replace('US $', '').replace('+', '').replace(',', '').strip()
@@ -68,17 +67,14 @@ class MongoDBPipeline:
                 return float(price_str) / self.exchange_rate
         return float(price_str)
 
-
     def calculate_and_send_email(self, item):
         try:
-            ref_number = item['reference_number'].split('-')[0]
             ebay_price = round(item['product_price'] + item['shipping_fee'], 2)
-            logging.info(f"Calculando ROI para número de referencia: {ref_number}")
             logging.info(f"Precio del producto en eBay: {item['product_price']}")
             logging.info(f"Costo de envío en eBay: {item['shipping_fee']}")
             logging.info(f"Precio de eBay (producto + envío): {ebay_price}")
 
-            amazon_item = self.collection_a.find_one({'ReferenceNumber': ref_number})
+            amazon_item = self.collection_a.find_one({'URL: Amazon': item['product_url']})
             if amazon_item:
                 logging.info(f"Documento de Amazon recuperado: {amazon_item}")
 
@@ -192,6 +188,7 @@ class MongoDBPipeline:
                 message.attach(part1)
                 message.attach(part2)
 
+                      
                 with smtplib.SMTP_SSL("smtp.gmail.com", 465) as server:
                     server.login(sender_email, password)
                     server.sendmail(sender_email, receiver_email, message.as_string())
