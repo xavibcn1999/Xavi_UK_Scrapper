@@ -12,7 +12,7 @@ class MongoDBPipeline:
         settings = get_project_settings()
         self.mongo_uri = settings.get('MONGO_URI')
         self.mongo_db = settings.get('MONGO_DATABASE')
-        self.collection_name_e = settings.get('MONGO_COLLECTION_E')
+        self.collection_name_e = 'ebay_items'  # Cambiamos la colección a ebay_items
         self.collection_name_a = settings.get('MONGO_COLLECTION_A')
         self.collection_name_cache = 'Search_uk_Cache'
         self.gmail_accounts = [
@@ -54,13 +54,14 @@ class MongoDBPipeline:
         item['item_number'] = item.get('item_number', '')
         item['product_url'] = item.get('product_url', '')
 
-        # Update item in the Search_uk_E collection
-        self.collection_e.update_one({'_id': item['_id']}, {'$set': item}, upsert=True)
+        # Update item in the ebay_items collection
+        self.collection_ebay.update_one({'_id': item['_id']}, {'$set': item}, upsert=True)
 
         # Calculate and potentially send email
         self.calculate_and_send_email(item)
 
         return item
+
 
     def convert_price(self, price_str):
         if isinstance(price_str, str):
@@ -70,9 +71,8 @@ class MongoDBPipeline:
         return float(price_str)
 
 
-    def calculate_and_send_email(self, item):
+        def calculate_and_send_email(self, item):
         try:
-            # Extract the main reference number
             ref_number = item['reference_number'].split('-')[0]
             ebay_price = round(item['product_price'] + item['shipping_fee'], 2)
             logging.info(f"Calculando ROI para número de referencia: {ref_number}")
@@ -123,7 +123,6 @@ class MongoDBPipeline:
                 ebay_url = item['product_url']
 
                 if roi > 50:
-                    # Check cache before sending email
                     current_date = datetime.utcnow()
                     cached_item = self.collection_cache.find_one({
                         'item_number': item.get('item_number'),
@@ -133,11 +132,11 @@ class MongoDBPipeline:
                         logging.info(f"Item already exists in cache and is not expired: {item['item_number']}")
                     else:
                         item['last_checked'] = datetime.utcnow()
-                        item['_id'] = ObjectId()  # Ensure a new _id is generated for the cache
-                        item['expiry_date'] = current_date + timedelta(days=7)  # Set expiry date to 7 days from now
+                        item['_id'] = ObjectId()
+                        item['expiry_date'] = current_date + timedelta(days=7)
                         self.collection_cache.insert_one(item)
                         self.send_email(
-                            item,  # Passing item to send_email method
+                            item,
                             item['image_url'], ebay_url, ebay_price,
                             amazon_item.get('Image', ''), amazon_item.get('URL: Amazon', ''), amazon_used_price, roi, amazon_title
                         )
@@ -172,7 +171,6 @@ class MongoDBPipeline:
                 """
                 html = f"""\
                 <html>
-                                 
                   <body>
                     <h4>{amazon_title}</h4>
                     <p><strong>Precio de Amazon:</strong> £{amazon_price:.2f}</p>
