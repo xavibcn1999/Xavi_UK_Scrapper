@@ -13,7 +13,7 @@ class MongoDBPipeline:
         self.mongo_uri = settings.get('MONGO_URI')
         self.mongo_db = settings.get('MONGO_DATABASE')
         self.collection_name_e = 'ebay_items'  # Cambiamos la colección a ebay_items
-        self.collection_name_a = 'Search_uk_A'  # Colección de Amazon
+        self.collection_amazon = 'Search_uk_A'  # Colección de Amazon
         self.collection_name_cache = 'Search_uk_Cache'
         self.gmail_accounts = [
             {"email": "xavusiness@gmail.com", "password": "tnthxazpsezagjdc"},
@@ -30,7 +30,9 @@ class MongoDBPipeline:
         self.client = MongoClient(self.mongo_uri)
         self.db = self.client[self.mongo_db]
         self.collection_ebay = self.db[self.collection_name_e]  # Asegúrate de que esta línea esté presente
-        
+        self.collection_amazon = self.db[self.collection_name_a]
+        self.collection_cache = self.db[self.collection_name_cache]
+
     def close_spider(self, spider):
         self.clean_cache()
         self.client.close()
@@ -74,7 +76,7 @@ class MongoDBPipeline:
             logging.info(f"Costo de envío en eBay: {item['shipping_fee']}")
             logging.info(f"Precio de eBay (producto + envío): {ebay_price}")
 
-            amazon_item = self.collection_a.find_one({'URL: Amazon': item['product_url']})
+            amazon_item = self.collection_amazon.find_one({'URL: Amazon': item['product_url']})
             if amazon_item:
                 logging.info(f"Documento de Amazon recuperado: {amazon_item}")
 
@@ -187,8 +189,7 @@ class MongoDBPipeline:
 
                 message.attach(part1)
                 message.attach(part2)
-
-                      
+                                   
                 with smtplib.SMTP_SSL("smtp.gmail.com", 465) as server:
                     server.login(sender_email, password)
                     server.sendmail(sender_email, receiver_email, message.as_string())
