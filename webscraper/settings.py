@@ -34,10 +34,19 @@ DOWNLOAD_DELAY = 0  # Sin demora para máxima velocidad
 RETRY_TIMES = 15  # Aumentar el número de reintentos
 COOKIES_ENABLED = True
 FEED_EXPORT_ENCODING = "utf-8"
-FEED_FORMAT = 'csv'
-FEED_URI = datetime.datetime.now().strftime('%Y_%m_%d__%H_%M') + '_ebay.csv'
+
+# Configuración de FEEDS
+current_time = datetime.datetime.now().strftime('%Y_%m_%d__%H_%M')
 
 FEEDS = {
+    f'{current_time}_ebay.csv': {
+        'format': 'csv',
+        'encoding': 'utf8',
+        'store_empty': False,
+        'fields': None,
+        'indent': 4,
+        'overwrite': True,  # Agrega esto si quieres sobrescribir el archivo en cada ejecución
+    },
     'output.json': {
         'format': 'json',
         'encoding': 'utf8',
