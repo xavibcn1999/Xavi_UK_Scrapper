@@ -36,3 +36,14 @@ COOKIES_ENABLED = True
 FEED_EXPORT_ENCODING = "utf-8"
 FEED_FORMAT = 'csv'
 FEED_URI = datetime.datetime.now().strftime('%Y_%m_%d__%H_%M') + '_ebay.csv'
+
+FEEDS = {
+    'output.json': {
+        'format': 'json',
+        'encoding': 'utf8',
+        'store_empty': False,
+        'fields': None,
+        'indent': 4,
+        'overwrite': True,  # Agrega esto si quieres sobrescribir el archivo en cada ejecución
+    },
+}
