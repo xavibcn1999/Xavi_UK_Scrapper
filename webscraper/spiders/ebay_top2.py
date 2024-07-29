@@ -55,6 +55,7 @@ class EbayTop2Spider(scrapy.Spider):
             client = MongoClient('mongodb+srv://xavidb:superman123@serverlessinstance0.lih2lnk.mongodb.net/Xavi_UK?retryWrites=true&w=majority')
             self.db = client["Xavi_UK"]
             self.collection_E = self.db['Search_uk_E']
+            self.ebay_items_collection = self.db['ebay_items']
             self.logger.info("Connected to MongoDB.")
         except Exception as e:
             self.logger.error(f"Error connecting to MongoDB: {e}")
@@ -62,6 +63,10 @@ class EbayTop2Spider(scrapy.Spider):
     def start_requests(self):
         self.logger.info("Fetching URLs from the Search_uk_E collection...")
         try:
+            # Limpiar la colección ebay_items
+            self.logger.info("Clearing ebay_items collection...")
+            self.ebay_items_collection.delete_many({})
+
             data_urls = list(self.collection_E.find({'url': {'$ne': ''}}))
             self.logger.info(f"Found {len(data_urls)} URLs to process.")
         except Exception as e:
@@ -74,7 +79,6 @@ class EbayTop2Spider(scrapy.Spider):
 
         for data_urls_loop in data_urls:
             url = data_urls_loop.get('url', '').strip()
-            reference_number = data_urls_loop.get('reference_number', '')
 
             if url:
                 self.logger.info(f"Creating request for URL: {url}")
@@ -82,7 +86,7 @@ class EbayTop2Spider(scrapy.Spider):
                     url=url,
                     callback=self.parse,
                     headers=self.headers,
-                    meta={'_id': data_urls_loop['_id'], 'proxy': self.proxy, 'reference_number': reference_number},
+                    meta={'_id': data_urls_loop['_id'], 'proxy': self.proxy},
                     errback=self.errback_httpbin
                 )
             else:
@@ -90,8 +94,7 @@ class EbayTop2Spider(scrapy.Spider):
 
     def parse(self, response):
         _id = response.meta.get('_id')
-        reference_number = response.meta.get('reference_number')
-        self.logger.info(f"Processing response for _id: {_id} and reference_number: {reference_number}")
+        self.logger.info(f"Processing response for _id: {_id}")
         listings = response.xpath('//ul//div[@class="s-item__wrapper clearfix"]')
 
         count = 0
@@ -137,10 +140,7 @@ class EbayTop2Spider(scrapy.Spider):
                 'item_number': item_number,
                 'product_url': link,
                 '_id': _id,
-                'reference_number': reference_number
             }
-
-            self.update_mongodb(item, count)
 
             yield item
 
@@ -151,28 +151,6 @@ class EbayTop2Spider(scrapy.Spider):
 
         if count == 0:
             self.logger.warning(f"No valid listings found for _id: {_id}")
-
-    def update_mongodb(self, item, count):
-        try:
-            update_query = {'_id': item['_id']}
-            if count > 0:
-                update_query = {'_id': item['_id'], 'reference_number': f"{item['reference_number']}-{count}"}
-
-            self.collection_E.update_one(
-                update_query,
-                {'$set': {
-                    'image_url': item['image_url'],
-                    'product_title': item['product_title'],
-                    'product_price': item['product_price'],
-                    'shipping_fee': item['shipping_fee'],
-                    'item_number': item['item_number'],
-                    'product_url': item['product_url'],
-                }},
-                upsert=True
-            )
-            self.logger.info(f"Updated MongoDB for _id: {item['_id']} with reference_number: {item['reference_number']}")
-        except Exception as e:
-            self.logger.error(f"Error updating MongoDB for _id: {item['_id']} with reference_number: {item['reference_number']}: {e}")
 
     def errback_httpbin(self, failure):
         self.logger.error(repr(failure))
