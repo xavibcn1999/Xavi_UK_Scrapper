@@ -140,7 +140,7 @@ class EbayTop2Spider(scrapy.Spider):
                 'reference_number': reference_number
             }
 
-            self.update_mongodb(item)
+            self.update_mongodb(item, count)
 
             yield item
 
@@ -152,10 +152,14 @@ class EbayTop2Spider(scrapy.Spider):
         if count == 0:
             self.logger.warning(f"No valid listings found for _id: {_id}")
 
-    def update_mongodb(self, item):
+    def update_mongodb(self, item, count):
         try:
+            update_query = {'_id': item['_id']}
+            if count > 0:
+                update_query = {'_id': item['_id'], 'reference_number': f"{item['reference_number']}-{count}"}
+
             self.collection_E.update_one(
-                {'_id': item['_id']},
+                update_query,
                 {'$set': {
                     'image_url': item['image_url'],
                     'product_title': item['product_title'],
@@ -163,7 +167,8 @@ class EbayTop2Spider(scrapy.Spider):
                     'shipping_fee': item['shipping_fee'],
                     'item_number': item['item_number'],
                     'product_url': item['product_url'],
-                }}
+                }},
+                upsert=True
             )
             self.logger.info(f"Updated MongoDB for _id: {item['_id']} with reference_number: {item['reference_number']}")
         except Exception as e:
@@ -177,6 +182,8 @@ class EbayTop2Spider(scrapy.Spider):
             if response.status == 503:
                 self.logger.warning('503 Service Unavailable on %s', response.url)
                 yield scrapy.Request(response.url, callback=self.parse, dont_filter=True, headers=self.headers, meta={'proxy': self.proxy})
+       
+
         elif failure.check(DNSLookupError):
             request = failure.request
             self.logger.error('DNSLookupError on %s', request.url)
