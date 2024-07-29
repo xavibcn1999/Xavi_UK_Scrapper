@@ -71,7 +71,7 @@ class MongoDBPipeline:
         return float(price_str)
 
 
-        def calculate_and_send_email(self, item):
+    def calculate_and_send_email(self, item):
         try:
             ref_number = item['reference_number'].split('-')[0]
             ebay_price = round(item['product_price'] + item['shipping_fee'], 2)
