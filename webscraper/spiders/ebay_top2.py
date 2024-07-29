@@ -79,6 +79,7 @@ class EbayTop2Spider(scrapy.Spider):
 
         for data_urls_loop in data_urls:
             url = data_urls_loop.get('ebay_url', '').strip()
+            search_key = data_urls_loop.get('search_key', '')
 
             if url:
                 self.logger.info(f"Creating request for URL: {url}")
@@ -86,7 +87,7 @@ class EbayTop2Spider(scrapy.Spider):
                     url=url,
                     callback=self.parse,
                     headers=self.headers,
-                    meta={'_id': data_urls_loop['_id'], 'proxy': self.proxy},
+                    meta={'_id': data_urls_loop['_id'], 'search_key': search_key, 'proxy': self.proxy},
                     errback=self.errback_httpbin
                 )
             else:
@@ -94,6 +95,7 @@ class EbayTop2Spider(scrapy.Spider):
 
     def parse(self, response):
         _id = response.meta.get('_id')
+        search_key = response.meta.get('search_key')
         self.logger.info(f"Processing response for _id: {_id}")
         listings = response.xpath('//ul//div[@class="s-item__wrapper clearfix"]')
 
@@ -139,6 +141,8 @@ class EbayTop2Spider(scrapy.Spider):
                 'shipping_fee': shipping_cost,
                 'item_number': item_number,
                 'product_url': link,
+                'extracted_url': response.url,  # URL de la cual se extrajo la información
+                'search_key': search_key,  # search_key usado para la búsqueda
                 '_id': _id,
             }
 
@@ -160,7 +164,6 @@ class EbayTop2Spider(scrapy.Spider):
             if response.status == 503:
                 self.logger.warning('503 Service Unavailable on %s', response.url)
                 yield scrapy.Request(response.url, callback=self.parse, dont_filter=True, headers=self.headers, meta={'proxy': self.proxy})
-       
 
         elif failure.check(DNSLookupError):
             request = failure.request
