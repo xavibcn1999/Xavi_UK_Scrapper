@@ -131,7 +131,7 @@ class MongoDBPipeline:
                 logging.debug(f"Profit: {profit}")
                 logging.debug(f"ROI: {roi}%")
 
-                if roi > 50:
+                if roi > 10:
                     current_date = datetime.utcnow()
                     cached_item = self.collection_cache.find_one({
                         'item_number': item.get('item_number'),
@@ -144,6 +144,10 @@ class MongoDBPipeline:
                         item['_id'] = ObjectId()
                         item['expiry_date'] = current_date + timedelta(days=7)
                         self.collection_cache.insert_one(item)
+                        
+                        # Obtén la URL de la lista de eBay de la tabla Search_uk_E
+                        search_uk_e_item = self.collection_search_uk_e.find_one({'_id': item['_id']})
+                        ebay_listing_url = search_uk_e_item.get('ebay_url', '') if search_uk_e_item else ''
                         self.send_email(
                             item,
                             item['image_url'],
@@ -163,7 +167,7 @@ class MongoDBPipeline:
             logging.debug(f"Detalles del error: {e}")
             logging.debug(f"Item: {item}")
 
-    def send_email(self, item, ebay_image, ebay_url, ebay_price, amazon_image, amazon_url, amazon_price, roi, amazon_title):
+    def send_email(self, item, ebay_image, ebay_url, ebay_price, amazon_image, amazon_url, amazon_price, roi, amazon_title, ebay_listing_url):
         while True:
             try:
                 account = self.gmail_accounts[self.current_account]
@@ -198,7 +202,7 @@ class MongoDBPipeline:
                     <p style="font-size: 1.5em;"><strong>ROI:</strong> {roi:.2f}%</p>
                     <p><strong>Página del producto de eBay:</strong> <a href="{ebay_url}" target="_blank">URL del producto</a></p>
                     <div style="display: flex; justify-content: space-between; align-items: center;">
-                      <a href="{ebay_url}" target="_blank">
+                      <a href="{ebay_listing_url}" target="_blank">
                         <img src="{ebay_image}" width="250" height="375" alt="eBay Image">
                       </a>
                       <a href="{amazon_url}" target="_blank">
