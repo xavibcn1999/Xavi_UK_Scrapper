@@ -8,8 +8,8 @@ from twisted.internet.error import DNSLookupError, TimeoutError, TCPTimedOutErro
 
 header = Headers(browser="chrome", os="win", headers=True)
 
-class EbayTop2Spider(scrapy.Spider):
-    name = 'ebay_top2'
+class EbayTop2CopySpider(scrapy.Spider):
+    name = 'ebay_top2_copy'
     custom_settings = {
         'CONCURRENT_REQUESTS': 16,
         'DOWNLOAD_DELAY': 0,
@@ -17,7 +17,7 @@ class EbayTop2Spider(scrapy.Spider):
         'COOKIES_ENABLED': True,
         'FEED_EXPORT_ENCODING': "utf-8",
         'FEEDS': {
-            datetime.now().strftime('%Y_%m_%d__%H_%M') + '_ebay.csv': {
+            datetime.now().strftime('%Y_%m_%d__%H_%M') + '_ebay_copy.csv': {
                 'format': 'csv',
                 'encoding': 'utf8',
             },
@@ -46,7 +46,7 @@ class EbayTop2Spider(scrapy.Spider):
     proxy = 'http://xavigv:e8qcHlJ5jdHxl7Xj_country-UnitedKingdom@proxy.packetstream.io:31112'
 
     def __init__(self, *args, **kwargs):
-        super(EbayTop2Spider, self).__init__(*args, **kwargs)
+        super(EbayTop2CopySpider, self).__init__(*args, **kwargs)
         self.connect()
 
     def connect(self):
