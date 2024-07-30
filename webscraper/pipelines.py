@@ -130,8 +130,30 @@ def calculate_and_send_email(self, item):
             logging.debug(f"Profit: {profit}")
             logging.debug(f"ROI: {roi}%")
 
-            if roi > 50:
-                # ... (rest of the email sending logic)
+                if roi > 50:
+                    current_date = datetime.utcnow()
+                    cached_item = self.collection_cache.find_one({
+                        'item_number': item.get('item_number'),
+                        'expiry_date': {'$gt': current_date}
+                    })
+                    if cached_item:
+                        logging.info(f"Item already exists in cache and is not expired: {item['item_number']}")
+                    else:
+                        item['last_checked'] = datetime.utcnow()
+                        item['_id'] = ObjectId()
+                        item['expiry_date'] = current_date + timedelta(days=7)
+                        self.collection_cache.insert_one(item)
+                        self.send_email(
+                            item,
+                            item['image_url'],
+                            item['product_url'],
+                            ebay_price,
+                            amazon_item.get('Image', ''),
+                            amazon_item.get('URL: Amazon', ''),
+                            amazon_used_price,
+                            roi,
+                            amazon_title
+                        )
         else:
             logging.warning(f"No se encontró un artículo de Amazon correspondiente para search_key: {search_key}")
     except Exception as e:
