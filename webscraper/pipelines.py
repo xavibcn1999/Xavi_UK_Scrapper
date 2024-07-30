@@ -97,11 +97,11 @@ class MongoDBPipeline:
                 logging.warning("Search key is empty, cannot proceed with ROI calculation")
                 return
 
-amazon_item = None
-if search_key.isdigit() and len(search_key) == 10:
-    amazon_item = self.collection_a.find_one({'ASIN': search_key})
-elif len(search_key) == 13 and search_key.isdigit():
-    amazon_item = self.collection_a.find_one({'ISBN13': search_key})
+            amazon_item = None
+            if search_key.isdigit() and len(search_key) == 10:
+                amazon_item = self.collection_a.find_one({'ASIN': search_key})
+            elif len(search_key) == 13 and search_key.isdigit():
+                amazon_item = self.collection_a.find_one({'ISBN13': search_key})
 
             
 if amazon_item:
