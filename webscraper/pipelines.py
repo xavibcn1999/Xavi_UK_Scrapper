@@ -7,7 +7,6 @@ from bson import ObjectId
 import logging
 from datetime import datetime, timedelta
 import urllib.parse
-import re
 
 class MongoDBPipeline:
     def __init__(self):
@@ -34,6 +33,7 @@ class MongoDBPipeline:
         self.collection_ebay = self.db[self.collection_name_e]
         self.collection_a = self.db[self.collection_name_a]
         self.collection_cache = self.db[self.collection_name_cache]
+        self.collection_search_uk_e = self.db['Search_uk_E']
 
     def close_spider(self, spider):
         self.clean_cache()
@@ -59,10 +59,11 @@ class MongoDBPipeline:
 
         item['item_number'] = item.get('item_number', '')
         item['product_url'] = item.get('product_url', '')
-        # Extract value from the URL for search_key
-        search_key = self.extract_search_key(item['product_url'])
+
+        # Extract search_key from the Search_uk_E collection
+        search_key = self.get_search_key_from_db(item['_id'])
         item['search_key'] = search_key
-        logging.info(f"Extracted search_key: {search_key} from URL: {item['product_url']}")
+        logging.info(f"Extracted search_key: {search_key}")
 
         self.collection_ebay.update_one({'_id': item['_id']}, {'$set': item}, upsert=True)
         self.calculate_and_send_email(item)
@@ -75,12 +76,11 @@ class MongoDBPipeline:
                 return float(price_str) / self.exchange_rate
         return float(price_str)
 
-    def extract_search_key(self, url):
-        parsed_url = urllib.parse.urlparse(url)
-        query_params = urllib.parse.parse_qs(parsed_url.query)
-        search_key = query_params.get('nkw', [''])[0]
-        logging.debug(f"Extracted search_key: {search_key} from URL: {url}")
-        return search_key
+    def get_search_key_from_db(self, item_id):
+        search_uk_e_item = self.collection_search_uk_e.find_one({'_id': item_id})
+        if search_uk_e_item:
+            return search_uk_e_item.get('search_key', '')
+        return ''
 
     def calculate_and_send_email(self, item):
         try:
