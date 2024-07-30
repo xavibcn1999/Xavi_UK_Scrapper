@@ -59,8 +59,8 @@ class MongoDBPipeline:
         item['product_url'] = item.get('product_url', '')
 
         # Extraer valor de la URL de búsqueda
-        search_param = self.extract_search_param(item['product_url'])
-        item['search_param'] = search_param
+        search_key = self.extract_search_key(item['product_url'])
+        item['search_key'] = search_key
 
         self.collection_ebay.update_one({'_id': item['_id']}, {'$set': item}, upsert=True)
 
@@ -75,13 +75,12 @@ class MongoDBPipeline:
                 return float(price_str) / self.exchange_rate
         return float(price_str)
 
-    def extract_search_param(self, url):
+    def extract_search_key(self, url):
         import urllib.parse as urlparse
         from urllib.parse import parse_qs
-
         parsed_url = urlparse.urlparse(url)
-        search_param = parse_qs(parsed_url.query).get('nkw', [''])[0]
-        return search_param
+        search_key = parse_qs(parsed_url.query).get('nkw', [''])[0]
+        return search_key
 
     def calculate_and_send_email(self, item):
         try:
@@ -93,18 +92,18 @@ class MongoDBPipeline:
             # Depuración: Verificar valor de ebay_price
             logging.debug(f"ebay_price calculado: {ebay_price}")
 
-            search_param = item.get('search_param')
+            search_key = item.get('search_key')
             amazon_item = None
-            if search_param:
-                if search_param.isdigit() and len(search_param) == 10:
+            if search_key:
+                if search_key.isdigit() and len(search_key) == 10:
                     # Buscar por ASIN
-                    amazon_item = self.collection_a.find_one({'ASIN': search_param})
-                elif len(search_param) == 13 and search_param.isdigit():
+                    amazon_item = self.collection_a.find_one({'ASIN': search_key})
+                elif len(search_key) == 13 and search_key.isdigit():
                     # Buscar por ISBN13
-                    amazon_item = self.collection_a.find_one({'ISBN13': search_param})
+                    amazon_item = self.collection_a.find_one({'ISBN13': search_key})
                 else:
                     # Buscar por título
-                    amazon_item = self.collection_a.find_one({'Title': search_param.replace('+', ' ')})
+                    amazon_item = self.collection_a.find_one({'Title': search_key.replace('+', ' ')})
 
             if amazon_item:
                 logging.info(f"Documento de Amazon recuperado: {amazon_item}")
