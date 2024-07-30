@@ -43,32 +43,31 @@ class MongoDBPipeline:
         result = self.collection_cache.delete_many({'expiry_date': {'$lt': current_date}})
         logging.info(f"Cache cleaned, {result.deleted_count} expired items removed.")
 
-    def process_item(self, item, spider):
-        try:
-            item['product_price'] = self.convert_price(item['product_price'])
-            item['shipping_fee'] = self.convert_price(item['shipping_fee']) if item.get('shipping_fee') else 0.0
-        except Exception as e:
-            logging.error(f"Error converting prices: {e}")
-            item['product_price'] = 0.0
-            item['shipping_fee'] = 0.0
+def process_item(self, item, spider):
+    try:
+        item['product_price'] = self.convert_price(item['product_price'])
+        item['shipping_fee'] = self.convert_price(item['shipping_fee']) if item.get('shipping_fee') else 0.0
+    except Exception as e:
+        logging.error(f"Error converting prices: {e}")
+        item['product_price'] = 0.0
+        item['shipping_fee'] = 0.0
 
-        if '_id' not in item:
-            logging.error("El item no tiene '_id'")
-            return item
-
-        item['item_number'] = item.get('item_number', '')
-        item['product_url'] = item.get('product_url', '')
-
-        # Extraer valor de la URL de búsqueda
-        search_key = self.extract_search_key(item['product_url'])
-        item['search_key'] = search_key
-
-        self.collection_ebay.update_one({'_id': item['_id']}, {'$set': item}, upsert=True)
-
-        self.calculate_and_send_email(item)
-
+    if '_id' not in item:
+        logging.error("El item no tiene '_id'")
         return item
 
+    item['item_number'] = item.get('item_number', '')
+    item['product_url'] = item.get('product_url', '')
+    
+    # Make sure search_key is correctly assigned
+    item['search_key'] = item.get('search_key', '')
+    
+    self.collection_ebay.update_one({'_id': item['_id']}, {'$set': item}, upsert=True)
+    
+    # Call calculate_and_send_email here
+    self.calculate_and_send_email(item)
+    
+    return item
     def convert_price(self, price_str):
         if isinstance(price_str, str):
             price_str = price_str.replace('£', '').replace('US $', '').replace('+', '').replace(',', '').strip()
@@ -83,59 +82,62 @@ class MongoDBPipeline:
         logging.debug(f"Extracted search_key: {search_key} from URL: {url}")
         return search_key
 
-    def calculate_and_send_email(self, item):
-        try:
-            ebay_price = round(item['product_price'] + item['shipping_fee'], 2)
-            logging.info(f"Precio del producto en eBay: {item['product_price']}")
-            logging.info(f"Costo de envío en eBay: {item['shipping_fee']}")
-            logging.info(f"Precio de eBay (producto + envío): {ebay_price}")
+def calculate_and_send_email(self, item):
+    try:
+        ebay_price = round(item['product_price'] + item['shipping_fee'], 2)
+        logging.info(f"Precio del producto en eBay: {item['product_price']}")
+        logging.info(f"Costo de envío en eBay: {item['shipping_fee']}")
+        logging.info(f"Precio de eBay (producto + envío): {ebay_price}")
+        logging.debug(f"ebay_price calculado: {ebay_price}")
 
-            # Depuración: Verificar valor de ebay_price
-            logging.debug(f"ebay_price calculado: {ebay_price}")
+        search_key = item.get('search_key')
+        logging.info(f"Search key: {search_key}")
+        
+        amazon_item = None
+        if search_key:
+            if search_key.isdigit() and len(search_key) == 10:
+                amazon_item = self.collection_a.find_one({'ASIN': search_key})
+            elif len(search_key) == 13 and search_key.isdigit():
+                amazon_item = self.collection_a.find_one({'ISBN13': search_key})
+            else:
+                amazon_item = self.collection_a.find_one({'Title': search_key.replace('+', ' ')})
+        
+        if amazon_item:
+            logging.info(f"Documento de Amazon recuperado: {amazon_item}")
+            amazon_title = amazon_item.get('Title', 'Título no disponible')
+            amazon_used_price_str = amazon_item.get('Buy Box Used: 180 days avg.', 0)
+            logging.info(f"Valor extraído de 'Buy Box Used: 180 days avg': {amazon_used_price_str}")
+            amazon_used_price = self.convert_price(amazon_used_price_str)
+            fba_fee_str = amazon_item.get('FBA Fees', 0)
+            fba_fee = self.convert_price(fba_fee_str)
+            logging.debug(f"Precio de venta en Amazon (Buy Box Used): {amazon_used_price}")
+            logging.debug(f"FBA Fees: {fba_fee}")
 
-            search_key = item.get('search_key')
-            amazon_item = None
-            if search_key:
-                if search_key.isdigit() and len(search_key) == 10:
-                    # Buscar por ASIN
-                    amazon_item = self.collection_a.find_one({'ASIN': search_key})
-                elif len(search_key) == 13 and search_key.isdigit():
-                    # Buscar por ISBN13
-                    amazon_item = self.collection_a.find_one({'ISBN13': search_key})
-                else:
-                    # Buscar por título
-                    amazon_item = self.collection_a.find_one({'Title': search_key.replace('+', ' ')})
+            referral_fee_percentage = 0.153 if amazon_used_price > 5 else 0.051
+            referral_fee = round(amazon_used_price * referral_fee_percentage, 2)
+            logging.debug(f"Tarifa de referencia calculada: {referral_fee}")
 
-            if amazon_item:
-                logging.info(f"Documento de Amazon recuperado: {amazon_item}")
+            total_cost = round(ebay_price + fba_fee + referral_fee, 2)
+            profit = round(amazon_used_price - total_cost, 2)
+            roi = round((profit / total_cost) * 100, 2) if total_cost else 0
+            
+            logging.info(f"Precio de venta en Amazon (Buy Box Used): {amazon_used_price}")
+            logging.info(f"Tarifa de FBA: {fba_fee}")
+            logging.info(f"Tarifa de referencia: {referral_fee}")
+            logging.info(f"Ganancia: {profit}")
+            logging.info(f"ROI: {roi}%")
+            logging.debug(f"Total cost: {total_cost}")
+            logging.debug(f"Profit: {profit}")
+            logging.debug(f"ROI: {roi}%")
 
-                amazon_title = amazon_item.get('Title', 'Título no disponible')
-                amazon_used_price_str = amazon_item.get('Buy Box Used: 180 days avg.', 0)
-                logging.info(f"Valor extraído de 'Buy Box Used: 180 days avg': {amazon_used_price_str}")
-
-                amazon_used_price = self.convert_price(amazon_used_price_str)
-                fba_fee_str = amazon_item.get('FBA Fees', 0)
-                fba_fee = self.convert_price(fba_fee_str)
-
-                # Depuración: Verificar valores calculados de Amazon
-                logging.debug(f"Precio de venta en Amazon (Buy Box Used): {amazon_used_price}")
-                logging.debug(f"FBA Fees: {fba_fee}")
-
-                referral_fee_percentage = 0.153 if amazon_used_price > 5 else 0.051
-                referral_fee = round(amazon_used_price * referral_fee_percentage, 2)
-
-                # Depuración: Verificar valor de la tarifa de referencia
-                logging.debug(f"Tarifa de referencia calculada: {referral_fee}")
-
-                total_cost = round(ebay_price + fba_fee + referral_fee, 2)
-                profit = round(amazon_used_price - total_cost, 2)
-                roi = round((profit / total_cost) * 100, 2) if total_cost else 0
-
-                logging.info(f"Precio de venta en Amazon (Buy Box Used): {amazon_used_price}")
-                logging.info(f"Tarifa de FBA: {fba_fee}")
-                logging.info(f"Tarifa de referencia: {referral_fee}")
-                logging.info(f"Ganancia: {profit}")
-                logging.info(f"ROI: {roi}%")
+            if roi > 50:
+                # ... (rest of the email sending logic)
+        else:
+            logging.warning(f"No se encontró un artículo de Amazon correspondiente para search_key: {search_key}")
+    except Exception as e:
+        logging.error(f"Error calculating ROI and sending email: {e}")
+        logging.debug(f"Detalles del error: {e}")
+        logging.debug(f"Item: {item}")
 
                 # Depuración: Verificar valores finales
                 logging.debug(f"Total cost: {total_cost}")
