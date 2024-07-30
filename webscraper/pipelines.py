@@ -7,6 +7,7 @@ from bson import ObjectId
 import logging
 from datetime import datetime, timedelta
 import urllib.parse
+import re
 
 class MongoDBPipeline:
     def __init__(self):
@@ -77,7 +78,7 @@ class MongoDBPipeline:
     def extract_search_key(self, url):
         parsed_url = urllib.parse.urlparse(url)
         query_params = urllib.parse.parse_qs(parsed_url.query)
-        search_key = query_params.get('_nkw', [''])[0]  # Adjust this if a different parameter is identified
+        search_key = query_params.get('nkw', [''])[0]
         logging.debug(f"Extracted search_key: {search_key} from URL: {url}")
         return search_key
 
@@ -92,14 +93,21 @@ class MongoDBPipeline:
             search_key = item.get('search_key')
             logging.info(f"Search key: {search_key}")
             
+            if not search_key:
+                logging.warning("Search key is empty, cannot proceed with ROI calculation")
+                return
+
             amazon_item = None
-            if search_key:
-                if search_key.isdigit() and len(search_key) == 10:
-                    amazon_item = self.collection_a.find_one({'ASIN': search_key})
-                elif len(search_key) == 13 and search_key.isdigit():
-                    amazon_item = self.collection_a.find_one({'ISBN13': search_key})
-                else:
-                    amazon_item = self.collection_a.find_one({'Title': search_key.replace('+', ' ')})
+            if search_key.isdigit() and len(search_key) == 10:
+                amazon_item = self.collection_a.find_one({'ASIN': search_key})
+            elif len(search_key) == 13 and search_key.isdigit():
+                amazon_item = self.collection_a.find_one({'ISBN13': search_key})
+            else:
+                # Try an exact match first
+                amazon_item = self.collection_a.find_one({'Title': search_key})
+                if not amazon_item:
+                    # If no exact match, try a partial match
+                    amazon_item = self.collection_a.find_one({'Title': {'$regex': search_key, '$options': 'i'}})
             
             if amazon_item:
                 logging.info(f"Documento de Amazon recuperado: {amazon_item}")
