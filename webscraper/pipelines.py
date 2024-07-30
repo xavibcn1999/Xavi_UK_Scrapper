@@ -103,61 +103,60 @@ class MongoDBPipeline:
             elif len(search_key) == 13 and search_key.isdigit():
                 amazon_item = self.collection_a.find_one({'ISBN13': search_key})
 
-            
-if amazon_item:
-    logging.info(f"Documento de Amazon recuperado: {amazon_item}")
-    amazon_title = amazon_item.get('Title', 'Título no disponible')
-    amazon_used_price_str = amazon_item.get('Buy Box Used: 180 days avg.', 0)
-    logging.info(f"Valor extraído de 'Buy Box Used: 180 days avg': {amazon_used_price_str}")
-    amazon_used_price = self.convert_price(amazon_used_price_str)
-    fba_fee_str = amazon_item.get('FBA Fees', 0)
-    fba_fee = self.convert_price(fba_fee_str)
-    logging.debug(f"Precio de venta en Amazon (Buy Box Used): {amazon_used_price}")
-    logging.debug(f"FBA Fees: {fba_fee}")
+            if amazon_item:
+                logging.info(f"Documento de Amazon recuperado: {amazon_item}")
+                amazon_title = amazon_item.get('Title', 'Título no disponible')
+                amazon_used_price_str = amazon_item.get('Buy Box Used: 180 days avg.', 0)
+                logging.info(f"Valor extraído de 'Buy Box Used: 180 days avg': {amazon_used_price_str}")
+                amazon_used_price = self.convert_price(amazon_used_price_str)
+                fba_fee_str = amazon_item.get('FBA Fees', 0)
+                fba_fee = self.convert_price(fba_fee_str)
+                logging.debug(f"Precio de venta en Amazon (Buy Box Used): {amazon_used_price}")
+                logging.debug(f"FBA Fees: {fba_fee}")
 
-    referral_fee_percentage = 0.153 if amazon_used_price > 5 else 0.051
-    referral_fee = round(amazon_used_price * referral_fee_percentage, 2)
-    logging.debug(f"Tarifa de referencia calculada: {referral_fee}")
+                referral_fee_percentage = 0.153 if amazon_used_price > 5 else 0.051
+                referral_fee = round(amazon_used_price * referral_fee_percentage, 2)
+                logging.debug(f"Tarifa de referencia calculada: {referral_fee}")
 
-    total_cost = round(ebay_price + fba_fee + referral_fee, 2)
-    profit = round(amazon_used_price - total_cost, 2)
-    roi = round((profit / total_cost) * 100, 2) if total_cost else 0
-    
-    logging.info(f"Precio de venta en Amazon (Buy Box Used): {amazon_used_price}")
-    logging.info(f"Tarifa de FBA: {fba_fee}")
-    logging.info(f"Tarifa de referencia: {referral_fee}")
-    logging.info(f"Ganancia: {profit}")
-    logging.info(f"ROI: {roi}%")
-    logging.debug(f"Total cost: {total_cost}")
-    logging.debug(f"Profit: {profit}")
-    logging.debug(f"ROI: {roi}%")
+                total_cost = round(ebay_price + fba_fee + referral_fee, 2)
+                profit = round(amazon_used_price - total_cost, 2)
+                roi = round((profit / total_cost) * 100, 2) if total_cost else 0
+                
+                logging.info(f"Precio de venta en Amazon (Buy Box Used): {amazon_used_price}")
+                logging.info(f"Tarifa de FBA: {fba_fee}")
+                logging.info(f"Tarifa de referencia: {referral_fee}")
+                logging.info(f"Ganancia: {profit}")
+                logging.info(f"ROI: {roi}%")
+                logging.debug(f"Total cost: {total_cost}")
+                logging.debug(f"Profit: {profit}")
+                logging.debug(f"ROI: {roi}%")
 
-    if roi > 50:
-        current_date = datetime.utcnow()
-        cached_item = self.collection_cache.find_one({
-            'item_number': item.get('item_number'),
-            'expiry_date': {'$gt': current_date}
-        })
-        if cached_item:
-            logging.info(f"Item already exists in cache and is not expired: {item['item_number']}")
-        else:
-            item['last_checked'] = datetime.utcnow()
-            item['_id'] = ObjectId()
-            item['expiry_date'] = current_date + timedelta(days=7)
-            self.collection_cache.insert_one(item)
-            self.send_email(
-                item,
-                item['image_url'],
-                item['product_url'],
-                ebay_price,
-                amazon_item.get('Image', ''),
-                amazon_item.get('URL: Amazon', ''),
-                amazon_used_price,
-                roi,
-                amazon_title
-            )
-else:
-    logging.warning(f"No se encontró un artículo de Amazon correspondiente para search_key: {search_key}")
+                if roi > 50:
+                    current_date = datetime.utcnow()
+                    cached_item = self.collection_cache.find_one({
+                        'item_number': item.get('item_number'),
+                        'expiry_date': {'$gt': current_date}
+                    })
+                    if cached_item:
+                        logging.info(f"Item already exists in cache and is not expired: {item['item_number']}")
+                    else:
+                        item['last_checked'] = datetime.utcnow()
+                        item['_id'] = ObjectId()
+                        item['expiry_date'] = current_date + timedelta(days=7)
+                        self.collection_cache.insert_one(item)
+                        self.send_email(
+                            item,
+                            item['image_url'],
+                            item['product_url'],
+                            ebay_price,
+                            amazon_item.get('Image', ''),
+                            amazon_item.get('URL: Amazon', ''),
+                            amazon_used_price,
+                            roi,
+                            amazon_title
+                        )
+            else:
+                logging.warning(f"No se encontró un artículo de Amazon correspondiente para search_key: {search_key}")
 
         except Exception as e:
             logging.error(f"Error calculating ROI and sending email: {e}")
@@ -194,6 +193,7 @@ else:
                 <html>
                   <body>
                 
+                  
                     <h4>{amazon_title}</h4>
                     <p><strong>Precio de Amazon:</strong> £{amazon_price:.2f}</p>
                     <p><strong>Precio de eBay:</strong> £{ebay_price:.2f}</p>
