@@ -44,31 +44,30 @@ class MongoDBPipeline:
         result = self.collection_cache.delete_many({'expiry_date': {'$lt': current_date}})
         logging.info(f"Cache cleaned, {result.deleted_count} expired items removed.")
 
-def process_item(self, item, spider):
-    try:
-        item['product_price'] = self.convert_price(item['product_price'])
-        item['shipping_fee'] = self.convert_price(item['shipping_fee']) if item.get('shipping_fee') else 0.0
-    except Exception as e:
-        logging.error(f"Error converting prices: {e}")
-        item['product_price'] = 0.0
-        item['shipping_fee'] = 0.0
+    def process_item(self, item, spider):
+        try:
+            item['product_price'] = self.convert_price(item['product_price'])
+            item['shipping_fee'] = self.convert_price(item['shipping_fee']) if item.get('shipping_fee') else 0.0
+        except Exception as e:
+            logging.error(f"Error converting prices: {e}")
+            item['product_price'] = 0.0
+            item['shipping_fee'] = 0.0
 
-    if '_id' not in item:
-        logging.error("El item no tiene '_id'")
+        if '_id' not in item:
+            logging.error("El item no tiene '_id'")
+            return item
+
+        item['item_number'] = item.get('item_number', '')
+        item['product_url'] = item.get('product_url', '')
+
+        # Extract search_key from the Search_uk_E collection
+        search_key = self.get_search_key_from_db(item['_id'])
+        item['search_key'] = search_key
+        logging.info(f"Extracted search_key: {search_key}")
+
+        self.collection_ebay.update_one({'_id': item['_id']}, {'$set': item}, upsert=True)
+        self.calculate_and_send_email(item)
         return item
-
-    item['item_number'] = item.get('item_number', '')
-    item['ebay_product_url'] = item.get('ebay_product_url', '')  # Cambiado aquí
-
-    # Extract search_key from the Search_uk_E collection
-    search_key = self.get_search_key_from_db(item['_id'])
-    item['ebay_search_url'] = search_key  # Cambiado aquí
-    logging.info(f"Extracted search_key: {search_key}")
-
-    self.collection_ebay.update_one({'_id': item['_id']}, {'$set': item}, upsert=True)
-    self.calculate_and_send_email(item)
-    return item
-
 
     def convert_price(self, price_str):
         if isinstance(price_str, str):
@@ -80,7 +79,7 @@ def process_item(self, item, spider):
     def get_search_key_from_db(self, item_id):
         search_uk_e_item = self.collection_search_uk_e.find_one({'_id': item_id})
         if search_uk_e_item:
-            return search_uk_e_item.get('Search_key', '')
+            return search_uk_e_item.get('search_key', '')
         return ''
 
     def calculate_and_send_email(self, item):
@@ -192,9 +191,7 @@ def process_item(self, item, spider):
                 """
                 html = f"""\
                 <html>
-                  <body>
-                
-                  
+                  <body>                                
                     <h4>{amazon_title}</h4>
                     <p><strong>Precio de Amazon:</strong> £{amazon_price:.2f}</p>
                     <p><strong>Precio de eBay:</strong> £{ebay_price:.2f}</p>
