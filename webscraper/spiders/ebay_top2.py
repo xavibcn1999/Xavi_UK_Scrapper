@@ -63,6 +63,7 @@ class EbayTop2Spider(scrapy.Spider):
     def start_requests(self):
         self.logger.info("Fetching URLs from the Search_uk_E collection...")
         try:
+            # Limpiar la colección ebay_items
             self.logger.info("Clearing ebay_items collection...")
             self.ebay_items_collection.delete_many({})
 
@@ -75,10 +76,6 @@ class EbayTop2Spider(scrapy.Spider):
         if not data_urls:
             self.logger.warning("No URLs found in the Search_uk_E collection.")
             return
-
-        # Process only the first half of the URLs
-        half_index = len(data_urls) // 2
-        data_urls = data_urls[:half_index]
 
         for data_urls_loop in data_urls:
             url = data_urls_loop.get('ebay_url', '').strip()
@@ -129,6 +126,7 @@ class EbayTop2Spider(scrapy.Spider):
             if not shipping_cost:
                 shipping_cost = '0.0'
 
+            # Extract the item number
             try:
                 item_number = link.split('/itm/')[1].split('?')[0]
             except:
@@ -143,8 +141,8 @@ class EbayTop2Spider(scrapy.Spider):
                 'shipping_fee': shipping_cost,
                 'item_number': item_number,
                 'product_url': link,
-                'extracted_url': response.url,
-                'search_key': search_key,
+                'extracted_url': response.url,  # URL de la cual se extrajo la información
+                'search_key': search_key,  # search_key usado para la búsqueda
                 '_id': _id,
             }
 
