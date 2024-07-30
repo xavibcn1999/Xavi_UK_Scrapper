@@ -200,7 +200,7 @@ class MongoDBPipeline:
                     <p style="font-size: 1.5em;"><strong>ROI:</strong> {roi:.2f}%</p>
                     <p><strong>Página del producto de eBay:</strong> <a href="{ebay_url}" target="_blank">URL del producto</a></p>
                     <div style="display: flex; justify-content: space-between; align-items: center;">
-                      <a href="{ebay_url}" target="_blank">
+                      <a href="{ebay_search_url}" target="_blank">
                         <img src="{ebay_image}" width="250" height="375" alt="eBay Image">
                       </a>
                       <a href="{amazon_url}" target="_blank">
