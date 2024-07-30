@@ -6,6 +6,7 @@ from pymongo import MongoClient
 from bson import ObjectId
 import logging
 from datetime import datetime, timedelta
+import urllib.parse
 
 class MongoDBPipeline:
     def __init__(self):
@@ -76,10 +77,10 @@ class MongoDBPipeline:
         return float(price_str)
 
     def extract_search_key(self, url):
-        import urllib.parse as urlparse
-        from urllib.parse import parse_qs
-        parsed_url = urlparse.urlparse(url)
-        search_key = parse_qs(parsed_url.query).get('nkw', [''])[0]
+        parsed_url = urllib.parse.urlparse(url)
+        query_params = urllib.parse.parse_qs(parsed_url.query)
+        search_key = query_params.get('nkw', [''])[0]
+        logging.debug(f"Extracted search_key: {search_key} from URL: {url}")
         return search_key
 
     def calculate_and_send_email(self, item):
