@@ -150,9 +150,9 @@ class MongoDBPipeline:
                         item['expiry_date'] = current_date + timedelta(days=7)
                         self.collection_cache.insert_one(item)
 
-                    # Obtén la URL de la lista de eBay de la tabla Search_uk_E
-                    search_uk_e_item = self.collection_search_uk_e.find_one({'_id': item['_id']})
-                    ebay_listing_url = search_uk_e_item.get('ebay_url', '') if search_uk_e_item else ''
+                    # Obtén la URL de la lista de eBay de la tabla correcta según el spider
+                        search_uk_e_item = self.collection_search_uk_e.find_one({'_id': item['_id']})
+                        ebay_listing_url = search_uk_e_item.get('ebay_url', '') if search_uk_e_item else ''
 
                     self.send_email(
                         item,
