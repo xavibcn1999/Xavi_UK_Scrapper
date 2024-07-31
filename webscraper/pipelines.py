@@ -34,7 +34,10 @@ class MongoDBPipeline:
         self.collection_ebay = self.db[self.collection_name_e]
         self.collection_a = self.db[self.collection_name_a]
         self.collection_cache = self.db[self.collection_name_cache]
-        self.collection_search_uk_e = self.db['Search_uk_E']
+        if spider.name == 'ebay_top2':
+            self.collection_search_uk_e = self.db['Search_uk_E1']
+        elif spider.name == 'f_ebay_top2':
+            self.collection_search_uk_e = self.db['Search_uk_E2']
 
     def close_spider(self, spider):
         self.clean_cache()
