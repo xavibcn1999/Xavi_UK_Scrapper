@@ -60,38 +60,37 @@ class EbayTop2Spider(scrapy.Spider):
         except Exception as e:
             self.logger.error(f"Error connecting to MongoDB: {e}")
 
-    def start_requests(self):
-        self.logger.info("Fetching URLs from the Search_uk_E collection...")
-        try:
-            # Limpiar la colección ebay_items
-            self.logger.info("Clearing ebay_items collection...")
-            self.ebay_items_collection.delete_many({})
+def start_requests(self):
+    self.logger.info("Fetching URLs from the Search_uk_E2 collection...")  # Cambiar a E2 para la segunda spider
+    try:
+        self.logger.info("Clearing ebay_items collection...")
+        self.ebay_items_collection.delete_many({})
+        data_urls = list(self.collection_E.find({'url': {'$ne': ''}}))
+        self.logger.info(f"Found {len(data_urls)} URLs to process.")
+    except Exception as e:
+        self.logger.error(f"Error fetching URLs from MongoDB: {e}")
+        data_urls = []
 
-            data_urls = list(self.collection_E.find({'url': {'$ne': ''}}))
-            self.logger.info(f"Found {len(data_urls)} URLs to process.")
-        except Exception as e:
-            self.logger.error(f"Error fetching URLs from MongoDB: {e}")
-            data_urls = []
+    if not data_urls:
+        self.logger.warning("No URLs found in the Search_uk_E2 collection.")  # Cambiar a E2 para la segunda spider
+        return
 
-        if not data_urls:
-            self.logger.warning("No URLs found in the Search_uk_E collection.")
-            return
+    for data_urls_loop in data_urls:
+        url = data_urls_loop.get('ebay_url', '').strip()
+        search_key = data_urls_loop.get('search_key', '')
 
-        for data_urls_loop in data_urls:
-            url = data_urls_loop.get('ebay_url', '').strip()
-            search_key = data_urls_loop.get('search_key', '')
+        if url:
+            self.logger.info(f"Creating request for URL: {url}")
+            yield scrapy.Request(
+                url=url,
+                callback=self.parse,
+                headers=self.headers,
+                meta={'_id': data_urls_loop['_id'], 'search_key': search_key, 'proxy': self.proxy},
+                errback=self.errback_httpbin
+            )
+        else:
+            self.logger.warning("Empty URL found in the Search_uk_E2 collection.")  # Cambiar a E2 para la segunda spider
 
-            if url:
-                self.logger.info(f"Creating request for URL: {url}")
-                yield scrapy.Request(
-                    url=url,
-                    callback=self.parse,
-                    headers=self.headers,
-                    meta={'_id': data_urls_loop['_id'], 'search_key': search_key, 'proxy': self.proxy},
-                    errback=self.errback_httpbin
-                )
-            else:
-                self.logger.warning("Empty URL found in the Search_uk_E collection.")
 
     def parse(self, response):
         _id = response.meta.get('_id')
