@@ -106,7 +106,7 @@ class MongoDBPipeline:
 
             # Obtén el search_key de la colección correcta
             search_uk_e_item = collection_search_uk_e.find_one({'_id': item['_id']})
-            search_key = search_uk_e_item.get('search_key', '') if search_uk_e_item else ''
+            search_key = str(search_uk_e_item.get('search_key', '')) if search_uk_e_item else ''
 
             logging.info(f"Search key: {search_key}")
             if not search_key:
