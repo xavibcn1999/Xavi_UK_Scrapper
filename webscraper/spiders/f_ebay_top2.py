@@ -54,7 +54,7 @@ class EbayTop2CopySpider(scrapy.Spider):
             self.logger.info("Attempting to connect to MongoDB...")
             client = MongoClient('mongodb+srv://xavidb:superman123@serverlessinstance0.lih2lnk.mongodb.net/Xavi_UK?retryWrites=true&w=majority')
             self.db = client["Xavi_UK"]
-            self.collection_E = self.db['Search_uk_E']
+            self.collection_E = self.db['Search_uk_E2']
             self.ebay_items_collection = self.db['ebay_items']
             self.logger.info("Connected to MongoDB.")
         except Exception as e:
