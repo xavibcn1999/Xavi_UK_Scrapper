@@ -60,36 +60,36 @@ class EbayTop2Spider(scrapy.Spider):
         except Exception as e:
             self.logger.error(f"Error connecting to MongoDB: {e}")
 
-def start_requests(self):
-    self.logger.info("Fetching URLs from the Search_uk_E1 collection...")  # Cambiar a E2 para la segunda spider
-    try:
-        self.logger.info("Clearing ebay_items collection...")
-        self.ebay_items_collection.delete_many({})
-        data_urls = list(self.collection_E.find({'url': {'$ne': ''}}))
-        self.logger.info(f"Found {len(data_urls)} URLs to process.")
-    except Exception as e:
-        self.logger.error(f"Error fetching URLs from MongoDB: {e}")
-        data_urls = []
+    def start_requests(self):
+        self.logger.info("Fetching URLs from the Search_uk_E1 collection...")
+        try:
+            self.logger.info("Clearing ebay_items collection...")
+            self.ebay_items_collection.delete_many({})
+            data_urls = list(self.collection_E.find({'url': {'$ne': ''}}))
+            self.logger.info(f"Found {len(data_urls)} URLs to process.")
+        except Exception as e:
+            self.logger.error(f"Error fetching URLs from MongoDB: {e}")
+            data_urls = []
 
-    if not data_urls:
-        self.logger.warning("No URLs found in the Search_uk_E1 collection.")  # Cambiar a E2 para la segunda spider
-        return
+        if not data_urls:
+            self.logger.warning("No URLs found in the Search_uk_E1 collection.")
+            return
 
-    for data_urls_loop in data_urls:
-        url = data_urls_loop.get('ebay_url', '').strip()
-        search_key = data_urls_loop.get('search_key', '')
+        for data_urls_loop in data_urls:
+            url = data_urls_loop.get('ebay_url', '').strip()
+            search_key = data_urls_loop.get('search_key', '')
 
-        if url:
-            self.logger.info(f"Creating request for URL: {url}")
-            yield scrapy.Request(
-                url=url,
-                callback=self.parse,
-                headers=self.headers,
-                meta={'_id': data_urls_loop['_id'], 'search_key': search_key, 'proxy': self.proxy},
-                errback=self.errback_httpbin
-            )
-        else:
-            self.logger.warning("Empty URL found in the Search_uk_E1 collection.")  # Cambiar a E2 para la segunda spider
+            if url:
+                self.logger.info(f"Creating request for URL: {url}")
+                yield scrapy.Request(
+                    url=url,
+                    callback=self.parse,
+                    headers=self.headers,
+                    meta={'_id': data_urls_loop['_id'], 'search_key': search_key, 'proxy': self.proxy},
+                    errback=self.errback_httpbin
+                )
+            else:
+                self.logger.warning("Empty URL found in the Search_uk_E1 collection.")
 
     def parse(self, response):
         _id = response.meta.get('_id')
@@ -139,8 +139,170 @@ def start_requests(self):
                 'shipping_fee': shipping_cost,
                 'item_number': item_number,
                 'product_url': link,
-                'extracted_url': response.url,  # URL de la cual se extrajo la información
-                'search_key': search_key,  # search_key usado para la búsqueda
+                'extracted_url': response.url,
+                'search_key': search_key,
+                '_id': _id,
+            }
+
+            yield item
+
+            count += 1
+
+            if count >= 2:
+                break
+
+        if count == 0:
+            self.logger.warning(f"No valid listings found for _id: {_id}")
+
+    def errback_httpbin(self, failure):
+        self.logger.error(repr(failure))
+        if failure.check(HttpError):
+            response = failure.value.response
+            self.logger.error('HttpError on %s', response.url)
+            if response.status == 503:
+                self.logger.warning('503 Service Unavailable on %s', response.url)
+                yield scrapy.Request(response.url, callback=self.parse, dont_filter=True, headers=self.headers, meta={'proxy': self.proxy})
+
+        elif failure.check(DNSLookupError):
+            request = failure.request
+            self.logger.error('DNSLookupError on %s', request.url)
+        elif failure.check(TimeoutError, TCPTimedOutError):
+            request = failure.request
+            self.logger.error('TimeoutError on %s', request.url)
+
+class EbayTop2CopySpider(scrapy.Spider):
+    name = 'f_ebay_top2'
+    custom_settings = {
+        'CONCURRENT_REQUESTS': 16,
+        'DOWNLOAD_DELAY': 0,
+        'RETRY_TIMES': 15,
+        'COOKIES_ENABLED': True,
+        'FEED_EXPORT_ENCODING': "utf-8",
+        'FEEDS': {
+            datetime.now().strftime('%Y_%m_%d__%H_%M') + '_ebay.csv': {
+                'format': 'csv',
+                'encoding': 'utf8',
+            },
+        },
+        'DOWNLOADER_MIDDLEWARES': {
+            'scrapy.downloadermiddlewares.httpproxy.HttpProxyMiddleware': 750,
+            'scrapy.downloadermiddlewares.defaultheaders.DefaultHeadersMiddleware': None,
+            'webscraper.middlewares.CustomRetryMiddleware': 550,
+        },
+        'AUTOTHROTTLE_ENABLED': False,
+        'ITEM_PIPELINES': {
+            'webscraper.pipelines.MongoDBPipeline': 300,
+        }
+    }
+
+    headers = {
+        'User-Agent': header.generate()['User-Agent'],
+        'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,image/webp,*/*;q=0.8',
+        'Accept-Language': 'en-US,en;q=0.5',
+        'Accept-Encoding': 'gzip, deflate, br',
+        'Connection': 'keep-alive',
+        'Upgrade-Insecure-Requests': '1',
+        'Cache-Control': 'max-age=0',
+    }
+
+    proxy = 'http://xavigv:e8qcHlJ5jdHxl7Xj_country-UnitedKingdom@proxy.packetstream.io:31112'
+
+    def __init__(self, *args, **kwargs):
+        super(EbayTop2CopySpider, self).__init__(*args, **kwargs)
+        self.connect()
+
+    def connect(self):
+        try:
+            self.logger.info("Attempting to connect to MongoDB...")
+            client = MongoClient('mongodb+srv://xavidb:superman123@serverlessinstance0.lih2lnk.mongodb.net/Xavi_UK?retryWrites=true&w=majority')
+            self.db = client["Xavi_UK"]
+            self.collection_E = self.db['Search_uk_E2']
+            self.ebay_items_collection = self.db['ebay_items']
+            self.logger.info("Connected to MongoDB.")
+        except Exception as e:
+            self.logger.error(f"Error connecting to MongoDB: {e}")
+
+    def start_requests(self):
+        self.logger.info("Fetching URLs from the Search_uk_E2 collection...")
+        try:
+            self.logger.info("Clearing ebay_items collection...")
+            self.ebay_items_collection.delete_many({})
+            data_urls = list(self.collection_E.find({'url': {'$ne': ''}}))
+            self.logger.info(f"Found {len(data_urls)} URLs to process.")
+        except Exception as e:
+            self.logger.error(f"Error fetching URLs from MongoDB: {e}")
+            data_urls = []
+
+        if not data_urls:
+            self.logger.warning("No URLs found in the Search_uk_E2 collection.")
+            return
+
+        for data_urls_loop in data_urls:
+            url = data_urls_loop.get('ebay_url', '').strip()
+            search_key = data_urls_loop.get('search_key', '')
+
+            if url:
+                self.logger.info(f"Creating request for URL: {url}")
+                yield scrapy.Request(
+                    url=url,
+                    callback=self.parse,
+                    headers=self.headers,
+                    meta={'_id': data_urls_loop['_id'], 'search_key': search_key, 'proxy': self.proxy},
+                    errback=self.errback_httpbin
+                )
+            else:
+                self.logger.warning("Empty URL found in the Search_uk_E2 collection.")
+
+    def parse(self, response):
+        _id = response.meta.get('_id')
+        search_key = response.meta.get('search_key')
+        self.logger.info(f"Processing response for _id: {_id}")
+        listings = response.xpath('//ul//div[@class="s-item__wrapper clearfix"]')
+
+        count = 0
+
+        for listing in listings:
+            if listing.xpath('.//li[contains(@class,"srp-river-answer--REWRITE_START")]').get():
+                self.logger.info("Found international sellers separator. Stopping extraction for this URL.")
+                break
+
+            if listing.xpath('.//span[@class="s-item__location s-item__itemLocation"]').get():
+                self.logger.info("Skipping listing with location info.")
+                continue
+
+            link = listing.xpath('.//a[@class="s-item__link"]/@href').get('')
+            title = listing.xpath('.//span[@role="heading"]/text()').get('')
+            price = listing.xpath('.//span[@class="s-item__price"]/text()').get('')
+            if not price:
+                price = listing.xpath('.//span[@class="s-item__price"]/span/text()').get('')
+
+            image = listing.xpath('.//div[contains(@class,"s-item__image")]//img/@src').get('')
+            image = image.replace('s-l225.webp', 's-l500.jpg')
+
+            shipping_cost = listing.xpath('.//span[contains(text(),"postage") or contains(text(),"shipping")]/text()').re_first(r'\+\s?[£$€][\d,.]+')
+            if not shipping_cost:
+                shipping_cost = listing.xpath('.//span[contains(@class,"s-item__shipping") or contains(@class,"s-item__logisticsCost") or contains(@class,"s-item__freeXDays")]/text()').re_first(r'\+\s?[£$€][\d,.]+')
+
+            if not shipping_cost:
+                shipping_cost = '0.0'
+
+            # Extract the item number
+            try:
+                item_number = link.split('/itm/')[1].split('?')[0]
+            except:
+                item_number = ''
+
+            self.logger.info(f"Extracted data - Link: {link}, Title: {title}, Price: {price}, Image: {image}, Shipping Cost: {shipping_cost}, Item Number: {item_number}")
+
+            item = {
+                'image_url': image,
+                'product_title': title,
+                'product_price': price,
+                'shipping_fee': shipping_cost,
+                'item_number': item_number,
+                'product_url': link,
+                'extracted_url': response.url,
+                'search_key': search_key,
                 '_id': _id,
             }
 
