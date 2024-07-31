@@ -82,7 +82,7 @@ class MongoDBPipeline:
         return float(price_str)
 
     def get_search_key_from_db(self, item_id):
-        search_uk_e_item = self.collection_search_uk_e.find_one({'_id': item_id})
+        search_uk_e_item = self.collection_search_uk_e.find_one({'_id': ObjectId(item_id)})
         if search_uk_e_item:
             return str(search_uk_e_item.get('search_key', ''))
         return ''
@@ -103,18 +103,19 @@ class MongoDBPipeline:
             else:
                 logging.error(f"Spider desconocido: {spider.name}")
                 return
+
             # Log the _id we're searching for
             logging.info(f"Searching for document with _id: {item['_id']}")
 
             # Obtén el search_key de la colección correcta
-            search_uk_e_item = collection_search_uk_e.find_one({'_id': item['_id']})
-        
+            search_uk_e_item = collection_search_uk_e.find_one({'_id': ObjectId(item['_id'])})
+            
             if search_uk_e_item:
                 search_key = str(search_uk_e_item.get('search_key', ''))
                 logging.info(f"Found document. Search key: {search_key}")
             else:
                 logging.warning(f"No document found with _id: {item['_id']}")
-                search_key = ''            
+                search_key = ''
 
             logging.info(f"Search key: {search_key}")
             if not search_key:
@@ -172,7 +173,7 @@ class MongoDBPipeline:
                         ebay_listing_url = ''
 
                         # Obtén la URL de la lista de eBay de la tabla correcta según el spider
-                        search_uk_e_item = collection_search_uk_e.find_one({'_id': item['_id']})
+                        search_uk_e_item = collection_search_uk_e.find_one({'_id': ObjectId(item['_id'])})
                         if search_uk_e_item:
                             ebay_listing_url = search_uk_e_item.get('ebay_url', '')
 
