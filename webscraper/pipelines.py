@@ -8,7 +8,6 @@ import logging
 from datetime import datetime, timedelta
 import urllib.parse
 
-
 class MongoDBPipeline:
     def __init__(self):
         settings = get_project_settings()
@@ -34,6 +33,8 @@ class MongoDBPipeline:
         self.collection_ebay = self.db[self.collection_name_e]
         self.collection_a = self.db[self.collection_name_a]
         self.collection_cache = self.db[self.collection_name_cache]
+        
+        # Selecciona la colección correcta basada en el nombre del spider
         if spider.name == 'ebay_top2':
             self.collection_search_uk_e = self.db['Search_uk_E1']
         elif spider.name == 'f_ebay_top2':
@@ -64,22 +65,20 @@ class MongoDBPipeline:
         item['item_number'] = item.get('item_number', '')
         item['product_url'] = item.get('product_url', '')
 
-        # Extract search_key from the Search_uk_E collection
+        # Extrae search_key de la colección correcta
         search_key = self.get_search_key_from_db(item['_id'])
         item['search_key'] = search_key
         logging.info(f"Extracted search_key: {search_key}")
 
         self.collection_ebay.update_one({'_id': item['_id']}, {'$set': item}, upsert=True)
-
-        self.calculate_and_send_email(item)
-
+        self.calculate_and_send_email(item, spider)
         return item
 
     def convert_price(self, price_str):
         if isinstance(price_str, str):
             price_str = price_str.replace('£', '').replace('US $', '').replace('+', '').replace(',', '').strip()
-            if 'US' in price_str:
-                return float(price_str) / self.exchange_rate
+        if 'US' in price_str:
+            return float(price_str) / self.exchange_rate
         return float(price_str)
 
     def get_search_key_from_db(self, item_id):
@@ -88,7 +87,7 @@ class MongoDBPipeline:
             return search_uk_e_item.get('search_key', '')
         return ''
 
-    def calculate_and_send_email(self, item):
+    def calculate_and_send_email(self, item, spider):
         try:
             ebay_price = round(item['product_price'] + item['shipping_fee'], 2)
             logging.info(f"Precio del producto en eBay: {item['product_price']}")
@@ -96,9 +95,19 @@ class MongoDBPipeline:
             logging.info(f"Precio de eBay (producto + envío): {ebay_price}")
             logging.debug(f"ebay_price calculado: {ebay_price}")
 
+            # Selecciona la colección correcta basada en el nombre del spider
+            if spider.name == 'ebay_top2':
+                collection_search_uk_e = self.db['Search_uk_E1']
+            elif spider.name == 'f_ebay_top2':
+                collection_search_uk_e = self.db['Search_uk_E2']
+            else:
+                logging.error(f"Spider desconocido: {spider.name}")
+                return
+
             # Obtén el search_key de la colección correcta
             search_uk_e_item = collection_search_uk_e.find_one({'_id': item['_id']})
             search_key = search_uk_e_item.get('search_key', '') if search_uk_e_item else ''
+
             logging.info(f"Search key: {search_key}")
             if not search_key:
                 logging.warning("Search key is empty, cannot proceed with ROI calculation")
@@ -128,7 +137,6 @@ class MongoDBPipeline:
                 total_cost = round(ebay_price + fba_fee + referral_fee, 2)
                 profit = round(amazon_used_price - total_cost, 2)
                 roi = round((profit / total_cost) * 100, 2) if total_cost else 0
-
                 logging.info(f"Precio de venta en Amazon (Buy Box Used): {amazon_used_price}")
                 logging.info(f"Tarifa de FBA: {fba_fee}")
                 logging.info(f"Tarifa de referencia: {referral_fee}")
@@ -152,22 +160,19 @@ class MongoDBPipeline:
                         item['expiry_date'] = current_date + timedelta(days=7)
                         self.collection_cache.insert_one(item)
 
-                    # Obtén la URL de la lista de eBay de la tabla correcta según el spider
-                        search_uk_e_item = self.collection_search_uk_e.find_one({'_id': item['_id']})
-                        ebay_listing_url = search_uk_e_item.get('ebay_url', '') if search_uk_e_item else ''
+                        # Inicializa ebay_listing_url con un valor predeterminado
+                        ebay_listing_url = ''
 
-                    self.send_email(
-                        item,
-                        item['image_url'],
-                        item['product_url'],
-                        ebay_price,
-                        amazon_item.get('Image', ''),
-                        amazon_item.get('URL: Amazon', ''),
-                        amazon_used_price,
-                        roi,
-                        amazon_title,
-                        ebay_listing_url  # Añade este nuevo parámetro
-                    )
+                        # Obtén la URL de la lista de eBay de la tabla correcta según el spider
+                        search_uk_e_item = collection_search_uk_e.find_one({'_id': item['_id']})
+                        if search_uk_e_item:
+                            ebay_listing_url = search_uk_e_item.get('ebay_url', '')
+
+                        self.send_email(
+                            item, item['image_url'], item['product_url'], ebay_price,
+                            amazon_item.get('Image', ''), amazon_item.get('URL: Amazon', ''),
+                            amazon_used_price, roi, amazon_title, ebay_listing_url
+                        )
             else:
                 logging.warning(f"No se encontró un artículo de Amazon correspondiente para search_key: {search_key}")
         except Exception as e:
@@ -183,12 +188,13 @@ class MongoDBPipeline:
                 sender_email = account["email"]
                 password = account["password"]
                 receiver_email = "xavialerts@gmail.com"
+
                 message = MIMEMultipart("alternative")
                 message["Subject"] = amazon_title
                 message["From"] = sender_email
                 message["To"] = receiver_email
 
-                text = f"""\
+                text = f"""
                 Alerta de ROI superior al 50%:
                 - Imagen de eBay: {ebay_image}
                 - URL de eBay: {ebay_url}
@@ -197,32 +203,18 @@ class MongoDBPipeline:
                 - URL de Amazon: {amazon_url}
                 - Precio de Amazon: £{amazon_price:.2f}
                 - ROI: {roi:.2f}%
-                - Página del producto de eBay: {ebay_url}
+                - Página del producto de eBay: {ebay_listing_url}
                 """
 
-                html = f"""\
+                html = f"""
                 <html>
-                  <body>
-                    <h2>{amazon_title}</h2>
-                    <table>
-                      <tr>
-                        <td>
-                          <a href="{ebay_listing_url}" target="_blank">
-                            <img src="{ebay_image}" width="250" height="375" alt="eBay Image">
-                          </a>
-                        </td>
-                        <td>
-                          <a href="{amazon_url}" target="_blank">
-                            <img src="{amazon_image}" width="250" height="375" alt="Amazon Image">
-                          </a>
-                        </td>
-                      </tr>
-                    </table>
+                <body>
+                    <h2>Alerta de ROI superior al 50%</h2>
                     <p><strong>Precio de Amazon:</strong> £{amazon_price:.2f}</p>
                     <p><strong>Precio de eBay:</strong> £{ebay_price:.2f}</p>
                     <p><strong>ROI:</strong> {roi:.2f}%</p>
-                    <p><strong>Página del producto de eBay:</strong> <a href="{ebay_url}">URL del producto</a></p>
-                  </body>
+                    <p><strong>Página del producto de eBay:</strong> <a href="{ebay_listing_url}">{ebay_listing_url}</a></p>
+                </body>
                 </html>
                 """
 
@@ -234,9 +226,8 @@ class MongoDBPipeline:
 
                 with smtplib.SMTP_SSL("smtp.gmail.com", 465) as server:
                     server.login(sender_email, password)
-                    server.sendmail(
-                        sender_email, receiver_email, message.as_string()
-                    )
+                    server.sendmail(sender_email, receiver_email, message.as_string())
+
                 break
             except Exception as e:
                 logging.error(f"Error sending email: {e}")
