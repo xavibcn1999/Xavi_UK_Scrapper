@@ -103,10 +103,18 @@ class MongoDBPipeline:
             else:
                 logging.error(f"Spider desconocido: {spider.name}")
                 return
+            # Log the _id we're searching for
+            logging.info(f"Searching for document with _id: {item['_id']}")
 
             # Obtén el search_key de la colección correcta
             search_uk_e_item = collection_search_uk_e.find_one({'_id': item['_id']})
-            search_key = str(search_uk_e_item.get('search_key', '')) if search_uk_e_item else ''
+        
+            if search_uk_e_item:
+                search_key = str(search_uk_e_item.get('search_key', ''))
+                logging.info(f"Found document. Search key: {search_key}")
+            else:
+                logging.warning(f"No document found with _id: {item['_id']}")
+                search_key = ''            
 
             logging.info(f"Search key: {search_key}")
             if not search_key:
