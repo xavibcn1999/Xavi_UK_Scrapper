@@ -96,7 +96,9 @@ class MongoDBPipeline:
             logging.info(f"Precio de eBay (producto + envío): {ebay_price}")
             logging.debug(f"ebay_price calculado: {ebay_price}")
 
-            search_key = item.get('search_key')
+            # Obtén el search_key de la colección correcta
+            search_uk_e_item = collection_search_uk_e.find_one({'_id': item['_id']})
+            search_key = search_uk_e_item.get('search_key', '') if search_uk_e_item else ''
             logging.info(f"Search key: {search_key}")
             if not search_key:
                 logging.warning("Search key is empty, cannot proceed with ROI calculation")
