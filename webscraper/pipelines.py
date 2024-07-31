@@ -84,7 +84,7 @@ class MongoDBPipeline:
     def get_search_key_from_db(self, item_id):
         search_uk_e_item = self.collection_search_uk_e.find_one({'_id': item_id})
         if search_uk_e_item:
-            return search_uk_e_item.get('search_key', '')
+            return str(search_uk_e_item.get('search_key', ''))
         return ''
 
     def calculate_and_send_email(self, item, spider):
