@@ -59,6 +59,7 @@ class EbayTop2Spider(scrapy.Spider):
             # self.logger.info("Connected to MongoDB.")
         except Exception as e:
             # self.logger.error(f"Error connecting to MongoDB: {e}")
+            pass
 
     def start_requests(self):
         self.logger.info("Fetching URLs from the Search_uk_E collection...")
@@ -66,7 +67,6 @@ class EbayTop2Spider(scrapy.Spider):
             # Limpiar la colección ebay_items
             # self.logger.info("Clearing ebay_items collection...")
             self.ebay_items_collection.delete_many({})
-
             data_urls = list(self.collection_E.find({'url': {'$ne': ''}}))
             # self.logger.info(f"Found {len(data_urls)} URLs to process.")
         except Exception as e:
@@ -92,6 +92,7 @@ class EbayTop2Spider(scrapy.Spider):
                 )
             else:
                 # self.logger.warning("Empty URL found in the Search_uk_E collection.")
+                pass
 
     def parse(self, response):
         _id = response.meta.get('_id')
@@ -155,6 +156,7 @@ class EbayTop2Spider(scrapy.Spider):
 
         if count == 0:
             # self.logger.warning(f"No valid listings found for _id: {_id}")
+            pass
 
     def errback_httpbin(self, failure):
         # self.logger.error(repr(failure))
