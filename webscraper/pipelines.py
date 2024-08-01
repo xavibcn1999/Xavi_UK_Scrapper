@@ -141,11 +141,13 @@ class MongoDBPipeline:
                     })
                     if cached_item:
                         # logging.info(f"Item already exists in cache and is not expired: {item['item_number']}")
+                        pass  # Puedes usar 'pass' si no hay ninguna acción a realizar en esta rama
                     else:
                         item['last_checked'] = datetime.utcnow()
                         item['_id'] = ObjectId()
                         item['expiry_date'] = current_date + timedelta(days=7)
                         self.collection_cache.insert_one(item)
+
 
                     # Obtén la URL de la lista de eBay de la tabla Search_uk_E
                     search_uk_e_item = self.collection_search_uk_e.find_one({'_id': item['_id']})
