@@ -67,7 +67,6 @@ class MongoDBPipeline:
         # logging.info(f"Extracted search_key: {search_key}")
 
         self.collection_ebay.update_one({'_id': item['_id']}, {'$set': item}, upsert=True)
-
         self.calculate_and_send_email(item)
 
         return item
@@ -148,7 +147,6 @@ class MongoDBPipeline:
                         item['expiry_date'] = current_date + timedelta(days=7)
                         self.collection_cache.insert_one(item)
 
-
                     # Obtén la URL de la lista de eBay de la tabla Search_uk_E
                     search_uk_e_item = self.collection_search_uk_e.find_one({'_id': item['_id']})
                     ebay_listing_url = search_uk_e_item.get('ebay_url', '') if search_uk_e_item else ''
@@ -167,10 +165,12 @@ class MongoDBPipeline:
                     )
             else:
                 # logging.warning(f"No se encontró un artículo de Amazon correspondiente para search_key: {search_key}")
+                pass
         except Exception as e:
             # logging.error(f"Error calculating ROI and sending email: {e}")
             # logging.debug(f"Detalles del error: {e}")
             # logging.debug(f"Item: {item}")
+            pass
 
     def send_email(self, item, ebay_image, ebay_url, ebay_price, amazon_image, amazon_url, amazon_price, roi, amazon_title, ebay_listing_url):
         while True:
@@ -238,3 +238,4 @@ class MongoDBPipeline:
             except Exception as e:
                 # logging.error(f"Error sending email: {e}")
                 # logging.debug(f"Details: {e}")
+                pass
