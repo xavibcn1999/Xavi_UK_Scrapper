@@ -36,14 +36,14 @@ class EbayTop2Spider(scrapy.Spider):
     headers = {
         'User-Agent': header.generate()['User-Agent'],
         'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,image/webp,*/*;q=0.8',
-        'Accept-Language': 'en-GB,en;q=0.9',  # Preferencia por inglés británico
+        'Accept-Language': 'en-US,en;q=0.9',  # Preferencia por inglés británico
         'Accept-Encoding': 'gzip, deflate, br',
         'Connection': 'keep-alive',
         'Upgrade-Insecure-Requests': '1',
         'Cache-Control': 'max-age=0',
     }
 
-    proxy = 'http://xavigv:e8qcHlJ5jdHxl7Xj_country-UnitedKingdom@proxy.packetstream.io:31112'
+    proxy = 'http://xavigv:e8qcHlJ5jdHxl7Xj_country-UnitedStates@proxy.packetstream.io:31112'
 
     def __init__(self, *args, **kwargs):
         super(EbayTop2Spider, self).__init__(*args, **kwargs)
