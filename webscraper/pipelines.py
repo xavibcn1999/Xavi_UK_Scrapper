@@ -217,7 +217,7 @@ class MongoDBPipeline:
                     <table>
                       <tr>
                         <td>
-                          <a href="{ebay_listing_url}" target="_blank">
+                          <a href="https://www.ebay.co.uk/sch/i.html?_from=R40&_nkw={asin}&_sacat=261186&LH_ItemCondition=2750%7C4000%7C5000%7C6000&LH_PrefLoc=1&LH_BIN=1&_sop=15" target="_blank">
                             <img src="{ebay_image}" width="250" height="375" alt="eBay Image">
                           </a>
                         </td>
