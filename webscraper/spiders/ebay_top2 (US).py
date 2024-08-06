@@ -36,7 +36,7 @@ class EbayTop2Spider(scrapy.Spider):
     headers = {
         'User-Agent': header.generate()['User-Agent'],
         'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,image/webp,*/*;q=0.8',
-        'Accept-Language': 'en-US,en;q=0.9',  # Preferencia por inglés británico
+        'Accept-Language': 'en-US,en;q=0.9',  # Preferencia por inglés estadounidense
         'Accept-Encoding': 'gzip, deflate, br',
         'Connection': 'keep-alive',
         'Upgrade-Insecure-Requests': '1',
@@ -52,20 +52,20 @@ class EbayTop2Spider(scrapy.Spider):
     def connect(self):
         try:
             # self.logger.info("Attempting to connect to MongoDB...")
-            client = MongoClient('mongodb+srv://xavidb:superman123@serverlessinstance0.lih2lnk.mongodb.net/Xavi_UK?retryWrites=true&w=majority')
-            self.db = client["Xavi_UK"]
-            self.collection_E = self.db['Search_uk_E']
-            self.ebay_items_collection = self.db['ebay_items']
+            client = MongoClient('mongodb+srv://xavidb:superman123@serverlessinstance0.lih2lnk.mongodb.net/Xavi_US?retryWrites=true&w=majority')
+            self.db = client["Xavi_US"]
+            self.collection_E = self.db['Search_us_E']
+            self.ebay_items_collection = self.db['ebay_items_us']
             # self.logger.info("Connected to MongoDB.")
         except Exception as e:
             # self.logger.error(f"Error connecting to MongoDB: {e}")
             pass
 
     def start_requests(self):
-        self.logger.info("Fetching URLs from the Search_uk_E collection...")
+        self.logger.info("Fetching URLs from the Search_us_E collection...")
         try:
-            # Limpiar la colección ebay_items
-            # self.logger.info("Clearing ebay_items collection...")
+            # Limpiar la colección ebay_items_us
+            # self.logger.info("Clearing ebay_items_us collection...")
             self.ebay_items_collection.delete_many({})
             data_urls = list(self.collection_E.find({'url': {'$ne': ''}}))
             # self.logger.info(f"Found {len(data_urls)} URLs to process.")
@@ -74,7 +74,7 @@ class EbayTop2Spider(scrapy.Spider):
             data_urls = []
 
         if not data_urls:
-            # self.logger.warning("No URLs found in the Search_uk_E collection.")
+            # self.logger.warning("No URLs found in the Search_us_E collection.")
             return
 
         for data_urls_loop in data_urls:
@@ -91,7 +91,7 @@ class EbayTop2Spider(scrapy.Spider):
                     errback=self.errback_httpbin
                 )
             else:
-                # self.logger.warning("Empty URL found in the Search_uk_E collection.")
+                # self.logger.warning("Empty URL found in the Search_us_E collection.")
                 pass
 
     def parse(self, response):
