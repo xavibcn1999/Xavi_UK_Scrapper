@@ -134,18 +134,24 @@ class MongoDBPipeline:
 
                 if roi > 50:
                     current_date = datetime.utcnow()
+                    expiry_date = current_date + timedelta(days=7)
+                    
+                    # Busca si el ítem ya está en la caché y si no ha expirado
                     cached_item = self.collection_cache.find_one({
                         'item_number': item.get('item_number'),
                         'expiry_date': {'$gt': current_date}
                     })
+                    
                     if cached_item:
                         # logging.info(f"Item already exists in cache and is not expired: {item['item_number']}")
-                        pass  # Puedes usar 'pass' si no hay ninguna acción a realizar en esta rama
+                        pass
                     else:
-                        item['last_checked'] = datetime.utcnow()
-                        item['_id'] = ObjectId()
-                        item['expiry_date'] = current_date + timedelta(days=7)
-                        self.collection_cache.insert_one(item)
+                        # Actualiza o inserta el ítem en la caché
+                        self.collection_cache.update_one(
+                            {'item_number': item.get('item_number')},
+                            {'$set': {'last_checked': current_date, 'expiry_date': expiry_date}},
+                            upsert=True
+                        )
 
                     # Obtén la URL de la lista de eBay de la tabla Search_uk_E
                     search_uk_e_item = self.collection_search_uk_e.find_one({'_id': item['_id']})
