@@ -8,15 +8,15 @@ import logging
 from datetime import datetime, timedelta
 import urllib.parse
 
-
 class MongoDBPipeline:
     def __init__(self):
         settings = get_project_settings()
         self.mongo_uri = settings.get('MONGO_URI')
         self.mongo_db = settings.get('MONGO_DATABASE')
-        self.collection_name_e = 'ebay_items'
-        self.collection_name_a = 'Search_uk_A'
-        self.collection_name_cache = 'Search_uk_Cache'
+        self.collection_name_e = 'Search_us_E'
+        self.collection_name_a = 'Search_us_A'
+        self.collection_name_cache = 'Search_us_Cache'
+        self.ebay_items_collection_name = 'ebay_items_us'
         self.gmail_accounts = [
             {"email": "xavusiness@gmail.com", "password": "tnthxazpsezagjdc"},
             {"email": "xaviergomezvidal@gmail.com", "password": "cqpbqwvqbqvjpmly"},
@@ -31,10 +31,10 @@ class MongoDBPipeline:
     def open_spider(self, spider):
         self.client = MongoClient(self.mongo_uri)
         self.db = self.client[self.mongo_db]
-        self.collection_ebay = self.db[self.collection_name_e]
+        self.collection_ebay = self.db[self.ebay_items_collection_name]
         self.collection_a = self.db[self.collection_name_a]
         self.collection_cache = self.db[self.collection_name_cache]
-        self.collection_search_uk_e = self.db['Search_uk_E']
+        self.collection_search_us_e = self.db[self.collection_name_e]
 
     def close_spider(self, spider):
         self.clean_cache()
@@ -61,7 +61,7 @@ class MongoDBPipeline:
         item['item_number'] = item.get('item_number', '')
         item['product_url'] = item.get('product_url', '')
 
-        # Extract search_key from the Search_uk_E collection
+        # Extract search_key from the Search_us_E collection
         search_key = self.get_search_key_from_db(item['_id'])
         item['search_key'] = search_key
         # logging.info(f"Extracted search_key: {search_key}")
@@ -79,9 +79,9 @@ class MongoDBPipeline:
         return float(price_str)
 
     def get_search_key_from_db(self, item_id):
-        search_uk_e_item = self.collection_search_uk_e.find_one({'_id': item_id})
-        if search_uk_e_item:
-            return search_uk_e_item.get('search_key', '')
+        search_us_e_item = self.collection_search_us_e.find_one({'_id': item_id})
+        if search_us_e_item:
+            return search_us_e_item.get('search_key', '')
         return ''
 
     def calculate_and_send_email(self, item):
@@ -136,9 +136,6 @@ class MongoDBPipeline:
                     current_date = datetime.utcnow()
                     expiry_date = current_date + timedelta(days=7)
                     
-                    # Log para indicar que se está buscando en la caché
-                    logging.info(f"Checking cache for item_number: {item.get('item_number')} with expiry date > {current_date}")
-                    
                     # Busca si el ítem ya está en la caché y si no ha expirado
                     cached_item = self.collection_cache.find_one({
                         'item_number': item.get('item_number'),
@@ -146,12 +143,9 @@ class MongoDBPipeline:
                     })
                     
                     if cached_item:
-                        logging.info(f"Item already exists in cache and is not expired: {item['item_number']}")
+                        # logging.info(f"Item already exists in cache and is not expired: {item['item_number']}")
                         return  # El ítem ya está en la caché y no ha expirado
                     else:
-                        # Log para indicar que se actualizará la caché
-                        logging.info(f"Inserting/Updating cache for item_number: {item.get('item_number')} with expiry_date: {expiry_date}")
-                        
                         # Actualiza o inserta el ítem en la caché
                         self.collection_cache.update_one(
                             {'item_number': item.get('item_number')},
@@ -159,10 +153,9 @@ class MongoDBPipeline:
                             upsert=True
                         )
 
-
-                    # Obtén la URL de la lista de eBay de la tabla Search_uk_E
-                    search_uk_e_item = self.collection_search_uk_e.find_one({'_id': item['_id']})
-                    ebay_listing_url = search_uk_e_item.get('ebay_url', '') if search_uk_e_item else ''
+                    # Obtén la URL de la lista de eBay de la tabla Search_us_E
+                    search_us_e_item = self.collection_search_us_e.find_one({'_id': item['_id']})
+                    ebay_listing_url = search_us_e_item.get('ebay_url', '') if search_us_e_item else ''
 
                     self.send_email(
                         item,
@@ -217,7 +210,7 @@ class MongoDBPipeline:
                     <table>
                       <tr>
                         <td>
-                          <a href="https://www.ebay.co.uk/sch/i.html?_from=R40&_nkw={asin}&_sacat=261186&LH_ItemCondition=2750%7C4000%7C5000%7C6000&LH_PrefLoc=1&LH_BIN=1&_sop=15" target="_blank">
+                          <a href="{ebay_listing_url}" target="_blank">
                             <img src="{ebay_image}" width="250" height="375" alt="eBay Image">
                           </a>
                         </td>
