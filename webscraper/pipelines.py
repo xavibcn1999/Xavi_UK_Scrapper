@@ -43,19 +43,19 @@ class MongoDBPipeline:
     def clean_cache(self):
         current_date = datetime.utcnow()
         result = self.collection_cache.delete_many({'expiry_date': {'$lt': current_date}})
-        # logging.info(f"Cache cleaned, {result.deleted_count} expired items removed.")
+        logging.info(f"Cache cleaned, {result.deleted_count} expired items removed.")
 
     def process_item(self, item, spider):
         try:
             item['product_price'] = self.convert_price(item['product_price'])
             item['shipping_fee'] = self.convert_price(item['shipping_fee']) if item.get('shipping_fee') else 0.0
         except Exception as e:
-            # logging.error(f"Error converting prices: {e}")
+            logging.error(f"Error converting prices: {e}")
             item['product_price'] = 0.0
             item['shipping_fee'] = 0.0
 
         if '_id' not in item:
-            # logging.error("El item no tiene '_id'")
+            logging.error("El item no tiene '_id'")
             return item
 
         item['item_number'] = item.get('item_number', '')
@@ -64,7 +64,7 @@ class MongoDBPipeline:
         # Extract search_key from the Search_us_E collection
         search_key = self.get_search_key_from_db(item['_id'])
         item['search_key'] = search_key
-        # logging.info(f"Extracted search_key: {search_key}")
+        logging.info(f"Extracted search_key: {search_key}")
 
         self.collection_ebay.update_one({'_id': item['_id']}, {'$set': item}, upsert=True)
         self.calculate_and_send_email(item)
@@ -87,15 +87,15 @@ class MongoDBPipeline:
     def calculate_and_send_email(self, item):
         try:
             ebay_price = round(item['product_price'] + item['shipping_fee'], 2)
-            # logging.info(f"Precio del producto en eBay: {item['product_price']}")
-            # logging.info(f"Costo de envío en eBay: {item['shipping_fee']}")
-            # logging.info(f"Precio de eBay (producto + envío): {ebay_price}")
-            # logging.debug(f"ebay_price calculado: {ebay_price}")
+            logging.info(f"Precio del producto en eBay: {item['product_price']}")
+            logging.info(f"Costo de envío en eBay: {item['shipping_fee']}")
+            logging.info(f"Precio de eBay (producto + envío): {ebay_price}")
+            logging.debug(f"ebay_price calculado: {ebay_price}")
 
             search_key = item.get('search_key')
-            # logging.info(f"Search key: {search_key}")
+            logging.info(f"Search key: {search_key}")
             if not search_key:
-                # logging.warning("Search key is empty, cannot proceed with ROI calculation")
+                logging.warning("Search key is empty, cannot proceed with ROI calculation")
                 return
 
             amazon_item = None
@@ -105,32 +105,32 @@ class MongoDBPipeline:
             #     amazon_item = self.collection_a.find_one({'ISBN13': search_key})
 
             if amazon_item:
-                # logging.info(f"Documento de Amazon recuperado: {amazon_item}")
+                logging.info(f"Documento de Amazon recuperado: {amazon_item}")
                 amazon_title = amazon_item.get('Title', 'Título no disponible')
                 amazon_used_price_str = amazon_item.get('Buy Box Used: 180 days avg.', 0)
-                # logging.info(f"Valor extraído de 'Buy Box Used: 180 days avg': {amazon_used_price_str}")
+                logging.info(f"Valor extraído de 'Buy Box Used: 180 days avg': {amazon_used_price_str}")
                 amazon_used_price = self.convert_price(amazon_used_price_str)
                 fba_fee_str = amazon_item.get('FBA Fees', 0)
                 fba_fee = self.convert_price(fba_fee_str)
-                # logging.debug(f"Precio de venta en Amazon (Buy Box Used): {amazon_used_price}")
-                # logging.debug(f"FBA Fees: {fba_fee}")
+                logging.debug(f"Precio de venta en Amazon (Buy Box Used): {amazon_used_price}")
+                logging.debug(f"FBA Fees: {fba_fee}")
 
                 referral_fee_percentage = 0.153 if amazon_used_price > 5 else 0.051
                 referral_fee = round(amazon_used_price * referral_fee_percentage, 2)
-                # logging.debug(f"Tarifa de referencia calculada: {referral_fee}")
+                logging.debug(f"Tarifa de referencia calculada: {referral_fee}")
 
                 total_cost = round(ebay_price + fba_fee + referral_fee, 2)
                 profit = round(amazon_used_price - total_cost, 2)
                 roi = round((profit / total_cost) * 100, 2) if total_cost else 0
 
-                # logging.info(f"Precio de venta en Amazon (Buy Box Used): {amazon_used_price}")
-                # logging.info(f"Tarifa de FBA: {fba_fee}")
-                # logging.info(f"Tarifa de referencia: {referral_fee}")
-                # logging.info(f"Ganancia: {profit}")
-                # logging.info(f"ROI: {roi}%")
-                # logging.debug(f"Total cost: {total_cost}")
-                # logging.debug(f"Profit: {profit}")
-                # logging.debug(f"ROI: {roi}%")
+                logging.info(f"Precio de venta en Amazon (Buy Box Used): {amazon_used_price}")
+                logging.info(f"Tarifa de FBA: {fba_fee}")
+                logging.info(f"Tarifa de referencia: {referral_fee}")
+                logging.info(f"Ganancia: {profit}")
+                logging.info(f"ROI: {roi}%")
+                logging.debug(f"Total cost: {total_cost}")
+                logging.debug(f"Profit: {profit}")
+                logging.debug(f"ROI: {roi}%")
 
                 if roi > 50:
                     current_date = datetime.utcnow()
@@ -166,12 +166,12 @@ class MongoDBPipeline:
                         ebay_listing_url  # Añade este nuevo parámetro
                     )
             else:
-                # logging.warning(f"No se encontró un artículo de Amazon correspondiente para search_key: {search_key}")
+                logging.warning(f"No se encontró un artículo de Amazon correspondiente para search_key: {search_key}")
                 pass
         except Exception as e:
-            # logging.error(f"Error calculating ROI and sending email: {e}")
-            # logging.debug(f"Detalles del error: {e}")
-            # logging.debug(f"Item: {item}")
+            logging.error(f"Error calculating ROI and sending email: {e}")
+            logging.debug(f"Detalles del error: {e}")
+            logging.debug(f"Item: {item}")
             pass
 
     def send_email(self, item, ebay_image, ebay_url, ebay_price, amazon_image, amazon_url, amazon_price, roi, amazon_title, ebay_listing_url):
