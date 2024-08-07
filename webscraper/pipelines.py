@@ -142,17 +142,13 @@ class MongoDBPipeline:
                         'expiry_date': {'$gt': current_date}
                     })
                     
-                    if cached_item:
-                        # logging.info(f"Item already exists in cache and is not expired: {item['item_number']}")
-                        return  # El ítem ya está en la caché y no ha expirado
-                    else:
+                    if not cached_item:
                         # Actualiza o inserta el ítem en la caché
                         self.collection_cache.update_one(
                             {'item_number': item.get('item_number')},
                             {'$set': {'last_checked': current_date, 'expiry_date': expiry_date}},
                             upsert=True
                         )
-
                     # Obtén la URL de la lista de eBay de la tabla Search_us_E
                     search_us_e_item = self.collection_search_us_e.find_one({'_id': item['_id']})
                     ebay_listing_url = search_us_e_item.get('ebay_url', '') if search_us_e_item else ''
