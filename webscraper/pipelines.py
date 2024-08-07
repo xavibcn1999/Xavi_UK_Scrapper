@@ -41,6 +41,9 @@ class MongoDBPipeline:
             self.collection_search_e = self.db['Search_us_E']
         else:
             raise ValueError(f"Spider {spider.name} no reconocido.")
+        
+        # Definir la moneda según el spider
+        self.currency = '£' if spider.name == 'ebay_top2' else '$'
 
     def close_spider(self, spider):
         self.clean_cache()
@@ -80,7 +83,7 @@ class MongoDBPipeline:
     def convert_price(self, price_str):
         if isinstance(price_str, str):
             price_str = price_str.replace('£', '').replace('US $', '').replace('$', '').replace('+', '').replace(',', '').strip()
-            if 'US' in price_str:
+            if 'US' in price_str or self.currency == '$':
                 return float(price_str) / self.exchange_rate
         return float(price_str)
 
@@ -205,10 +208,10 @@ class MongoDBPipeline:
                 Alerta de ROI superior al 50%:
                 - Imagen de eBay: {ebay_image}
                 - URL de eBay: {ebay_url}
-                - Precio de eBay: £{ebay_price:.2f}
+                - Precio de eBay: {self.currency}{ebay_price:.2f}
                 - Imagen de Amazon: {amazon_image}
                 - URL de Amazon: {amazon_url}
-                - Precio de Amazon: £{amazon_price:.2f}
+                - Precio de Amazon: {self.currency}{amazon_price:.2f}
                 - ROI: {roi:.2f}%
                 - Página del producto de eBay: {ebay_url}
                 """
@@ -231,8 +234,8 @@ class MongoDBPipeline:
                         </td>
                       </tr>
                     </table>
-                    <p><strong>Precio de Amazon:</strong> £{amazon_price:.2f}</p>
-                    <p><strong>Precio de eBay:</strong> £{ebay_price:.2f}</p>
+                    <p><strong>Precio de Amazon:</strong> {self.currency}{amazon_price:.2f}</p>
+                    <p><strong>Precio de eBay:</strong> {self.currency}{ebay_price:.2f}</p>
                     <p><strong>ROI:</strong> {roi:.2f}%</p>
                     <p><strong>Página del producto de eBay:</strong> <a href="{ebay_url}">URL del producto</a></p>
                   </body>
