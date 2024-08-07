@@ -117,6 +117,7 @@ class MongoDBPipeline:
                 logging.info(f"Valor extraído de 'Buy Box Used: 180 days avg': {amazon_used_price_str}")
                 amazon_used_price = self.convert_price(amazon_used_price_str)
                 fba_fee_str = amazon_item.get('FBA Fees', 0)
+                logging.info(f"Valor crudo de 'FBA Fees:': {fba_fee_str}")
                 fba_fee = self.convert_price(fba_fee_str)
                 logging.debug(f"Precio de venta en Amazon (Buy Box Used): {amazon_used_price}")
                 logging.debug(f"FBA Fees: {fba_fee}")
