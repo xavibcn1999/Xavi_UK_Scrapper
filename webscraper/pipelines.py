@@ -33,7 +33,7 @@ class MongoDBPipeline:
             self.collection_a = self.db['Search_uk_A']
             self.collection_cache = self.db['Search_uk_Cache']
             self.collection_search_e = self.db['Search_uk_E']
-        elif spider.name == 'ebay_top2 (US).py':
+        elif spider.name == 'ebay_top2_us.py':
             self.db = self.client['Xavi_US']
             self.collection_ebay = self.db['ebay_items_us']
             self.collection_a = self.db['Search_us_A']
