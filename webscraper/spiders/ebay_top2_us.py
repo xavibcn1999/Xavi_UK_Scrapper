@@ -8,8 +8,8 @@ from twisted.internet.error import DNSLookupError, TimeoutError, TCPTimedOutErro
 
 header = Headers(browser="chrome", os="win", headers=True)
 
-class EbayTop2Spider(scrapy.Spider):
-    name = 'ebay_top2'
+class EbayTop2UsSpider(scrapy.Spider):
+    name = 'ebay_top2_us'
     custom_settings = {
         'CONCURRENT_REQUESTS': 16,
         'DOWNLOAD_DELAY': 0,
