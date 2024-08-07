@@ -132,7 +132,7 @@ class MongoDBPipeline:
                 # logging.debug(f"Profit: {profit}")
                 # logging.debug(f"ROI: {roi}%")
 
-                if roi > 20:
+                if roi > 50:
                     current_date = datetime.utcnow()
                     expiry_date = current_date + timedelta(days=7)
                     
