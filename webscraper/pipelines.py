@@ -79,7 +79,7 @@ class MongoDBPipeline:
 
     def convert_price(self, price_str):
         if isinstance(price_str, str):
-            price_str = price_str.replace('£', '').replace('US $', '').replace('+', '').replace(',', '').strip()
+            price_str = price_str.replace('£', '').replace('US $', '').replace('$', '').replace('+', '').replace(',', '').strip()
             if 'US' in price_str:
                 return float(price_str) / self.exchange_rate
         return float(price_str)
