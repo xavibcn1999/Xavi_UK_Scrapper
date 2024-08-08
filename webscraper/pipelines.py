@@ -172,11 +172,11 @@ class MongoDBPipeline:
                     # Obtén la URL de la lista de eBay de la tabla Search_us_E
                     search_e_item = self.collection_search_e.find_one({'_id': item['_id']})
                     ebay_listing_url = search_e_item.get('ebay_url', '') if search_e_item else ''
-
+                    
                     self.send_email(
                         item,
-                        ebay_image=ebay_image,
-                        amazon_image=amazon_item.get('Image', ''),
+                        ebay_image_url=item['image_url'],
+                        amazon_image_url=amazon_item.get('Image', ''),
                         ebay_url=ebay_url,
                         ebay_price=ebay_price,
                         amazon_url=amazon_item.get('URL: Amazon', ''),
@@ -194,12 +194,12 @@ class MongoDBPipeline:
             logging.debug(f"Item: {item}")
             pass
 
-    def send_email(self, item, ebay_image, ebay_url, ebay_price, amazon_image, amazon_url, amazon_price, roi, amazon_title, ebay_listing_url):
+    def send_email(self, item, ebay_image_url, amazon_image_url, ebay_url, ebay_price, amazon_url, amazon_price, roi, amazon_title, ebay_listing_url):
         while True:
             try:
                 # Descargar las imágenes
-                ebay_image_data = requests.get(ebay_image).content
-                amazon_image_data = requests.get(amazon_image).content
+                ebay_image_data = requests.get(ebay_image_url).content
+                amazon_image_data = requests.get(amazon_image_url).content
 
                 account = self.gmail_accounts[self.current_account]
                 self.current_account = (self.current_account + 1) % len(self.gmail_accounts)
@@ -213,10 +213,10 @@ class MongoDBPipeline:
 
                 text = f"""\
                 Alerta de ROI superior al 50%:
-                - Imagen de eBay: {ebay_image}
+                - Imagen de eBay: {ebay_image_url}
                 - URL de eBay: {ebay_url}
                 - Precio de eBay: {self.currency}{ebay_price:.2f}
-                - Imagen de Amazon: {amazon_image}
+                - Imagen de Amazon: {amazon_image_url}
                 - URL de Amazon: {amazon_url}
                 - Precio de Amazon: {self.currency}{amazon_price:.2f}
                 - ROI: {roi:.2f}%
