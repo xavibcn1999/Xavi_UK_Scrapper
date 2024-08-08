@@ -1,15 +1,12 @@
 import smtplib
 from email.mime.text import MIMEText
 from email.mime.multipart import MIMEMultipart
-from email.mime.image import MIMEImage
 from scrapy.utils.project import get_project_settings
 from pymongo import MongoClient
 from bson import ObjectId
 import logging
 from datetime import datetime, timedelta
 import urllib.parse
-import requests
-import base64
 
 class MongoDBPipeline:
     def __init__(self):
@@ -200,14 +197,6 @@ class MongoDBPipeline:
     def send_email(self, item, ebay_image, ebay_url, ebay_price, amazon_image, amazon_url, amazon_price, roi, amazon_title, ebay_listing_url):
         while True:
             try:
-                # Descargar las imágenes
-                ebay_image_data = requests.get(ebay_image).content
-                amazon_image_data = requests.get(amazon_image).content
-
-                # Codificar las imágenes en base64
-                ebay_image_base64 = base64.b64encode(ebay_image_data).decode('utf-8')
-                amazon_image_base64 = base64.b64encode(amazon_image_data).decode('utf-8')
-
                 account = self.gmail_accounts[self.current_account]
                 self.current_account = (self.current_account + 1) % len(self.gmail_accounts)
                 sender_email = account["email"]
@@ -237,15 +226,19 @@ class MongoDBPipeline:
                     <table>
                       <tr>
                         <td>
-                          <img src="data:image/jpeg;base64,{ebay_image_base64}" width="250" height="375" alt="eBay Image">
+                          <a href="{ebay_listing_url}" target="_blank">
+                            <img src="{ebay_image}" width="250" height="375" alt="eBay Image">
+                          </a>
                         </td>
                         <td>
-                          <img src="data:image/jpeg;base64,{amazon_image_base64}" width="250" height="375" alt="Amazon Image">
+                          <a href="{amazon_url}" target="_blank">
+                            <img src="{amazon_image}" width="250" height="375" alt="Amazon Image">
+                          </a>
                         </td>
                       </tr>
                     </table>
-                    <p><strong>URL eBay en Edge:</strong> <a href="microsoft-edge:{ebay_url}">URL eBay en Edge</a></p>
-                    <p><strong>URL Amazon en Edge:</strong> <a href="microsoft-edge:{amazon_url}">URL Amazon en Edge</a></p>
+                    <p><strong>URL eBay en Edge:</strong> <a href="{ebay_url}">URL eBay en Edge</a></p>
+                    <p><strong>URL Amazon en Edge:</strong> <a href="{amazon_url}">URL Amazon en Edge</a></p>
                     <p><strong>Precio de Amazon:</strong> {self.currency}{amazon_price:.2f}</p>
                     <p><strong>Precio de eBay:</strong> {self.currency}{ebay_price:.2f}</p>
                     <p><strong>ROI:</strong> {roi:.2f}%</p>
