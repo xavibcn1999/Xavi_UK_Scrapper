@@ -1,14 +1,12 @@
 import smtplib
 from email.mime.text import MIMEText
 from email.mime.multipart import MIMEMultipart
-from email.mime.image import MIMEImage
 from scrapy.utils.project import get_project_settings
 from pymongo import MongoClient
 from bson import ObjectId
 import logging
 from datetime import datetime, timedelta
 import urllib.parse
-import requests
 
 class MongoDBPipeline:
     def __init__(self):
@@ -115,6 +113,8 @@ class MongoDBPipeline:
             amazon_item = None
             if search_key.isdigit() and len(search_key) == 10:
                 amazon_item = self.collection_a.find_one({'ASIN': search_key})
+            # elif len(search_key) == 13 and search_key.isdigit():
+            #     amazon_item = self.collection_a.find_one({'ISBN13': search_key})
 
             if amazon_item:
                 logging.info(f"Documento de Amazon recuperado: {amazon_item}")
@@ -172,18 +172,18 @@ class MongoDBPipeline:
                     # Obtén la URL de la lista de eBay de la tabla Search_us_E
                     search_e_item = self.collection_search_e.find_one({'_id': item['_id']})
                     ebay_listing_url = search_e_item.get('ebay_url', '') if search_e_item else ''
-                    
+
                     self.send_email(
                         item,
-                        ebay_image_url=item['image_url'],
-                        amazon_image_url=amazon_item.get('Image', ''),
-                        ebay_url=ebay_url,
-                        ebay_price=ebay_price,
-                        amazon_url=amazon_item.get('URL: Amazon', ''),
-                        amazon_price=amazon_used_price,
-                        roi=roi,
-                        amazon_title=amazon_title,
-                        ebay_listing_url=ebay_listing_url
+                        item['image_url'],
+                        item['product_url'],
+                        ebay_price,
+                        amazon_item.get('Image', ''),
+                        amazon_item.get('URL: Amazon', ''),
+                        amazon_used_price,
+                        roi,
+                        amazon_title,
+                        ebay_listing_url  # Añade este nuevo parámetro
                     )
             else:
                 logging.warning(f"No se encontró un artículo de Amazon correspondiente para search_key: {search_key}")
@@ -194,29 +194,25 @@ class MongoDBPipeline:
             logging.debug(f"Item: {item}")
             pass
 
-    def send_email(self, item, ebay_image_url, amazon_image_url, ebay_url, ebay_price, amazon_url, amazon_price, roi, amazon_title, ebay_listing_url):
+    def send_email(self, item, ebay_image, ebay_url, ebay_price, amazon_image, amazon_url, amazon_price, roi, amazon_title, ebay_listing_url):
         while True:
             try:
-                # Descargar las imágenes
-                ebay_image_data = requests.get(ebay_image_url).content
-                amazon_image_data = requests.get(amazon_image_url).content
-
                 account = self.gmail_accounts[self.current_account]
                 self.current_account = (self.current_account + 1) % len(self.gmail_accounts)
                 sender_email = account["email"]
                 password = account["password"]
                 receiver_email = "xavialerts@gmail.com"
-                message = MIMEMultipart("related")
+                message = MIMEMultipart("alternative")
                 message["Subject"] = f"{self.subject_prefix}{amazon_title}"
                 message["From"] = sender_email
                 message["To"] = receiver_email
 
                 text = f"""\
                 Alerta de ROI superior al 50%:
-                - Imagen de eBay: {ebay_image_url}
+                - Imagen de eBay: {ebay_image}
                 - URL de eBay: {ebay_url}
                 - Precio de eBay: {self.currency}{ebay_price:.2f}
-                - Imagen de Amazon: {amazon_image_url}
+                - Imagen de Amazon: {amazon_image}
                 - URL de Amazon: {amazon_url}
                 - Precio de Amazon: {self.currency}{amazon_price:.2f}
                 - ROI: {roi:.2f}%
@@ -230,15 +226,19 @@ class MongoDBPipeline:
                     <table>
                       <tr>
                         <td>
-                          <img src="cid:ebay_image" width="250" height="375" alt="eBay Image">
+                          <a href="{ebay_listing_url}" target="_blank">
+                            <img src="{ebay_image}" width="250" height="375" alt="eBay Image">
+                          </a>
                         </td>
                         <td>
-                          <img src="cid:amazon_image" width="250" height="375" alt="Amazon Image">
+                          <a href="{amazon_url}" target="_blank">
+                            <img src="{amazon_image}" width="250" height="375" alt="Amazon Image">
+                          </a>
                         </td>
                       </tr>
                     </table>
-                    <p><strong>URL eBay en Edge:</strong> <a href="microsoft-edge:{ebay_url}">URL eBay en Edge</a></p>
-                    <p><strong>URL Amazon en Edge:</strong> <a href="microsoft-edge:{amazon_url}">URL Amazon en Edge</a></p>
+                    <p><strong>URL eBay en Edge:</strong> <a href="{ebay_url}">URL eBay en Edge</a></p>
+                    <p><strong>URL Amazon en Edge:</strong> <a href="{amazon_url}">URL Amazon en Edge</a></p>
                     <p><strong>Precio de Amazon:</strong> {self.currency}{amazon_price:.2f}</p>
                     <p><strong>Precio de eBay:</strong> {self.currency}{ebay_price:.2f}</p>
                     <p><strong>ROI:</strong> {roi:.2f}%</p>
@@ -250,22 +250,14 @@ class MongoDBPipeline:
                 part1 = MIMEText(text, "plain")
                 part2 = MIMEText(html, "html")
 
-                # Adjuntar las partes de texto y HTML
                 message.attach(part1)
                 message.attach(part2)
 
-                # Adjuntar las imágenes con Content-ID
-                ebay_image_attachment = MIMEImage(ebay_image_data)
-                ebay_image_attachment.add_header('Content-ID', '<ebay_image>')
-                message.attach(ebay_image_attachment)
-
-                amazon_image_attachment = MIMEImage(amazon_image_data)
-                amazon_image_attachment.add_header('Content-ID', '<amazon_image>')
-                message.attach(amazon_image_attachment)
-
                 with smtplib.SMTP_SSL("smtp.gmail.com", 465) as server:
                     server.login(sender_email, password)
-                    server.sendmail(sender_email, receiver_email, message.as_string())
+                    server.sendmail(
+                        sender_email, receiver_email, message.as_string()
+                    )
                 break
             except Exception as e:
                 logging.error(f"Error sending email: {e}")
