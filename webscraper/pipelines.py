@@ -9,6 +9,7 @@ import logging
 from datetime import datetime, timedelta
 import urllib.parse
 import requests
+import base64
 
 class MongoDBPipeline:
     def __init__(self):
@@ -203,12 +204,16 @@ class MongoDBPipeline:
                 ebay_image_data = requests.get(ebay_image).content
                 amazon_image_data = requests.get(amazon_image).content
 
+                # Codificar las imágenes en base64
+                ebay_image_base64 = base64.b64encode(ebay_image_data).decode('utf-8')
+                amazon_image_base64 = base64.b64encode(amazon_image_data).decode('utf-8')
+
                 account = self.gmail_accounts[self.current_account]
                 self.current_account = (self.current_account + 1) % len(self.gmail_accounts)
                 sender_email = account["email"]
                 password = account["password"]
                 receiver_email = "xavialerts@gmail.com"
-                message = MIMEMultipart("related")
+                message = MIMEMultipart("alternative")
                 message["Subject"] = f"{self.subject_prefix}{amazon_title}"
                 message["From"] = sender_email
                 message["To"] = receiver_email
@@ -232,15 +237,15 @@ class MongoDBPipeline:
                     <table>
                       <tr>
                         <td>
-                          <img src="cid:ebay_image" width="250" height="375" alt="eBay Image">
+                          <img src="data:image/jpeg;base64,{ebay_image_base64}" width="250" height="375" alt="eBay Image">
                         </td>
                         <td>
-                          <img src="cid:amazon_image" width="250" height="375" alt="Amazon Image">
+                          <img src="data:image/jpeg;base64,{amazon_image_base64}" width="250" height="375" alt="Amazon Image">
                         </td>
                       </tr>
                     </table>
-                    <p><strong>URL eBay en Edge:</strong> <a href="{ebay_url}">URL eBay en Edge</a></p>
-                    <p><strong>URL Amazon en Edge:</strong> <a href="{amazon_url}">URL Amazon en Edge</a></p>
+                    <p><strong>URL eBay en Edge:</strong> <a href="microsoft-edge:{ebay_url}">URL eBay en Edge</a></p>
+                    <p><strong>URL Amazon en Edge:</strong> <a href="microsoft-edge:{amazon_url}">URL Amazon en Edge</a></p>
                     <p><strong>Precio de Amazon:</strong> {self.currency}{amazon_price:.2f}</p>
                     <p><strong>Precio de eBay:</strong> {self.currency}{ebay_price:.2f}</p>
                     <p><strong>ROI:</strong> {roi:.2f}%</p>
@@ -252,16 +257,8 @@ class MongoDBPipeline:
                 part1 = MIMEText(text, "plain")
                 part2 = MIMEText(html, "html")
 
-                # Adjuntar las imágenes
-                img_ebay = MIMEImage(ebay_image_data)
-                img_ebay.add_header('Content-ID', '<ebay_image>')
-                img_amazon = MIMEImage(amazon_image_data)
-                img_amazon.add_header('Content-ID', '<amazon_image>')
-
                 message.attach(part1)
                 message.attach(part2)
-                message.attach(img_ebay)
-                message.attach(img_amazon)
 
                 with smtplib.SMTP_SSL("smtp.gmail.com", 465) as server:
                     server.login(sender_email, password)
