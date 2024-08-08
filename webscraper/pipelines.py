@@ -22,6 +22,8 @@ class MongoDBPipeline:
         ]
         self.current_account = 0
         self.exchange_rate = 1.29
+        self.currency = "£"
+        self.subject_prefix = "UK-"
 
     def open_spider(self, spider):
         self.client = MongoClient(self.mongo_uri)
@@ -33,17 +35,18 @@ class MongoDBPipeline:
             self.collection_a = self.db['Search_uk_A']
             self.collection_cache = self.db['Search_uk_Cache']
             self.collection_search_e = self.db['Search_uk_E']
+            self.currency = "£"
+            self.subject_prefix = "UK-"
         elif spider.name == 'ebay_top2_us':
             self.db = self.client['Xavi_US']
             self.collection_ebay = self.db['ebay_items_us']
             self.collection_a = self.db['Search_us_A']
             self.collection_cache = self.db['Search_us_Cache']
             self.collection_search_e = self.db['Search_us_E']
+            self.currency = "$"
+            self.subject_prefix = "USA-"
         else:
             raise ValueError(f"Spider {spider.name} no reconocido.")
-        
-        # Definir la moneda según el spider
-        self.currency = '£' if spider.name == 'ebay_top2' else '$'
 
     def close_spider(self, spider):
         self.clean_cache()
@@ -76,7 +79,7 @@ class MongoDBPipeline:
         logging.info(f"Extracted search_key: {search_key}")
 
         self.collection_ebay.update_one({'_id': item['_id']}, {'$set': item}, upsert=True)
-        self.calculate_and_send_email(item)
+        self.calculate_and_send_email(item, spider)
 
         return item
 
@@ -93,7 +96,7 @@ class MongoDBPipeline:
             return search_e_item.get('search_key', '')
         return ''
 
-    def calculate_and_send_email(self, item):
+    def calculate_and_send_email(self, item, spider):
         try:
             ebay_price = round(item['product_price'] + item['shipping_fee'], 2)
             logging.info(f"Precio del producto en eBay: {item['product_price']}")
@@ -200,7 +203,7 @@ class MongoDBPipeline:
                 password = account["password"]
                 receiver_email = "xavialerts@gmail.com"
                 message = MIMEMultipart("alternative")
-                message["Subject"] = amazon_title
+                message["Subject"] = f"{self.subject_prefix}{amazon_title}"
                 message["From"] = sender_email
                 message["To"] = receiver_email
 
@@ -217,7 +220,7 @@ class MongoDBPipeline:
                 """
 
                 html = f"""\
-<html>
+                <html>
                   <body>
                     <h2>{amazon_title}</h2>
                     <table>
