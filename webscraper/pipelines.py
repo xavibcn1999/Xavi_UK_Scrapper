@@ -242,7 +242,8 @@ class MongoDBPipeline:
                     <p><strong>Precio de Amazon:</strong> {self.currency}{amazon_price:.2f}</p>
                     <p><strong>Precio de eBay:</strong> {self.currency}{ebay_price:.2f}</p>
                     <p><strong>ROI:</strong> {roi:.2f}%</p>
-                    <p><strong>Página del producto de eBay:</strong> <a href="{ebay_url}">URL del producto</a></p>                    
+                    <p><a href="{ebay_url}">URL del producto UK</a></p>
+                    <p><a href="microsoft-edge:{ebay_url}">URL del producto USA</a></p>
                   </body>
                 </html>
                 """
