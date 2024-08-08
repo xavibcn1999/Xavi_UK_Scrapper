@@ -237,8 +237,8 @@ class MongoDBPipeline:
                         </td>
                       </tr>
                     </table>
-                    <p><strong>URL eBay en Edge:</strong> <a href="microsoft-edge:{ebay_url}">Abrir en Edge</a></p>
-                    <p><strong>URL Amazon en Edge:</strong> <a href="microsoft-edge:{amazon_url}">Abrir en Edge</a></p>
+                    <p><strong>URL eBay en Edge:</strong> <a href="microsoft-edge:{ebay_url}">{ebay_url}</a></p>
+                    <p><strong>URL Amazon en Edge:</strong> <a href="microsoft-edge:{amazon_url}">{amazon_url}</a></p>
                     <p><strong>Precio de Amazon:</strong> {self.currency}{amazon_price:.2f}</p>
                     <p><strong>Precio de eBay:</strong> {self.currency}{ebay_price:.2f}</p>
                     <p><strong>ROI:</strong> {roi:.2f}%</p>
