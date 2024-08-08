@@ -217,7 +217,7 @@ class MongoDBPipeline:
                 """
 
                 html = f"""\
-                <html>
+<html>
                   <body>
                     <h2>{amazon_title}</h2>
                     <table>
@@ -234,10 +234,12 @@ class MongoDBPipeline:
                         </td>
                       </tr>
                     </table>
+                    <p><strong>URL eBay en Edge:</strong> <a href="microsoft-edge:{ebay_url}">Abrir en Edge</a></p>
+                    <p><strong>URL Amazon en Edge:</strong> <a href="microsoft-edge:{amazon_url}">Abrir en Edge</a></p>
                     <p><strong>Precio de Amazon:</strong> {self.currency}{amazon_price:.2f}</p>
                     <p><strong>Precio de eBay:</strong> {self.currency}{ebay_price:.2f}</p>
                     <p><strong>ROI:</strong> {roi:.2f}%</p>
-                    <p><strong>Página del producto de eBay:</strong> <a href="{ebay_url}">URL del producto</a></p>
+                    <p><strong>Página del producto de eBay:</strong> <a href="{ebay_url}">URL del producto</a></p>                    
                   </body>
                 </html>
                 """
